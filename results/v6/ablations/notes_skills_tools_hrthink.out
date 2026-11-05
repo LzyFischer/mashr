@@ -1,0 +1,2 @@
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+0 {'full': {'acc': 0.9231, 'cost': 6141.1}, 'no_notes': {'acc': 0.9487, 'cost': 6343.1}, 'no_skills': {'acc': 0.9295, 'cost': 6107.8}, 'no_tools': {'acc': 0.9167, 'cost': 6202.8}, 'no_notes_skills': {'acc': 0.9359, 'cost': 6414.0}, 'structure_only': {'acc': 0.9359, 'cost': 6281.5}}

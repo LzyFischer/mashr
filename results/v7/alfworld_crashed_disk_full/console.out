@@ -1,0 +1,92 @@
+task alfworld: dev-A 150, dev-B 50, test 134; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc
+starting organization: the seed
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+[cost] round 0 / dev-B eval: 16.0 min; Qwen3.5-9B: 0.15M gen + 1.85M prompt billed, 925 calls (2% cached)
+round 0 incumbent dev-B {'n': 50, 'acc': 0.82, 'cost': 10170.4, 'meta_cost': 2206.5, 'acc_hard': 0.7838, 'nodes': 1.92, 'shapes': {'planner[S]>actor[T][S]': 40, 'planner[T][S]>actor[T][S]': 5, 'actor[T][S]': 4, 'actor[T][S],planner[S]': 1}, 'n_shapes': 4, 'fallback': 0}
+[cost] round 1 / dev-A eval: 13.5 min; Qwen3.5-9B: 0.45M gen + 5.71M prompt billed, 2881 calls (2% cached)
+round 1: incumbent dev-A {'n': 150, 'acc': 0.82, 'cost': 10430.4, 'meta_cost': 2051.9, 'acc_hard': 0.7879, 'nodes': 1.91, 'shapes': {'planner[S]>actor[T][S]': 116, 'planner[T][S]>actor[T][S]': 14, 'actor[T][S]': 13, 'actor[T][S],planner[S]': 5}, 'n_shapes': 5, 'fallback': 0}
+[cost] round 1 / evolver proposals (27B): 1.2 min; Qwen3.8-27B: 0.03M gen + 0.06M prompt billed, 3 calls (0% cached)
+[cost] round 1 / dev-B gate (3 candidates): 12.8 min; Qwen3.5-9B: 0.47M gen + 6.13M prompt billed, 3168 calls (2% cached)
+  cand 0 (task-agent): 2 ops, repairs 0, dev-B {'n': 50, 'acc': 0.68, 'cost': 12357.9, 'meta_cost': 2870.1, 'acc_hard': 0.5946, 'nodes': 1.96, 'shapes': {'planner[S]>actor[T][S]': 42, 'planner[T][S]>actor[T][S]': 4, 'actor[T][S]': 2, 'actor[T][S],planner[S]': 2}, 'n_shapes': 4, 'fallback': 0}
+  cand 1 (meta-agent): 3 ops, repairs 0, dev-B {'n': 50, 'acc': 0.84, 'cost': 10002.3, 'meta_cost': 2150.5, 'acc_hard': 0.7838, 'nodes': 2.0, 'shapes': {'planner[S]>actor[T][S]': 50}, 'n_shapes': 1, 'fallback': 0}
+  cand 2 (task-agent+meta-agent): 6 ops, repairs 0, dev-B {'n': 50, 'acc': 0.9, 'cost': 10514.5, 'meta_cost': 2496.6, 'acc_hard': 0.8649, 'nodes': 2.0, 'shapes': {'planner[S]>actor[T][S]': 42, 'actor[T][S],planner[S]': 8}, 'n_shapes': 2, 'fallback': 0}
+round 1: accepted; incumbent dev-B {'n': 50, 'acc': 0.9, 'cost': 10514.5, 'meta_cost': 2496.6, 'acc_hard': 0.8649, 'nodes': 2.0, 'shapes': {'planner[S]>actor[T][S]': 42, 'actor[T][S],planner[S]': 8}, 'n_shapes': 2, 'fallback': 0}
+[cost] round 2 / dev-A eval: 6.2 min; Qwen3.5-9B: 0.45M gen + 3.37M prompt billed, 1655 calls (1% cached)
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/vjd5zr/project/mas-hr/mashr/rsi.py", line 450, in <module>
+    main()
+  File "/home/vjd5zr/project/mas-hr/mashr/rsi.py", line 372, in main
+    rows_a = evaluate(eng, pool, dev_a)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/project/mas-hr/mashr/rsi.py", line 101, in evaluate
+    return list(ex.map(one, items))
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/miniconda3/envs/tinker/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/miniconda3/envs/tinker/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/miniconda3/envs/tinker/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/miniconda3/envs/tinker/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/home/vjd5zr/miniconda3/envs/tinker/lib/python3.12/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/project/mas-hr/mashr/rsi.py", line 95, in one
+    out = eng.run(pool, it, p)
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/project/mas-hr/mashr/engine.py", line 61, in run
+    outs = [one(layer[0])]
+            ^^^^^^^^^^^^^
+  File "/home/vjd5zr/project/mas-hr/mashr/engine.py", line 58, in one
+    out = self.task.run_node(self, pool, n, item, work, n["id"] == plan["output"])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/project/mas-hr/mashr/tasks/alfworld.py", line 249, in run_node
+    env, obs, info = _start(item)
+                     ^^^^^^^^^^^^
+  File "/home/vjd5zr/project/mas-hr/mashr/tasks/alfworld.py", line 176, in _start
+    obs, info = env.reset()
+                ^^^^^^^^^^^
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/textworld/gym/envs/textworld_batch.py", line 118, in reset
+    self.batch_env.load(gamefiles)
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/textworld/envs/batch/batch_env.py", line 219, in load
+    env.load(game_file)
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/textworld/core.py", line 346, in load
+    return self._wrapped_env.load(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/alfworld/agents/environment/alfred_tw_env.py", line 45, in load
+    super().load(*args, **kwargs)
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/textworld/core.py", line 346, in load
+    return self._wrapped_env.load(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/alfworld/agents/environment/alfred_tw_env.py", line 31, in load
+    super().load(*args, **kwargs)
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/textworld/core.py", line 346, in load
+    return self._wrapped_env.load(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/textworld/core.py", line 346, in load
+    return self._wrapped_env.load(path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/textworld/envs/wrappers/generic.py", line 22, in load
+    self._wrap(textworld.start(gamefile, self.request_infos))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/textworld/helpers.py", line 43, in start
+    env = Env(request_infos)
+          ^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/textworld/envs/pddl/pddl.py", line 39, in __init__
+    self.downward_lib = fast_downward.load_lib()
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/envs/alfw/lib/python3.12/site-packages/fast_downward/interface.py", line 101, in load_lib
+    with tempfile.TemporaryDirectory() as tmpdir:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/miniconda3/envs/tinker/lib/python3.12/tempfile.py", line 886, in __init__
+    self.name = mkdtemp(suffix, prefix, dir)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vjd5zr/miniconda3/envs/tinker/lib/python3.12/tempfile.py", line 384, in mkdtemp
+    _os.mkdir(file, 0o700)
+OSError: [Errno 28] No space left on device: '/tmp/tmpmx3norb_'

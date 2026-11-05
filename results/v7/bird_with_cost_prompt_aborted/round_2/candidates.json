@@ -1,0 +1,104 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "writer",
+    "role": "Write one SQLite query. Use only conditions and formulas stated in the question or evidence. Add DISTINCT, GROUP BY, or an aggregate only when the question explicitly asks for unique items, groups, or a computed value. Select exactly the asked column(s) in order; for one value return one column, not helper ids. Run the final query and check the rows."
+   },
+   {
+    "op": "edit_agent",
+    "name": "checker",
+    "role": "Check the input query against the question and evidence. If the output columns, aggregate, conditions, and joins are correct, output it unchanged. Fix only a concrete error, such as extra/missing output columns, wrong aggregate, unasked filter, wrong value, or wrong join. Do not refactor, add DISTINCT/GROUP BY, or rewrite a correct query."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.52,
+   "cost": 3356.4,
+   "meta_cost": 811.6,
+   "acc_hard": 0.5238,
+   "nodes": 1.9,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 45,
+    "writer[T][S]": 4,
+    "writer[T]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 1
+  }
+ },
+ {
+  "layers": [
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Joins, aggregates, ratios, superlatives, or named values: writer with run_sql, then checker with run_sql. Add find_values to writer only when a specific named value must be matched exactly."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "At most 2 skills per node. Final node always gets output_columns. Add top_k_ties for highest/lowest/most/least. Add null_empty for missing/NULL/without. Add value_matching and find_values only for specific named values. Add evidence_first only when evidence is present."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.42,
+   "cost": 2735.1,
+   "meta_cost": 940.3,
+   "acc_hard": 0.4286,
+   "nodes": 1.84,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 40,
+    "writer[T][S]": 9,
+    "writer[T][S],writer[T][S]>checker[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "Skills: evidence_first when evidence is present; null_empty for missing/without/'has a'; top_k_ties for highest/lowest/most/least; dates_text for dates; ratio_percentage for division; value_matching for named values; join_paths for joins; output_columns on the final node. Never give counting."
+   },
+   {
+    "op": "add_rule",
+    "text": "Always end the team code with return <node>, where <node> is a variable defined above (the final node). Never omit return or return an undefined name."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.48,
+   "cost": 3283.8,
+   "meta_cost": 914.4,
+   "acc_hard": 0.3333,
+   "nodes": 2.0,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 46,
+    "writer[T][S]": 2,
+    "writer[T][S],writer[T][S]>checker[T][S]": 2
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  }
+ }
+]

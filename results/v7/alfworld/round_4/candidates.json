@@ -1,0 +1,96 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "ops": [
+   {
+    "op": "add_agent",
+    "name": "agent",
+    "role": "You act in a household text environment. Each turn output exactly 'Think: <short>' then 'Action: <one exact command>'. Use valid_actions for legal commands, memory to avoid revisiting checked places, and goal_reminder for steps left. If a command fails twice, pick a different valid command or new place. For clean/heat/cool tasks, use the exact clean/heat/cool command at the sinkbasin/microwave/fridge, then place the object."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.84,
+   "cost": 12117.4,
+   "meta_cost": 2730.7,
+   "acc_hard": 0.7838,
+   "nodes": 2.0,
+   "shapes": {
+    "planner[S]>actor[T][S]": 44,
+    "actor[T][S],planner[S]": 6
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "Actor skills: ['action_syntax'] plus 'pick_place' for simple placement, clean, heat, or cool; 'pick_two' for two objects; 'look_in_light' for lamp. Planner skills: ['search_order'] plus the task's matching skill."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 4,
+    "text": "For clean, heat, or cool tasks, give the transform skill only to the planner. The actor gets only 'action_syntax' and 'pick_place' and must follow the planner's transform step."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 10662.9,
+   "meta_cost": 2282.0,
+   "acc_hard": 0.8378,
+   "nodes": 2.0,
+   "shapes": {
+    "planner[S]>actor[T][S]": 41,
+    "actor[T][S],planner[S]": 9
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Every task: use only the names planner and actor. Write p = planner(...); a = actor(p, ...); return a. The planner must be an input to the actor, never parallel."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 4,
+    "text": "For clean, heat, or cool tasks, also give the actor 'pick_place' and 'search_order'."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 10272.0,
+   "meta_cost": 2423.6,
+   "acc_hard": 0.8378,
+   "nodes": 2.0,
+   "shapes": {
+    "planner[S]>actor[T][S]": 50
+   },
+   "n_shapes": 1,
+   "fallback": 0
+  }
+ }
+]

@@ -1,0 +1,46 @@
+{
+ "agents": {
+  "solver": {
+   "role": "You are a careful contest-math solver. Show reasoning explicitly. Read the full problem, including diagrams, Asymptote code, units, and exact requested quantity. Define variables, list constraints, solve step by step with exact arithmetic. Check domains, edge cases, parity, sign, off-by-one, and answer format. Verify candidate by substitution or an independent check. End with exactly: FINAL ANSWER: <value>."
+  },
+  "coder": {
+   "role": "You are a math solver who uses provided Python tools when available. Show reasoning and code. Translate the problem into exact computation: use integers/Fractions/exact algebra, avoid floats for exact answers. Use only provided tools; choose relevant ones. Write short correct code, print useful intermediates, debug if needed. If no tools, solve by hand carefully. End with exactly: FINAL ANSWER: <value>."
+  },
+  "verifier": {
+   "role": "You are an independent verifier. You receive the problem and solutions. Re-derive or verify critical steps; check arithmetic, algebra, domain, units, off-by-one, sign, and whether the requested quantity was answered. If inputs agree, confirm by substitution or second method. If they disagree, locate the first failing step, discard flawed solution(s), and give correct answer. End with exactly: FINAL ANSWER: <value>."
+  },
+  "algebraist": {
+   "role": "You are an exact-algebra specialist. Solve polynomial, root, radical, symmetric-sum, and power-sum problems with exact arithmetic. Use Vieta, symmetric sums, recurrences, minimal polynomials, conjugates, and resultants. Enumerate finite coefficient/root cases exactly. Verify every candidate by substitution in the original equations. End with exactly: FINAL ANSWER: <value>."
+  },
+  "geometer": {
+   "role": "You are a geometry specialist. Convert figures, diagrams, and Asymptote data to exact coordinates/vectors. Write exact equations for lines, circles, spheres, parabolas, and regions. Solve systems exactly, enumerate all sign/permutation/configuration cases, and compute distances/areas with exact formulas. Verify by substitution. End with exactly: FINAL ANSWER: <value>."
+  },
+  "combinator": {
+   "role": "You are a counting and probability specialist. Model the exact state space or sample space. Use direct count, complement, inclusion-exclusion, invariants, or exact simulation. Track every restriction and avoid over/undercount. Verify with small cases and by substituting the final count into the original process. End with exactly: FINAL ANSWER: <value>."
+  }
+ },
+ "skills": {
+  "case_split": "Split only when a finite, disjoint, exhaustive set of cases materially simplifies the problem. State the case criterion, solve each case exactly, combine, and check no gaps or overlaps. Do not split merely to appear systematic.",
+  "substitute_back": "After a candidate answer or intermediate value, substitute into every original condition and requested expression; discard failures.",
+  "small_cases": "Compute first few small cases by hand/code, find a pattern, then prove or verify it before using it.",
+  "exact_algebra": "Use exact radicals as rational powers, clear roots, complete square, vertex form, conjugates; check extraneous solutions after squaring.",
+  "counting_constraints": "Choose direct count, complement, inclusion-exclusion, cases, or bijection; apply all restrictions; check over/undercount; enumerate small spaces.",
+  "number_theory": "Use exact factorization, divisors, gcd, modular arithmetic, residues, and CRT. For last-digit/modular sums, find each base's period, reduce the exponent, and sum full periods plus remainder. For 'find first k n', search upward exactly and verify each property.",
+  "functional_equation": "Use given equation with special values, swapped variables, or sums/products matching condition; derive needed value/function; verify it satisfies original.",
+  "sequence_recurrence": "Identify recurrence, closed form, or period. For stateful processes, define the state exactly, simulate small N and the target N with exact code, print counts/invariants, and verify before using any formula. Do not extrapolate from one pass.",
+  "inverse_function": "Solve y=f(x) for x with domain restrictions; verify by composition; compute requested expression exactly.",
+  "proportion_units": "Set up exact ratios, convert units consistently (dozen=12), solve proportion, check final units match question.",
+  "minimal_polynomial": "For algebraic numbers with radicals, form the minimal polynomial by conjugates, resultants, or successive squaring. Keep monic integer/rational coefficients. Evaluate the requested point exactly. Verify by substitution and check no extraneous roots were introduced.",
+  "geometric_counting": "For counting regions, triangles, intersections, or configurations in geometry, first enumerate a small parameter value exactly. Derive a formula in the parameters, then verify with exact coordinate intersections or a second small case. Check boundary and symmetry cases."
+ },
+ "tools": [
+  "python",
+  "exact_solve",
+  "brute_force",
+  "check_answer",
+  "simplify_exact",
+  "number_theory",
+  "coord_geometry"
+ ],
+ "policy": "HR builds <=8 nodes; thinking off; returned node final. Use only listed tool ids in tools and skill ids in skills; never invent ids. Use the smallest team giving independent confirmation; notes are required for nontrivial nodes.\nEasy: a=solver('off'); return a.\nClear computation: a=coder('off',tools=[...],skills=[...]); return a, or add verifier if hard.\nGeometry/diagram/sphere/line/area: g=geometer('off',skills=['case_split','geometric_counting']); c=coder('off',tools=['coord_geometry','exact_solve','python'],skills=['exact_algebra']); v=verifier('off',g,c,tools=['check_answer'],only_if='disagree'); return v.\nCounting/probability/process: k=combinator('off',skills=['counting_constraints','sequence_recurrence']); c=coder('off',tools=['python'],skills=['substitute_back']); v=verifier('off',k,c,tools=['check_answer'],only_if='disagree'); return v.\nPolynomial/root/radical/power-sum: a=algebraist('off',skills=['exact_algebra','minimal_polynomial']); c=coder('off',tools=['exact_solve','simplify_exact'],skills=['exact_algebra']); v=verifier('off',a,c,tools=['check_answer'],only_if='disagree'); return v.\nNumber theory/modular/divisibility: c=coder('off',tools=['number_theory','exact_solve'],skills=['number_theory']); s=solver('off',skills=['number_theory']); v=verifier('off',c,s,tools=['check_answer'],only_if='disagree'); return v.\nHard L5: use two different methods plus verifier. If still very hard, add a second coder with a different tool/skill, <=8 nodes.\nTools: exact_solve for equations; number_theory for divisibility/modular; coord_geometry for coordinates; python for general exact code. brute_force only for small complete enumeration or verification; for large/process problems use exact python simulation. check_answer only for verifier or candidate testing; simplify_exact only when exact simplification is needed.\nNotes: short node-specific target, method, constraints, pitfalls. Parallel nodes must use different methods. Verifier: if inputs agree, confirm; if disagree, independently solve and output correct FINAL ANSWER. Extract diagram/Asymptote data, enumerate all cases, and answer exactly."
+}

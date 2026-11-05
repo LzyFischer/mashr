@@ -1,0 +1,256 @@
+[
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Read the full problem, including diagrams, Asymptote code, units, and exact requested quantity. Define variables, list constraints, solve step by step with exact arithmetic. Check domains, edge cases, parity, sign, off-by-one, and answer format. Verify candidates by substitution or an independent check. If a pattern appears, prove it or verify enough nontrivial cases before using it. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Solver is a needed producer (leave-one-out needed 8) but weak L5 wrong examples show pattern-guessing and missed configurations; this is a basic always-on discipline, so it belongs in the solver self-harness."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a math solver who uses provided Python tools when available. Show reasoning and code. Translate the problem into exact computation: use integers/Fractions/exact algebra, avoid floats. Prefer exact_solve for equations, python for general exact code, number_theory for divisibility/modular, coord_geometry for coordinates/areas. Use brute_force only for tiny exhaustive checks; do not rely on check_answer or simplify_exact. If no tools, solve by hand carefully. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Coder is a needed producer (leave-one-out needed 10), and residual evidence shows brute_force, check_answer, and simplify_exact correlate with lower node accuracy while python/exact_solve/number_theory do not; tool discipline is a basic coder practice, so it belongs in the coder self-harness."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are an independent verifier. You receive the problem and solutions. Re-derive or verify critical steps; check arithmetic, algebra, domain, units, off-by-one, sign, and whether the requested quantity was answered. If inputs agree, confirm by substitution or a second method. If they disagree, locate the first failing step, discard flawed solution(s), and give the correct answer. Use tools only to check explicit final candidates or heavy exact computations; do not let tool output override a verified derivation. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Verifier is needed (leave-one-out needed 10, changed 31 with 20 to correct and 1 to wrong), but check_answer correlates with lower node accuracy; the verifier should keep independent verification as its core role and use tools cautiously, which is always-on verifier behavior."
+   },
+   {
+    "op": "edit_skill",
+    "id": "case_split",
+    "text": "Split only when the problem has genuinely different regimes (sign, parity, range, membership, configuration). Make cases disjoint and exhaustive, solve each exactly, check boundaries, then combine. Do not invent unnecessary cases or use splitting to avoid a direct derivation.",
+    "why": "case_split was given to 128 nodes with 71% accuracy versus 79% otherwise, so the current generic advice is residue; a tighter when-to-use rule is a conditional technique, so it belongs in the skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "small_cases",
+    "text": "Use small cases only to test a proposed exact formula, recurrence, or invariant. Never answer from a pattern alone. Derive or prove the rule, then verify it on at least three nontrivial cases, including edge cases and the requested size if feasible.",
+    "why": "small_cases was given to 21 nodes with 67% accuracy versus 76% otherwise, and a wrong L5 counting problem used pattern/small-case reasoning; the safe use of small cases is a conditional technique, so it belongs in the skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "geometry_diagrams",
+    "text": "Convert figures to exact coordinates or invariant relations. Use symmetry, similar triangles, line/circle/conic equations, shoelace/area formulas, and exact radicals. For counting intersections/triangles, classify cell types, derive a formula, and verify small parameters. Check all configurations and the exact requested quantity.",
+    "why": "geometry_diagrams was strongly harmful (25 nodes, 52% vs 78% otherwise) while Geometry L5 is the weakest category (57%); replacing the generic diagram advice with an exact geometry/counting protocol is a conditional technique, so it belongs in the skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "number_theory",
+    "text": "Use exact factorization, gcd, modular arithmetic, residues, and CRT. For tau/sigma, factor n exactly and apply multiplicative formulas. For 'least n' searches, increment n exactly and verify each hit until the requested count is reached. For digit sums, use residue cycles and exact block sums.",
+    "why": "number_theory skill and tool both correlate with higher node accuracy (80%/81% vs 75%), but a wrong L5 tau(n) problem and a wrong modular digit-sum problem show missing search/modular protocol; this is conditional number-theory technique, so it belongs in the skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "sequence_recurrence",
+    "text": "Identify the exact recurrence, invariant, or period. Compute initial terms exactly. For long discrete processes, simulate the exact state in Python for small sizes and the target size, then derive or verify the formula. Do not infer the final answer from a few terms alone.",
+    "why": "sequence_recurrence had small negative evidence (3 nodes, 67% vs 76%) and a wrong locker-process problem used sequence reasoning; safe recurrence/simulation guidance is a conditional technique, so it belongs in the skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "roots_power_sums",
+    "why": "roots_power_sums was strongly harmful (10 nodes, 40% vs 77% otherwise) and its roots-of-unity/power-sum framing does not match the weak Intermediate Algebra L5 root-relation problems better than a polynomial-root skill; removing it reduces residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "functional_equation does not appear in the residual usage table, meaning it was not handed out in the diagnostic run; with no evidence of benefit it is always-available residue, so remove it."
+   },
+   {
+    "op": "add_skill",
+    "id": "polynomial_roots",
+    "text": "For roots of polynomials, use Vieta, symmetric sums, Newton sums, resultants, or coefficient comparison. For radical roots, isolate and square stepwise while tracking degree, then verify monic/minimal. For shifted or transformed roots, express the new polynomial and compare coefficients. Check all roots satisfy the original conditions.",
+    "why": "Several wrong Intermediate Algebra L5 examples involve root relations, minimal polynomials of radicals, and shifted roots; exact_algebra was positive but not specific enough. This is a conditional algebra technique, so it belongs in the skill library."
+   },
+   {
+    "op": "set_policy",
+    "text": "HR builds <=8 nodes from solver, coder, verifier; thinking off; returned node final. Every node gets a concise note: target, method, constraints, pitfalls. Use only existing tool/skill ids; if a technique is missing, put it in the note.\n\nDifficulty:\nEasy: one node. Prefer solver with 0-2 skills; use coder with an exact tool only if computation is core. Return it.\nMedium: two producers with different methods + verifier over both, only_if='disagree'. Return verifier.\nHard: L5 geometry, intermediate algebra, precalculus, counting/search, multiple configurations, or exact elimination. Use 3 producers with distinct methods + verifier over all, only_if='disagree'. Add a second verifier only if the first is likely to fail and total <=8. Return the final verifier.\n\nWiring: If >=2 producers exist, final must be a verifier over all producers. Never return one producer while another independent producer exists. Parallel producers must use different methods: analytic vs exact code vs combinatorial/simulation.\n\nTools: give coder only matched tools: python for general exact code, exact_solve for equations, number_theory for divisibility/modular, coord_geometry for coordinates/areas. Avoid brute_force unless the exhaustive space is tiny and exact. Avoid check_answer and simplify_exact for producers. Verifier gets no tools by default; give python or exact_solve only if checking requires heavy computation.\n\nSkills: give producers 1-3 matching skills; verifier gets no skills. Use case_split only for real disjoint regimes; substitute_back for candidates; exact_algebra for radicals/algebra; counting_constraints for counting; number_theory for divisibility/modular/divisor functions; geometry_diagrams for geometry/diagrams; polynomial_roots for roots/polynomials; sequence_recurrence for processes/sequences; inverse_function or proportion_units only when directly relevant.\n\nNotes: be problem-specific. For geometry, state coordinate setup and all configurations. For counting, state inclusion/exclusion or simulation bounds. For roots, state Vieta/resultant/elimination path. For search, state exact stopping condition. Verifier note: compare inputs; if agree confirm; if disagree find first error and output correct FINAL ANSWER.",
+    "why": "The report shows single-node easy questions are cheap and accurate, two-producer+verifier is the workhorse, weak L5 categories need more independent methods, bare producer returns are risky (coder,solver no verifier 50%), verifier skills are unsupported, and harmful tools/skills must be suppressed. Staffing, wiring, tool/skill selection, and note policy are HR decisions, so they belong in the handbook."
+   }
+  ],
+  "repairs": 0,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.875,
+   "cost": 6041.4,
+   "hr_cost": 843.4,
+   "acc_hard": 0.8684,
+   "nodes": 2.83,
+   "shapes": {
+    "coder.off[T][S],solver.off[S]>verifier.off[T]?": 137,
+    "solver.off[S]": 12,
+    "coder.off[T][S],coder.off[T][S]>verifier.off[T]?": 10,
+    "coder.off[T][S],solver.off[S]>verifier.off?": 10
+   },
+   "n_shapes": 22,
+   "repaired": 3,
+   "retried": 7,
+   "fallback": 1
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a math solver who uses only provided Python tools. Show reasoning and code. Translate the problem into exact computation: integers/Fractions/sympy exact algebra; no floats for exact answers. Prefer formulas, recurrences, exact_solve, number_theory, coord_geometry. Use brute_force only for a tiny explicitly finite space with an exact state update. Print useful intermediates and the final exact value. If no tools, solve by hand exactly. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Coder nodes are needed (LOO 10/61) but tool evidence shows brute_force 58% vs 77% otherwise and check_answer/simplify_exact negative; this is a basic tool-use practice, so it belongs in the coder self harness."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are an independent verifier. You receive the problem and solutions. If inputs agree, do one independent check of the key equation/substitution. If they disagree, first re-derive the decisive step from the problem, then locate the first invalid step in each input. Do not choose by length, style, or tool output. If both are flawed, solve the remaining step independently. Answer only the requested quantity, with units/format exact. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Verifier is net positive (LOO needed 10/60, changed to correct 20 vs to wrong 1), but disagreements remain hard: only_if run questions correct 67% vs skipped 99%. The improvement needed is a general disagreement-resolution practice, so it belongs in the verifier role."
+   },
+   {
+    "op": "edit_skill",
+    "id": "case_split",
+    "text": "Use only when conditions force disjoint regimes (signs, parity, branches, configurations). List all forced cases before solving; solve each exactly; combine the requested quantity; check no gaps/overlaps. Do not invent cases.",
+    "why": "case_split was given often and correlated with lower accuracy (71% vs 79% otherwise), while wrong all-possible-values geometry suggests case omission. Editing the technique text, not the role, keeps it residual and targeted."
+   },
+   {
+    "op": "edit_skill",
+    "id": "geometry_diagrams",
+    "text": "Use coordinates only from given data; verify each coordinate/distance against original equations. For line/region/triangle counts, derive a combinatorial formula or exact small-config enumeration. No floats; check degeneracies, boundaries, and all sign/permutation cases.",
+    "why": "Geometry L5 is weakest (57%) and geometry_diagrams was strongly harmful as written (52% vs 78% otherwise). The fix is a safer geometry technique, so it belongs in the skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "roots_power_sums",
+    "text": "For roots of unity or polynomial roots, use exact recurrences from the characteristic polynomial; compute low powers exactly; use periods/modular arithmetic only after proving the period. Do not brute-force all pairs unless the pair space is tiny.",
+    "why": "roots_power_sums was strongly harmful (40% vs 77% otherwise) and appears in expensive root-of-unity questions. The needed lesson is a specific technique, so edit the skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "small_cases",
+    "text": "Compute small cases only to test a proven formula or an exact simulation. Do not extrapolate a pattern without proof. For processes, simulate the exact state for the actual size when the state space is small.",
+    "why": "small_cases was negative (67% vs 76% otherwise) and a locker-process wrong answer used pattern guessing. This is a technique guardrail, so it belongs in the skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "sequence_recurrence",
+    "text": "Identify the exact recurrence, closed form, or period. Compute initial terms exactly; verify a period by returning to the start; use exact finite sums; handle remainders. Do not guess from few terms.",
+    "why": "sequence_recurrence was negative when used and appears in process/sequence errors. It is a conditional technique, so the fix belongs in the skill text."
+   },
+   {
+    "op": "edit_skill",
+    "id": "number_theory",
+    "text": "Use exact factorization, divisors, gcd, modular residues, CRT. For last digits/cycles, compute the period exactly, verify with small terms, then multiply complete blocks and add the remainder. List divisors only when small.",
+    "why": "Number theory is a weak-ish L5 category and a ones-digit modular cycle was wrong. This is a number-theory technique, so it belongs in the skill."
+   },
+   {
+    "op": "set_policy",
+    "text": "HR builds <=8 nodes from solver, coder, verifier; thinking off; returned node final. Use only listed tool/skill ids; if none match, give none.\nStaffing:\n- Trivial direct: a=solver('off'); return a.\n- Standard: a=coder('off',tools=[...],skills=[...]); b=solver('off',skills=[...]); v=verifier('off',a,b,only_if='disagree'); return v.\n- Hard/L5/multi-constraint/all possible values/large count/exact algebra: use 3 independent workers + verifier, e.g. two coders with different tools/skills and one solver, or two solvers with different skills and one coder. Verifier only_if='disagree'. Add a second verifier only if a 3-way tie or unresolved conflict is likely, <=8 nodes.\nTools: give workers only relevant exact tools: python, exact_solve, number_theory, coord_geometry. Avoid brute_force, check_answer, simplify_exact; use brute_force only for tiny exact finite spaces. Verifier gets no tools by default; if computation is unavoidable, give python only, never check_answer/simplify/brute_force.\nSkills: give 1-3 matching skills. exact_algebra for radicals/equations/minimal polynomials; counting_constraints for counts; number_theory for divisibility/modular; substitute_back for candidates; geometry_diagrams for coordinate geometry; case_split only for forced regimes; roots_power_sums for roots/power sums; sequence_recurrence for sequences; functional_equation for f(x); inverse_function/proportion_units only when direct.\nNotes: every node gets a short note: target quantity, method, key constraints, pitfalls. Parallel workers must use different methods. Verifier note: if agree, one independent check; if disagree, re-derive decisive step, find first error, output correct FINAL ANSWER.\nSpecifics: extract diagram/Asymptote data; for all possible values enumerate sign/permutation/branch cases; for large counts prefer formulas over brute force; for remainders compute exact integer then mod; answers exact.",
+    "why": "The report shows the standard 2-worker + conditional verifier architecture is common and verifier is needed, but L5 categories are weak and HR mostly used only 2 workers there. Tool evidence says avoid brute_force/check_answer/simplify_exact. This is staffing/equipment/briefing policy, so it belongs in the handbook."
+   }
+  ],
+  "repairs": 0,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.89,
+   "cost": 6144.2,
+   "hr_cost": 807.6,
+   "acc_hard": 0.886,
+   "nodes": 2.69,
+   "shapes": {
+    "coder.off[T][S],solver.off[S]>verifier.off[T]?": 135,
+    "solver.off[S]": 19,
+    "coder.off[T][S],coder.off[T][S]>verifier.off[T]?": 15,
+    "coder.off[T][S],solver.off[S]": 10
+   },
+   "n_shapes": 17,
+   "repaired": 3,
+   "retried": 6,
+   "fallback": 1
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "add_agent",
+    "name": "algebraist",
+    "role": "You are an exact-algebra specialist. Solve polynomial, root, radical, symmetric-sum, and power-sum problems with exact arithmetic. Use Vieta, symmetric sums, recurrences, minimal polynomials, conjugates, and resultants. Enumerate finite coefficient/root cases exactly. Verify every candidate by substitution in the original equations. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Intermediate Algebra L5 is 59% and failures include power sums, minimal polynomials, and cubic root systems; a role makes these exact-algebra practices always-on for algebra nodes rather than relying on weak conditional skills."
+   },
+   {
+    "op": "add_agent",
+    "name": "geometer",
+    "role": "You are a geometry specialist. Convert figures, diagrams, and Asymptote data to exact coordinates/vectors. Write exact equations for lines, circles, spheres, parabolas, and regions. Solve systems exactly, enumerate all sign/permutation/configuration cases, and compute distances/areas with exact formulas. Verify by substitution. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Geometry L5 is 57% and the geometry_diagrams skill was 52% correct when given vs 78% otherwise; a dedicated role puts rigorous coordinate geometry on the employee layer for geometry problems."
+   },
+   {
+    "op": "add_agent",
+    "name": "combinator",
+    "role": "You are a counting and probability specialist. Model the exact state space or sample space. Use direct count, complement, inclusion-exclusion, invariants, or exact simulation. Track every restriction and avoid over/undercount. Verify with small cases and by substituting the final count into the original process. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Counting & Probability L5 is 78% and failures include an iterative locker process and geometric counting; a combinator role makes exact state/invariant discipline always-on for counting nodes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "geometry_diagrams",
+    "why": "Given to 25 nodes, answer correct was 52% vs 78% otherwise, and Geometry L5 is 57%; the vague diagram skill is residue. The new geometer role carries basic coordinate-geometry practice, and geometric_counting covers the counting-geometry technique."
+   },
+   {
+    "op": "remove_skill",
+    "id": "roots_power_sums",
+    "why": "Given to 10 nodes, answer correct was 40% vs 77% otherwise; the skill is associated with failures on power-sum and roots-of-unity problems. The algebraist role now carries the needed power-sum/recurrence practice, and the new minimal_polynomial skill covers radical algebraic numbers."
+   },
+   {
+    "op": "add_skill",
+    "id": "minimal_polynomial",
+    "text": "For algebraic numbers with radicals, form the minimal polynomial by conjugates, resultants, or successive squaring. Keep monic integer/rational coefficients. Evaluate the requested point exactly. Verify by substitution and check no extraneous roots were introduced.",
+    "why": "A held-out L5 failure asked for P(1) for the monic polynomial with root sqrt2+sqrt3+sqrt5; this is a conditional technique, not a general employee habit, so it belongs in the skill library."
+   },
+   {
+    "op": "add_skill",
+    "id": "geometric_counting",
+    "text": "For counting regions, triangles, intersections, or configurations in geometry, first enumerate a small parameter value exactly. Derive a formula in the parameters, then verify with exact coordinate intersections or a second small case. Check boundary and symmetry cases.",
+    "why": "Geometry/counting L5 failures include 63 lines forming triangles and parabola intersection counts; this is a problem-specific technique better placed in skills than in the always-on geometer role."
+   },
+   {
+    "op": "edit_skill",
+    "id": "case_split",
+    "text": "Split only when a finite, disjoint, exhaustive set of cases materially simplifies the problem. State the case criterion, solve each case exactly, combine, and check no gaps or overlaps. Do not split merely to appear systematic.",
+    "why": "case_split was given to 128 nodes but 71% correct vs 79% otherwise, suggesting overuse; tightening it as a conditional technique reduces residue without removing a useful method."
+   },
+   {
+    "op": "edit_skill",
+    "id": "sequence_recurrence",
+    "text": "Identify recurrence, closed form, or period. For stateful processes, define the state exactly, simulate small N and the target N with exact code, print counts/invariants, and verify before using any formula. Do not extrapolate from one pass.",
+    "why": "The locker-process failure used a process but got the final state wrong; this skill should teach exact simulation for iterative processes, not only recurrences."
+   },
+   {
+    "op": "edit_skill",
+    "id": "number_theory",
+    "text": "Use exact factorization, divisors, gcd, modular arithmetic, residues, and CRT. For last-digit/modular sums, find each base's period, reduce the exponent, and sum full periods plus remainder. For 'find first k n', search upward exactly and verify each property.",
+    "why": "Number Theory L5 failures include a ones-digit power sum and finding first six tau(n)+tau(n+1)=7; these are conditional number-theory techniques, so they belong in the skill rather than the general coder role."
+   },
+   {
+    "op": "set_policy",
+    "text": "HR builds <=8 nodes; thinking off; returned node final. Use only listed tool ids in tools and skill ids in skills; never invent ids. Use the smallest team giving independent confirmation; notes are required for nontrivial nodes.\nEasy: a=solver('off'); return a.\nClear computation: a=coder('off',tools=[...],skills=[...]); return a, or add verifier if hard.\nGeometry/diagram/sphere/line/area: g=geometer('off',skills=['case_split','geometric_counting']); c=coder('off',tools=['coord_geometry','exact_solve','python'],skills=['exact_algebra']); v=verifier('off',g,c,tools=['check_answer'],only_if='disagree'); return v.\nCounting/probability/process: k=combinator('off',skills=['counting_constraints','sequence_recurrence']); c=coder('off',tools=['python'],skills=['substitute_back']); v=verifier('off',k,c,tools=['check_answer'],only_if='disagree'); return v.\nPolynomial/root/radical/power-sum: a=algebraist('off',skills=['exact_algebra','minimal_polynomial']); c=coder('off',tools=['exact_solve','simplify_exact'],skills=['exact_algebra']); v=verifier('off',a,c,tools=['check_answer'],only_if='disagree'); return v.\nNumber theory/modular/divisibility: c=coder('off',tools=['number_theory','exact_solve'],skills=['number_theory']); s=solver('off',skills=['number_theory']); v=verifier('off',c,s,tools=['check_answer'],only_if='disagree'); return v.\nHard L5: use two different methods plus verifier. If still very hard, add a second coder with a different tool/skill, <=8 nodes.\nTools: exact_solve for equations; number_theory for divisibility/modular; coord_geometry for coordinates; python for general exact code. brute_force only for small complete enumeration or verification; for large/process problems use exact python simulation. check_answer only for verifier or candidate testing; simplify_exact only when exact simplification is needed.\nNotes: short node-specific target, method, constraints, pitfalls. Parallel nodes must use different methods. Verifier: if inputs agree, confirm; if disagree, independently solve and output correct FINAL ANSWER. Extract diagram/Asymptote data, enumerate all cases, and answer exactly.",
+    "why": "The report shows the default coder+solver+verifier architecture is strong but weak on L5 geometry, algebra, counting, and precalculus; the handbook routes those categories to the new specialists, restricts low-evidence tools/skills, and prevents unknown ids that were dropped from HR output."
+   }
+  ],
+  "repairs": 0,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.89,
+   "cost": 5931.3,
+   "hr_cost": 809.5,
+   "acc_hard": 0.8684,
+   "nodes": 2.58,
+   "shapes": {
+    "coder.off[T][S],solver.off[S]>verifier.off[T]?": 67,
+    "solver.off[S]": 22,
+    "coder.off[T][S],geometer.off[T][S]>verifier.off[T]?": 21,
+    "coder.off[T][S],combinator.off[S]>verifier.off[T]?": 18
+   },
+   "n_shapes": 36,
+   "repaired": 1,
+   "retried": 4,
+   "fallback": 1
+  }
+ }
+]

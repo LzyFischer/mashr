@@ -1,0 +1,7 @@
+task alfworld: dev-A 150, dev-B 50, test 134; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc
+starting organization: the seed
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+[cost] round 0 / dev-B eval: 9.9 min; Qwen3.5-9B: 0.12M gen + 1.75M prompt billed, 978 calls (11% cached)
+round 0 incumbent dev-B {'n': 50, 'acc': 0.78, 'cost': 10328.2, 'meta_cost': 1783.1, 'acc_hard': 0.7297, 'nodes': 1.9, 'shapes': {'planner[S]>actor[T][S]': 40, 'actor[T][S]': 5, 'actor[T][S],planner[S]': 3, 'planner[T][S]>actor[T][S]': 2}, 'n_shapes': 4, 'fallback': 0}
+[cost] round 1 / dev-A eval: 15.0 min; Qwen3.5-9B: 0.35M gen + 5.43M prompt billed, 2967 calls (6% cached)
+round 1: incumbent dev-A {'n': 150, 'acc': 0.8333, 'cost': 10144.4, 'meta_cost': 1471.7, 'acc_hard': 0.7677, 'nodes': 1.84, 'shapes': {'planner[S]>actor[T][S]': 111, 'actor[T][S]': 24, 'actor[T][S],planner[S]': 7, 'planner[T][S]>actor[T][S]': 6}, 'n_shapes': 5, 'fallback': 0}

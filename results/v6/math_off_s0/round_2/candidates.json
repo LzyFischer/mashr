@@ -1,0 +1,188 @@
+[
+ {
+  "ops": null,
+  "repairs": 2,
+  "fail": [
+   "skill 'diagram_geometry': id letters/digits/_ and text 1..400 chars",
+   "policy must be a string of at most 2500 chars"
+  ]
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "geometer",
+    "role": "You are a diagram/Asymptote exact solver. First transcribe every exact coordinate, length, angle, and fill/draw command. Decide exactly which region or quantity is requested, especially shaded versus non-shaded. Use exact rational/surd arithmetic in Python for distances, intersections, areas, and perimeters; do not use coord_geometry or infer unlabeled measurements. For 3D plane-distance problems, consider all sign choices. End with exactly: Answer: <final value>.",
+    "why": "Geometer nodes were 40% correct and diagram_geometry/coord_geometry were strongly negative; the observed geometry failures came from mis-tracing requested regions and using coord_geometry. This keeps the agent for diagrams while removing the harmful habits."
+   },
+   {
+    "op": "remove_skill",
+    "id": "algebraic_substitution",
+    "why": "Given to 50 nodes with 76% correctness versus 81% otherwise; substitution is basic solver/coder practice and the skill appears to be overused residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "exact_exponents",
+    "why": "Given to 29 nodes with 79% versus 80% otherwise; exact exponent manipulation is a basic arithmetic practice already covered by the solver/coder roles, so the skill is unsupported residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "roots_of_unity_polygon",
+    "why": "Given to 3 nodes with 33% versus 81% otherwise; the narrow conditional lesson has negative evidence and is not worth HR prompt residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "parity_digit_counting",
+    "why": "Given to 2 nodes with 50% versus 81% otherwise; digit/parity counting is covered by number_theory_counts and problem-specific notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "matrix_power_sum",
+    "why": "Not present in the residual usage table, so the HR effectively never handed it out; unused conditional knowledge is residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "vieta_power_sums",
+    "why": "Not present in the residual usage table, so the HR effectively never handed it out; unused conditional knowledge is residue."
+   },
+   {
+    "op": "edit_skill",
+    "id": "diagram_geometry",
+    "text": "Use for diagrams, Asymptote, coordinate or shaded-region problems. Transcribe every exact coordinate and draw/fill command. Identify the exact requested region and trace only its boundary. Use exact Python for distances, intersections, shoelace area, and perimeter. In 3D plane-distance problems, test all sign choices for coordinates. Never infer unlabeled measurements.",
+    "why": "diagram_geometry was given to 26 nodes with 54% correctness versus 82% otherwise, and wrong geometry examples show boundary/requested-region and 3D sign errors. The edited skill is operational and tied to the observed failure modes."
+   },
+   {
+    "op": "edit_skill",
+    "id": "functional_equation",
+    "text": "Use when f is defined by equations for special input pairs. To find f(x), choose a relation x+y=special value, solve for f(y), then recursively reduce y using smaller special values and base cases from symmetric pairs. Check consistency and the requested format.",
+    "why": "functional_equation was given to 3 nodes with 33% versus 81% otherwise, and the wrong Intermediate Algebra L5 example needed a recursive special-pair reduction rather than generic functional-equation reasoning."
+   },
+   {
+    "op": "edit_skill",
+    "id": "state_simulation",
+    "text": "Use for walks, toggles, lockers, or state changes. Define exact state and transition. If python is provided, simulate the full process exactly; use small cases only to test the model. Do not use brute_force or extrapolate without a proven invariant.",
+    "why": "The locker failure used brute_force/sequence_sums and got the answer wrong; brute_force was 40% correct versus 81% otherwise. This skill should force exact full simulation for process problems."
+   },
+   {
+    "op": "add_skill",
+    "id": "polynomial_root_transforms",
+    "text": "Use when roots of one polynomial are shifted, scaled, or otherwise transformed roots of another. Let the old roots be variables, write the new roots as expressions, substitute into Vieta for both polynomials, and solve the exact system. Check every candidate by substituting back into both polynomials.",
+    "why": "A wrong Intermediate Algebra L5 example involved shifted roots of two cubics and used the negative algebraic_substitution skill. This is a targeted conditional technique for a visible failure category."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Output only valid team code, then notes. Line form: a = solver(\"off\", tools=[], skills=[]); b = coder(\"off\", a, tools=[\"python\"], skills=[]); v = verifier(\"off\", a, b, tools=[\"check_answer\"]); return v. Inputs are positional variable names after \"off\". At most 8 nodes. Use only employees solver, coder, verifier, geometer. Tools only: python, exact_solve, brute_force, check_answer, simplify_exact, number_theory, coord_geometry. Skills only: quadratic_methods, number_theory_counts, sequence_sums, diagram_geometry, state_simulation, functional_equation, minimal_polynomial, inverse_functions, polynomial_root_transforms. Never put a skill name in tools or a tool name in skills. Never use coord_geometry. Avoid brute_force unless the entire search space is tiny and exact enumeration is unavoidable. Use exact_solve only for an explicit polynomial/system; prefer exact Python or hand computation. Default: one strong candidate plus verifier. Verifier must be final whenever there is more than one candidate; give verifier check_answer. Use solver for direct algebra, prealgebra, standard formulas, and small exact enumeration; give it no tools or only check_answer. Use coder for exact computation, large counts, simulations, coordinate enumeration, matrices, number theory, and exact simplification; give it python and at most one specialized tool. Use geometer for diagrams, Asymptote, shaded regions, coordinate geometry, or 3D plane-distance geometry; give it python and diagram_geometry. Use two independent candidates only for very hard L5 problems or when methods genuinely differ; notes must state different methods. Notes: one line per node, problem-specific. State the exact target, case split, tool use, and verification. For all possible values, require every admissible value and requested format. For counting, state included/excluded cases and exact final expression. For max/min, require proof the bound is attained and no better value exists. For processes, require exact state transition and full simulation or proven invariant. For geometry, require exact requested region, coordinates, and sign choices if 3D. Do not repeat generic role text.",
+    "why": "The evidence supports small verifier-final teams: solver+verifier was 96-100%, coder+verifier 91%, no-verifier multi-candidate architectures were 0%, and second candidates were often unnecessary in leave-one-out. The policy therefore defaults to one candidate plus verifier, reserves two candidates for hard cases, bans the strongly harmful coord_geometry/brute_force patterns, and routes geometry/process/algebra failures to the edited conditional skills."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.905,
+   "cost": 5665.0,
+   "hr_cost": 671.0,
+   "acc_hard": 0.8947,
+   "nodes": 2.54,
+   "shapes": {
+    "solver.off[S]>coder.off[T][S]>verifier.off[T]": 79,
+    "coder.off[T][S]>verifier.off[T]": 35,
+    "solver.off[S]>verifier.off[T]": 32,
+    "solver.off[S]>coder.off[T]>verifier.off[T]": 19
+   },
+   "n_shapes": 27,
+   "repaired": 2,
+   "retried": 1,
+   "fallback": 1
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "geometer",
+    "role": "You are a geometry solver. Extract exact coordinates, lengths, slopes, angles, labels, and equations from text or Asymptote; parse Asymptote literally. Do not infer unlabeled measurements. For shaded/non-shaded regions, trace only the requested boundary and compute the requested perimeter or area. Use exact arithmetic: line equations, distance, dot products, circle/sphere equations, shoelace area, similarity. If Python is provided, use exact integers/Fractions/sqrt forms, no floats. List all admissible values if asked. End with exactly: Answer: <final value>.",
+    "why": "Geometry L5 is 43%, geometer nodes are 40% correct, coord_geometry is 33% when used, and diagram_geometry is 54% when used. The failures show mis-extracted Asymptote data and confusing area/perimeter or requested region; these are basic geometry practices that belong in the geometer self-harness, not in a harmful residual skill."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use provided tools only for exact computation; if none, do exact hand computation. Prefer integers, fractions, exact symbolic forms. In Python, write complete runnable code using integers/Fractions/exact forms, avoid floats, and print the exact final value. For iterative processes, define exact state transition, validate on 2-3 tiny cases, then simulate full size exactly or prove a recurrence/invariant. Do not use brute_force or coord_geometry. Check edge cases. List all admissible values if asked. End with exactly: Answer: <final value>.",
+    "why": "Python was given to 71 nodes with 75% correctness versus 82% otherwise, brute_force was 40% versus 81%, and the locker process failure used brute_force/sequence_sums instead of exact full simulation. Safe exact computation and simulation are basic coder practices, so they belong in the coder role."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Independently re-derive key steps and substitute candidate answer(s) into every original condition. If candidates disagree, identify the first invalid step and do not average or blend candidates. If check_answer is provided, use it only to test final candidate(s), not to search. If no candidate passes, re-derive from scratch. If the problem asks for all possible values, ensure every admissible value is included and formatted as requested. End with exactly: Answer: <final value>.",
+    "why": "Verifier nodes changed the answer 29 times, moving 8 to correct and 3 to wrong; leave-one-out shows they are usually not needed but can be harmful when they adopt a wrong candidate. Clear anti-averaging and check_answer discipline are basic verifier practices and belong in the verifier role."
+   },
+   {
+    "op": "remove_skill",
+    "id": "vieta_power_sums",
+    "why": "It does not appear in the residual usage table, so the HR never handed it out. Unused conditional knowledge is prompt residue and should be removed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "matrix_power_sum",
+    "why": "It does not appear in the residual usage table, and HR output problems show it was sometimes dropped as unknown. Unused conditional knowledge is prompt residue and should be removed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "It was given to 3 nodes with 33% correctness versus 81% otherwise, and the Functional-equation L5 failure used it while deriving an invalid formula. Functional-equation reasoning should be handled by problem-specific notes and the solver role, not by this harmful generic skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "roots_of_unity_polygon",
+    "why": "It was given to 3 nodes with 33% correctness versus 81% otherwise. The evidence does not support it, and narrow complex/roots-of-unity guidance should be problem-specific in notes rather than a harmful residual skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "algebraic_substitution",
+    "why": "It was given to 50 nodes with 76% correctness versus 81% otherwise, and it appears in algebra failures where substitution was applied without checking domain/admissibility. Basic substitution and checking are already in the solver/verifier roles, so this skill is harmful residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "diagram_geometry",
+    "why": "It was given to 26 nodes with 54% correctness versus 82% otherwise, and geometry failures used it with coord_geometry while misreading requested regions. Geometry extraction and exact computation should be basic geometer-role practice and problem-specific notes, not a harmful generic skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "state_simulation",
+    "text": "Use for iterative processes, walks, toggles, lockers, or state changes. Define the exact state and update rule. If python is provided, simulate the full process exactly with integers; test 2-3 tiny sizes by hand to validate the model, then run the full size. Do not use brute_force or extrapolate from small cases without a proven invariant or recurrence.",
+    "why": "The locker L5 failure used brute_force/sequence_sums and failed, while state_simulation was not used in the residual table. This is a conditional technique for process problems, so it belongs as a residual skill the HR can hand out with a specific note."
+   },
+   {
+    "op": "edit_skill",
+    "id": "parity_digit_counting",
+    "text": "Use for digit restrictions, parity constraints, or parity-constrained sequences. For sequences where a_i-i has fixed parity, set b_i=(a_i-i)/2, transform inequalities and bounds into weakly increasing integers, then count with combinations/stars-and-bars. Compute exact values or requested remainders exactly; check boundary cases.",
+    "why": "Counting L5 is 67%, and the increasing-sequence parity failure required exactly this transformation but got an incorrect binomial remainder. The old skill was only 50% on two uses, so it needed a more operational conditional technique."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Output only valid team code and notes. Syntax: a = solver(\"off\", tools=[...], skills=[...]); v = verifier(\"off\", a, tools=[...]); return v. Then notes: one line per node. At most 8 nodes. Use only agents solver, coder, verifier, geometer. Tools only: python, exact_solve, brute_force, check_answer, simplify_exact, number_theory, coord_geometry. Skills only: exact_exponents, quadratic_methods, number_theory_counts, sequence_sums, state_simulation, parity_digit_counting, minimal_polynomial, inverse_functions.\n\nDefault: one strong candidate plus verifier with check_answer. Use solver for direct algebra, prealgebra, reasoning, and functional equations. Use coder for exact computation, simulation, large counts, number theory, matrices, and exact enumeration. Use geometer for diagrams, Asymptote, coordinate/shaded/3D geometry. Use two independent candidates only for hard L5 problems needing genuinely different methods; give them different methods in notes. If there are multiple candidates, the final node must be verifier. Never return a bare candidate when a verifier is available.\n\nTools: give check_answer to verifier. Give python to coder only when exact simulation, exact enumeration, or coordinate computation is needed. Use exact_solve only for an explicit algebraic system. Use number_theory only for divisors/gcd/congruences. Use simplify_exact only for radical simplification. Never give coord_geometry. Avoid brute_force unless the search space is tiny and exact.\n\nSkills: give only matching skills, usually 0-2. number_theory_counts for divisibility/digit/base/counting; quadratic_methods for quadratics; exact_exponents for radicals/rational powers; sequence_sums for sums; state_simulation for iterative processes; parity_digit_counting for parity sequences/digits; minimal_polynomial for algebraic-number conjugates; inverse_functions only for direct inverse-function simplifications.\n\nNotes must be problem-specific: exact target, case split, tool/skill use, and what to verify. For geometry: extract exact Asymptote/text data, trace the requested boundary, and compute the requested quantity. For counting: state included/excluded cases, transformations, and exact final expression/remainder. For max/min: require attainment and no better value. For all possible values: enumerate every admissible value and check. Do not repeat generic role text.",
+    "why": "The report shows notes are strongly helpful (81% with notes vs 50% without), check_answer helps, number_theory_counts helps, while coord_geometry, brute_force, diagram_geometry, functional_equation, and roots_of_unity_polygon hurt. The HR also produced syntax/unknown-name errors and used non-verifier finals on hard problems. The handbook needs staffing, tool, skill, and note rules at the HR layer to prevent harmful residue and fix observed failures."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.86,
+   "cost": 5367.4,
+   "hr_cost": 748.2,
+   "acc_hard": 0.8333,
+   "nodes": 2.23,
+   "shapes": {
+    "solver.off[S]>verifier.off[T]": 52,
+    "coder.off[T][S]>verifier.off[T]": 45,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 32,
+    "solver.off[S]>verifier.off[T][S]": 19
+   },
+   "n_shapes": 22,
+   "repaired": 0,
+   "retried": 7,
+   "fallback": 5
+  }
+ }
+]

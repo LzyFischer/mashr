@@ -1,0 +1,172 @@
+[
+ {
+  "ops": [
+   {
+    "op": "remove_agent",
+    "name": "geometer",
+    "why": "Geometer is weak residue: 52% own-answer accuracy, leave-one-out needed 0/7, and geometry-specific support was harmful (geometric_counting 33% vs 76%, coord_geometry 25% vs 76%). Coder/solver can carry diagram extraction and exact coordinate work in their always-on roles, while the HR handbook can brief geometry problems specifically."
+   },
+   {
+    "op": "remove_skill",
+    "id": "geometric_counting",
+    "why": "Strongly negative conditional skill: 9 nodes given it were 33% correct vs 76% otherwise. Geometry counting failures in the wrong-question list show this framing does not help; small_cases and case_split are the supported counting techniques."
+   },
+   {
+    "op": "remove_skill",
+    "id": "minimal_polynomial",
+    "why": "Strongly negative: 19 nodes given it were 53% correct vs 76% otherwise. It appears to trigger over-specialized machinery on hard algebra problems; basic exact algebra practice belongs in coder/solver/algebraist roles, not as a residual skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "exact_algebra",
+    "why": "Widely given but not supported: 149 nodes were 72% correct with it vs 76% otherwise. Exact arithmetic and substitution are basic solver/coder practice, so keeping this as a residual skill is always-on residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "Small negative and rare: 2 nodes were 50% correct vs 75% otherwise. The functional-equation lesson is better placed in a problem-specific HR note when directly relevant, not as a library skill the HR rarely hands out."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are an exact computation specialist. Use only provided tools. For diagrams/Asymptote, first transcribe every given coordinate, length, angle, and requested quantity exactly; do not infer unstated symmetry. Convert the problem into exact computation with integers/Fractions/sympy exact algebra; avoid floats for exact answers. Print useful intermediates, debug if needed, and verify the final candidate by substitution or an independent exact check. If no tools are provided, solve by hand with the same exactness. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Coder is the most needed producer (leave-one-out needed 10/56) and central to the best architecture (coder,solver>verifier 92%). The wrong geometry/diagram examples show failures from incomplete diagram extraction and coordinate assumptions; this is basic always-on coder practice, not a conditional skill."
+   },
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Read the full problem, including diagrams, Asymptote code, units, and the exact requested quantity. If asked for all possible values, list or sum them exactly as requested. Define variables, list constraints, solve step by step with exact arithmetic. Check domains, edge cases, parity, sign, off-by-one, multiple roots/branches, and answer format. Verify the candidate by substitution or an independent check. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Solver is a reliable second producer (83% own accuracy) and the dominant architecture uses it. The sphere wrong example answered only one possible value when multiple roots were requested; explicitly handling 'all possible values' and multiple branches is basic solver practice."
+   },
+   {
+    "op": "edit_agent",
+    "name": "algebraist",
+    "role": "You are an exact-algebra specialist. Solve polynomial, root, radical, symmetric-sum, and system problems by exact elimination, Vieta, symmetric sums, Newton sums, resultants, and finite case enumeration. Do not introduce minimal-polynomial machinery unless directly required. Verify every candidate by substitution in the original equations and check for extraneous roots. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Algebraist is expensive and only 47% accurate alone, but the algebraist+coder architecture is 89% and leave-one-out shows it is sometimes needed (2/7). The minimal_polynomial skill was strongly negative, so the role should keep exact algebra practice while removing the over-specialized minimal-polynomial trigger."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are an independent verifier. If inputs agree, perform one decisive independent check of the key equation, substitution, or requested quantity. If inputs disagree, do not choose by preference: re-derive the decisive constraint from the problem, test each candidate, locate the first invalid step, and solve independently if both are flawed. Check arithmetic, domain, units, off-by-one, sign, multiple roots/branches, and whether the exact requested quantity was answered. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Verifier is net positive (changed 30 times: 17 to correct, 1 to wrong; leave-one-out needed 10/59), but when it runs the question is correct only 62%. The role must force independent re-derivation on disagreement rather than superficial error-hunting."
+   },
+   {
+    "op": "set_policy",
+    "text": "Build <=8 nodes from solver, coder, verifier, algebraist, combinator. Thinking off. Returned node final. Use only listed tool/skill ids. Every node gets a short note: target, method, constraints, pitfalls. Syntax: x = name('off', inputs..., tools=[...], skills=[...]) # note: ... . Do not use removed agents/skills. Do not give coord_geometry, check_answer, exact_solve, or simplify_exact unless explicitly unavoidable; prefer no tools or python/number_theory.\n\nEasy: a=solver('off') # note: direct exact solution; return a.\n\nStandard: a=coder('off', tools=['python'], skills=[...]); b=solver('off', skills=[...]); v=verifier('off', a, b, only_if='disagree') # note: compare and independently re-check; return v.\n\nCounting/probability/process: a=coder('off', tools=['python'], skills=['counting_constraints','small_cases']); b=combinator('off', skills=['counting_constraints','sequence_recurrence']); v=verifier('off', a, b, only_if='disagree'). Note must define exact state space or state and simulate/derive exact count; no pattern extrapolation.\n\nNumber theory/modular/divisibility: a=coder('off', tools=['number_theory','python'], skills=['number_theory']); b=solver('off', skills=['number_theory']); v=verifier('off', a, b, only_if='disagree').\n\nAlgebra/root/radical/symmetric: a=algebraist('off', skills=['case_split','substitute_back']); b=coder('off', tools=['python'], skills=['substitute_back','small_cases']); v=verifier('off', a, b, only_if='disagree').\n\nGeometry/diagram/Asymptote/area/perimeter/coordinates: a=coder('off', tools=['python'], skills=['case_split','substitute_back']); b=solver('off', skills=['case_split','small_cases']); v=verifier('off', a, b, only_if='disagree'). Notes must transcribe all Asymptote coordinates/lengths/angles, set exact equations, enumerate configurations, and verify final constraints.\n\nHard L5 or weak category (geometry, precalculus, intermediate algebra, counting/search, all possible values): use 3 producers + verifier, e.g. a=coder(...), b=solver(...), c=algebraist/combinator/coder with a different method; v=verifier('off', a, b, c, only_if='disagree'); return v. Parallel producers must use different methods. If three producers are unavailable, use two strong producers and a very specific verifier note.",
+    "why": "The handbook is where staffing, budgeting, wiring, equipping, and briefing belong. Evidence supports coder+verifier as core, specialist second producers for counting/algebra, and no geometer. It removes harmful tool/skill defaults (coord_geometry, check_answer, exact_solve, simplify_exact, minimal_polynomial, geometric_counting), keeps supported skills (number_theory, counting_constraints, small_cases, sequence_recurrence), and makes hard L5 use more independent producers because L5 geometry/precalculus/intermediate algebra are the weakest categories. Explicit syntax and notes address HR output errors and the strong note effect (75% with notes vs 33% without)."
+   }
+  ],
+  "repairs": 0,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.885,
+   "cost": 6496.2,
+   "hr_cost": 829.2,
+   "acc_hard": 0.8509,
+   "nodes": 2.88,
+   "shapes": {
+    "coder.off[T][S],solver.off[S]>verifier.off[T]?": 65,
+    "coder.off[T][S],solver.off[S]>verifier.off[T][S]?": 28,
+    "algebraist.off[S],coder.off[T][S],solver.off[S]>verifier.off[T]?": 25,
+    "solver.off[S]": 23
+   },
+   "n_shapes": 35,
+   "repaired": 0,
+   "retried": 4,
+   "fallback": 1
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "remove_agent",
+    "name": "geometer",
+    "why": "Geometer nodes are costly and weak: 52% own-answer accuracy, 0 needed in leave-one-out, 3855 mean cost saved when removed; geometry L5 is only 57% and coord_geometry tool was 25% vs 76% otherwise. Coder/solver with exact Python can cover coordinate work without this residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "exact_algebra",
+    "why": "High-usage skill with negative association: 72% correct when given vs 76% otherwise. Exact arithmetic is already a basic practice in solver/coder/algebraist roles, so this is residue rather than a conditional technique."
+   },
+   {
+    "op": "remove_skill",
+    "id": "minimal_polynomial",
+    "why": "Strongly negative: 53% correct when given vs 76% otherwise. It appears to push weak algebra nodes into overcomplicated minimal-polynomial work; substitution/Vieta practice belongs in the algebraist role, not as a harmful skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "geometric_counting",
+    "why": "Strongly negative: 33% correct when given vs 76% otherwise. Geometry counting failures are better handled by problem-specific notes and exact Python/enumeration, not this generic residue skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "Small but negative/unevidenced: 50% vs 75% otherwise, and a functional-equation L5 failure occurred. The basic derivation practice can be given in notes when needed; an always-available skill is not supported."
+   },
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful hand-solver. Read the full problem, including diagrams, Asymptote code, units, and exact requested quantity. Define variables, list constraints, solve step by step with exact arithmetic. Check domains, edge cases, parity, sign, off-by-one, and answer format. If multiple values are requested, list every valid value exactly. Verify by substitution or an independent check. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Basic practices: exact hand solving, diagram/Asymptote reading, and all-values answer format. Wrong examples include missed all possible values and diagram constraints; these are always-on solver habits, not HR skills."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a math solver who uses provided Python tools when available. Show reasoning and code. Translate the problem into exact computation: use integers/Fractions/exact algebra, avoid floats for exact answers. Use only provided tools; prefer python for exact enumeration/simulation. If no tools, solve by hand carefully. If multiple values are requested, enumerate all cases and output all valid values. Verify by substitution or an independent check. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Coder is the strongest workhorse (76% own accuracy, needed in LOO). Basic practices: exact Python, no floats, all-values enumeration, and verification. These belong in the role because every coder node should follow them."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are an independent verifier. You receive the problem and solutions. Re-derive or verify critical steps; check arithmetic, algebra, domain, units, off-by-one, sign, and whether the requested quantity was answered. If inputs agree, confirm by substitution or a second method. If they disagree, solve the decisive part independently from the problem, locate the first failing step, discard flawed solution(s), and give the correct answer. If multiple values are requested, ensure every valid value is present. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Verifier is valuable (87% own accuracy, 17 fixes vs 1 harm) but disagreement cases are hard (62% correct when run). The role needs an always-on independent-rederivation habit and all-values checking."
+   },
+   {
+    "op": "edit_agent",
+    "name": "algebraist",
+    "role": "You are an exact-algebra specialist. Solve polynomial, root, radical, symmetric-sum, and power-sum problems with exact arithmetic. Use Vieta, symmetric sums, Newton sums, conjugates, and resultants only when they reduce the system. Enumerate all finite coefficient/root/sign cases exactly. Verify every candidate by substitution in the original equations. If multiple values are requested, list all valid values. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Algebraist is weak (47%) but not fully redundant (2 LOO-needed). Remove the harmful minimal-polynomial emphasis from the role and keep only basic exact-algebra habits that should always apply."
+   },
+   {
+    "op": "edit_agent",
+    "name": "combinator",
+    "role": "You are a counting and probability specialist. Model the exact state space or sample space. Use direct count, complement, inclusion-exclusion, invariants, or exact simulation. Track every restriction and avoid over/undercount. For stateful processes, define the exact state and simulate or prove the target behavior; do not extrapolate from one small case. Verify with small cases and by substituting the final count into the original process. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Combinator is strong (87%) but counting/process L5 is 89% and a locker process failed with a single solver. Stateful process discipline is a basic combinator habit, not a conditional skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "sequence_recurrence",
+    "text": "For stateful processes, define the exact state (position, direction, parity, counts) and transition rule. Simulate small N and the target N exactly with Python when available; print invariants. Derive or verify any formula before using it. Do not extrapolate from one pass or a single pattern.",
+    "why": "A process problem failed when handled as a one-shot solver task. This is a conditional technique for sequences/processes, so it belongs in a skill the HR can hand out, with explicit exact-state simulation."
+   },
+   {
+    "op": "set_policy",
+    "text": "HR builds <=8 nodes from solver, coder, verifier, algebraist, combinator; thinking off; returned node final. Use only listed tool/skill ids; never invent ids. Every node gets a concise problem-specific note: target quantity, method, constraints, pitfalls.\n\nStaffing:\n- Easy direct: a=solver('off'); return a. Do not give solver tools.\n- Clear computation: a=coder('off',tools=['python'],skills=[...]); return a, or add verifier if hard.\n- Standard medium: a=coder('off',tools=['python'],skills=[...]); b=solver('off',skills=[...]); v=verifier('off',a,b,only_if='disagree'); return v.\n- Counting/probability/process: k=combinator('off',skills=['counting_constraints','sequence_recurrence']); c=coder('off',tools=['python'],skills=['substitute_back']); v=verifier('off',k,c,only_if='disagree'); return v.\n- Polynomial/root/radical/power-sum: a=algebraist('off',skills=['case_split','substitute_back']); c=coder('off',tools=['python'],skills=['case_split','substitute_back']); v=verifier('off',a,c,only_if='disagree'); return v.\n- Number theory/modular/divisibility: c=coder('off',tools=['python','number_theory'],skills=['number_theory']); s=solver('off',skills=['number_theory']); v=verifier('off',c,s,only_if='disagree'); return v.\n- Hard L5: use 2-3 independent producers with different methods plus verifier. Add a second verifier only if conflict is likely and <=8 nodes.\n\nTools: give producers python for exact code; number_theory only for number-theory problems. Avoid exact_solve, coord_geometry, check_answer, simplify_exact, and brute_force unless the exhaustive space is tiny and exact. Verifier gets no tools by default; give python only if verification requires heavy exact computation.\n\nSkills: give producers 1-3 matching skills. case_split only for forced disjoint regimes; substitute_back for candidates; small_cases to test proven formulas; counting_constraints for counts; number_theory for modular/divisibility; sequence_recurrence for stateful processes; proportion_units/inverse_function only when directly relevant.\n\nNotes: parallel nodes must use different methods. For diagrams/Asymptote, extract exact coordinates/constraints. For all possible values, enumerate every branch/root/case. Verifier note: if agree, one independent check; if disagree, re-derive decisively and output correct FINAL ANSWER.",
+    "why": "Staffing/budget/equipment/briefing decisions belong in HR. Evidence: main coder+coder/solver+verifier architecture is strong; geometer is not needed; harmful tools/skills should be avoided; notes strongly improve accuracy; all-values and process failures require explicit briefing. Simplified templates also reduce HR syntax failures."
+   }
+  ],
+  "repairs": 0,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.865,
+   "cost": 5754.7,
+   "hr_cost": 800.6,
+   "acc_hard": 0.8509,
+   "nodes": 2.4,
+   "shapes": {
+    "coder.off[T][S],solver.off[S]>verifier.off[T]?": 74,
+    "solver.off[S]": 33,
+    "coder.off[T][S],combinator.off[S]>verifier.off[T]?": 14,
+    "coder.off[T][S]>verifier.off[T]?": 11
+   },
+   "n_shapes": 37,
+   "repaired": 3,
+   "retried": 5,
+   "fallback": 3
+  }
+ },
+ {
+  "ops": null,
+  "repairs": 2
+ }
+]

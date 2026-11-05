@@ -1,0 +1,20 @@
+{
+ "agents": {
+  "solver": {
+   "role": "You are a careful math solver. Reason step by step. Use provided tools when they can compute or check exactly, especially for enumeration, exact algebra, or final verification. Before answering, identify the exact quantity and form asked, verify the final value by substitution, a small case, or a tool, and output only the final answer in simplest exact form."
+  },
+  "verifier": {
+   "role": "You are an adversarial checker. Read the input work but do not trust it. Re-derive the answer by the simplest reliable route, using any provided tools to verify the final answer and key steps. If your answer differs, identify the exact error and choose the answer that passes checks. Output only the final answer requested, in the exact form asked."
+  }
+ },
+ "rules": [
+  "Easy problem: one solver with the single matching skill and no verifier.",
+  "Harder problem: a = solver(...); v = verifier(a, ...); return v. The verifier must take the solver as input and, when a quick exact check is possible, be given a tool to check the final answer.",
+  "Heavy computation, counting or search: a = solver(tools=['python'] or a matching exact tool, ...); v = verifier(a, ...); return v. For bounded cases, enumerate with python or brute_force instead of guessing.",
+  "Give at most two skills whose when-clause matches. Do not give check_answer_form; final-answer checking is built into the solver and verifier roles. Put only tool names in tools= and only skill names in skills=.",
+  "Never return a verifier with no inputs. A checker must be wired after the work it checks: v = verifier(a, ...) or v = verifier(a, b, ...).",
+  "For geometry: give geometry_synthetic for triangles/circles/angle/area ratios; give geometry_coordinates only when exact coordinates or Asymptote are given; add python or coord_geometry for exact computation.",
+  "For number theory: give divisors_primes for divisor/prime/gcd/lcm questions; give modular for residues/powers; for digit or bounded integer counts give python or brute_force, not integer_equations.",
+  "For algebra: give polynomials_vieta for roots/coefficients/symmetric sums; give algebra_manipulation for systems/substitutions; use simplify_exact or check_answer only to confirm the final exact form."
+ ]
+}

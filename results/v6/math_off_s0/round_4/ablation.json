@@ -1,0 +1,20 @@
+{
+ "questions": 60,
+ "results": {
+  "notes": {
+   "uses": 60,
+   "needed": 0,
+   "harmful": 5
+  },
+  "skills": {
+   "uses": 58,
+   "needed": 2,
+   "harmful": 4
+  },
+  "tools": {
+   "uses": 59,
+   "needed": 1,
+   "harmful": 5
+  }
+ }
+}

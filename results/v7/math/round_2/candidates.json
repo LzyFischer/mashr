@@ -1,0 +1,152 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful math solver. Reason compactly. Use provided tools exactly; if python is available, use integers/rationals/sympy, not floats, for bounded searches, counting, simulations, and final checks. Follow hints (e.g. complex means z=a+bi). For 'all possible values' or 'sum of all', enumerate every valid case, including sign/branch choices. Counts are nonnegative; a negative count means the model is wrong. Restate the exact quantity and form asked, verify by substitution, small case, or code, and output only the final answer in simplest exact form."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are an adversarial checker. Read the input work but do not trust it. Re-derive the answer by the simplest reliable route; if a tool is available, run an exact independent check of the final answer and any claimed enumeration. For counts, verify nonnegative and check a small case or enumerate if bounded. For 'all possible values', confirm every listed value satisfies all conditions and no value was missed. If your answer differs, identify the exact error and choose the answer that passes checks. Output only the final answer requested, in the exact form asked."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6563.8,
+   "meta_cost": 3321.8,
+   "acc_hard": 0.8889,
+   "nodes": 1.64,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 16,
+    "solver[T][S]>verifier[T]": 16,
+    "solver[T][S]": 13,
+    "solver[S]": 5
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Harder problem: a = solver(...); v = verifier(a, tools=['python'] or the solver's exact tool, skills=[the solver's main skill]); return v. Prefer python over check_answer for verification."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "Counting, search, or simulation: a = solver(tools=['python'], skills=[counting_setup or functions_sequences]); v = verifier(a, tools=['python'], skills=[same]); return v. Prefer python over counting or brute_force."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 4,
+    "text": "Give at most two tools and two matching skills. tools= only: python, exact_solve, brute_force, check_answer, simplify_exact, number_theory, coord_geometry, counting, polynomial, sequence. skills= only skill names; no check_answer_form."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 5,
+    "text": "Output valid Python: create every node before use and return exactly one node. A verifier must have inputs: v = verifier(a, ...) or v = verifier(a, b, ...)."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 6,
+    "text": "For geometry: if exact coordinates or Asymptote are given, give geometry_coordinates + python; otherwise give geometry_synthetic + python. Never give coord_geometry. For counting regions/triangles, give counting_setup + python."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 7,
+    "text": "For number theory: give divisors_primes + number_theory/python for divisor/prime/gcd/lcm or searches; give modular for residues/powers; for integer searches use python or brute_force, not integer_equations."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 8,
+    "text": "For algebra: give algebra_manipulation + python for systems/substitutions; give polynomials_vieta only for direct symmetric sums of one polynomial's roots; do not give polynomial, trig_complex, or simplify_exact by default."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6505.1,
+   "meta_cost": 3257.3,
+   "acc_hard": 0.9259,
+   "nodes": 1.66,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 32,
+    "solver[T][S]": 15,
+    "solver[S]": 2,
+    "solver[T][S]>verifier[T]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Harder problem: a = solver(...); v = verifier(a, ...); return v. If the solver has python or the answer is computational, give the verifier tools=['python'] plus the same matching skill; check_answer alone is not enough."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 4,
+    "text": "Put only tool names in tools= and only skill names in skills=; never mix them. Give at most two skills. Do not give check_answer_form; final-answer checking is built into the roles."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 6,
+    "text": "For geometry: give geometry_synthetic for pure geometric reasoning and python for exact computation; give geometry_coordinates only with Asymptote coordinates; never give coord_geometry."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 7,
+    "text": "For number theory: give divisors_primes or modular plus python/number_theory; for searches, digits, or bounded integer counts use python or brute_force; never give integer_equations."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 8,
+    "text": "For algebra: give algebra_manipulation for systems/substitutions/complex equations; use python or exact_solve for roots and symmetric sums; do not give polynomials_vieta or the polynomial tool."
+   },
+   {
+    "op": "add_rule",
+    "text": "Avoid these harnesses: geometry_coordinates, coord_geometry, trig_complex, polynomials_vieta, integer_equations, counting, complement_and_pie, simplify_exact, polynomial. Prefer python plus algebra_manipulation, divisors_primes, modular, geometry_synthetic, or probability."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 6191.6,
+   "meta_cost": 3211.9,
+   "acc_hard": 0.8889,
+   "nodes": 1.58,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 27,
+    "solver[T][S]": 15,
+    "solver[S]": 4,
+    "solver[T][S]>verifier[T]": 2
+   },
+   "n_shapes": 5,
+   "fallback": 2
+  }
+ }
+]

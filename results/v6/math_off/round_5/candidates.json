@@ -1,0 +1,138 @@
+[
+ {
+  "ops": null,
+  "repairs": 2
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are an exact computation specialist. Use only provided tools. Translate the problem into exact computation with integers/Fractions/exact algebra; avoid floats. For diagrams/Asymptote, transcribe every coordinate, length, angle, and requested quantity exactly; do not infer symmetry. For counting/process, use exact formulas, exact enumeration, or exact target-state simulation; print the final requested count. If no tools, solve by hand. Debug code if needed. End with exactly: FINAL ANSWER: <value>.",
+    "why": "Shortened to fit role limit while preserving the supported lesson: exact target computation, diagram transcription, and no pattern extrapolation for counting/process failures."
+   },
+   {
+    "op": "remove_agent",
+    "name": "combinator",
+    "why": "Combinator input was never needed in leave-one-out (0/7), saved 2115 mean cost, and the main coder+combinator+verifier architecture was only 62% accurate. Counting L5 is weak and exact Python/formula work is better carried by coder with counting_constraints and notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "case_split",
+    "why": "High-usage but negative: 153 nodes were 70% correct with case_split vs 79% otherwise. Case enumeration is better supplied as problem-specific notes and basic role practice, not as a broadly harmful skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "small_cases",
+    "why": "Negative: 47 nodes were 72% correct with small_cases vs 75% otherwise, and wrong process/geometry cases show pattern-based small-case reasoning can mislead. Exact derivation/substitution belongs in roles and notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "sequence_recurrence",
+    "why": "Strongly negative: 14 nodes were 64% correct with sequence_recurrence vs 75% otherwise. The useful lesson is exact target-state simulation, now placed in the coder role instead of a harmful conditional skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "proportion_units",
+    "why": "Negative: 17 nodes were 71% correct with proportion_units vs 75% otherwise. Unit/proportion checking is basic solver practice and should be in the role, not a residual skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "counting_constraints",
+    "text": "Model the exact state/sample space. Use direct count, complement, inclusion-exclusion, or bijection. Apply every restriction, including parity, order, adjacency, and boundaries. If finite and small, enumerate exactly with Python; otherwise derive an exact formula and verify by substitution or a second exact method. Never extrapolate from a pattern.",
+    "why": "counting_constraints is positive (77% vs 74%), and counting L5 failures show it needs stronger emphasis on exact enumeration/formula verification and restriction tracking."
+   },
+   {
+    "op": "edit_skill",
+    "id": "number_theory",
+    "text": "Use exact factorization, divisors, gcd, modular arithmetic, residues, CRT. For gcd(Ax+B, Cx+D), eliminate x by an integer linear combination and test divisors of the constant. For modular sums, find each base's period, reduce exponents, sum full periods plus remainder. For 'first k n', search upward exactly and verify each property.",
+    "why": "number_theory is positive (80% vs 73%), and a wrong NT L4 gcd problem shows the skill should explicitly include the linear-combination gcd elimination technique."
+   },
+   {
+    "op": "set_policy",
+    "text": "Build <=8 nodes from solver,coder,verifier,algebraist. Thinking off. Returned node final. Syntax: x=name('off',inputs...,tools=[...],skills=[...]) # note: ... . only_if='disagree' requires inputs. Use only listed ids. Every node gets a short note: target, method, constraints, pitfalls, format. If >=2 producers, final must be verifier over all. Return one node.\n\nEasy: a=solver('off') # note: exact direct; return a.\n\nStandard: a=coder('off',tools=['python'],skills=[...]); b=solver('off',skills=[...]); v=verifier('off',a,b,only_if='disagree') # note: check requested quantity; return v.\n\nCounting/process: a=coder('off',tools=['python'],skills=['counting_constraints','substitute_back']); b=solver('off',skills=['counting_constraints','substitute_back']); v=verifier('off',a,b,only_if='disagree') # note: exact state/formula/simulation; return v.\n\nNumber theory: a=coder('off',tools=['python','number_theory'],skills=['number_theory']); b=solver('off',skills=['number_theory']); v=verifier('off',a,b,only_if='disagree') # note: gcd/modular/period; return v.\n\nAlgebra: a=algebraist('off',skills=['substitute_back']); b=coder('off',tools=['python'],skills=['substitute_back']); v=verifier('off',a,b,only_if='disagree') # note: Vieta/elimination, verify candidates; return v.\n\nGeometry: a=coder('off',tools=['python'],skills=['substitute_back']); b=solver('off',skills=['substitute_back']); v=verifier('off',a,b,only_if='disagree') # note: transcribe diagram data, exact equations; return v.\n\nHard L5/weak: 3 producers + verifier, e.g. a=coder(...), b=solver(...), c=algebraist/coder with different method; v=verifier('off',a,b,c,only_if='disagree'); return v. Producers different methods.\n\nTools: producers python by default; number_theory for NT. Avoid exact_solve, coord_geometry, check_answer, simplify_exact, brute_force unless tiny exact enumeration. Verifier no tools unless heavy exact check needs python.\n\nSkills: 1-3 matching. substitute_back candidates; counting_constraints counts; number_theory modular/divisibility; inverse_function direct. Notes carry case enumeration and method.",
+    "why": "Shortened to fit policy limit while encoding supported wiring: notes are strongly positive, verifier is needed, combinator is not needed, negative skills are removed, and HR must stop inventing ids or omitting return. It also directs counting/geometry/algebra to exact coder/solver/algebraist methods with problem-specific notes."
+   }
+  ],
+  "repairs": 1,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.92,
+   "cost": 5933.1,
+   "hr_cost": 752.8,
+   "acc_hard": 0.9123,
+   "nodes": 2.88,
+   "shapes": {
+    "coder.off[T][S],solver.off[S]>verifier.off[T]?": 124,
+    "coder.off[T][S],solver.off[S]>verifier.off[T][S]?": 32,
+    "solver.off[S]": 11,
+    "algebraist.off[S],coder.off[T][S],solver.off[S]>verifier.off[T]?": 7
+   },
+   "n_shapes": 17,
+   "repaired": 1,
+   "retried": 3,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "remove_agent",
+    "name": "combinator",
+    "why": "Leave-one-out shows combinator inputs were needed 0/7 and harmful 0/7, with 2115 mean cost saved; its own 75% accuracy is not above coder/solver, and the most-used combinator architecture (coder+combinator+verifier) was only 62% correct. Counting practice is already carried by counting_constraints and notes, so the specialist is residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "case_split",
+    "why": "case_split was given to 153 nodes and was associated with 70% correctness vs 79% otherwise; several wrong answers used it. Case handling should be supplied in problem-specific notes only when forced, not as a broadly handed residual skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "proportion_units",
+    "why": "proportion_units was given to 17 nodes with 71% correctness vs 75% otherwise, and a simple ratio/system prealgebra problem using it failed. Ratio/unit setup is basic solver practice or a note-specific instruction, not a supported residual skill."
+   },
+   {
+    "op": "add_skill",
+    "id": "all_values",
+    "text": "When the problem asks for all possible values, enumerate every branch, root, case, and root-order assignment. Verify each candidate in the original conditions. Output exactly all valid values in the requested format: comma-separated list if asked for values, or the requested sum/product if asked for that aggregate.",
+    "why": "Two L5 failures involved 'all possible values' requests where a single value was returned (sphere radii and polynomial b values). This is a conditional technique for a recurring failure mode, so it belongs in the skill library rather than in every role."
+   },
+   {
+    "op": "edit_skill",
+    "id": "small_cases",
+    "text": "Use small cases only to test an exact formula, recurrence, or simulation. Never answer from a pattern alone. For processes, simulate the exact target state in Python when available; for counts, derive the formula first, then check small and edge cases.",
+    "why": "small_cases was slightly negative (72% vs 75%) and wrong process/counting answers show pattern extrapolation. The lesson is a conditional technique, so tighten the skill to prevent pattern guessing while preserving its testing value."
+   },
+   {
+    "op": "edit_skill",
+    "id": "sequence_recurrence",
+    "text": "For stateful processes, define the exact state and transition rule. If Python is available, simulate from the start to the actual target size and print the final state. Use small sizes only to test the code. Do not infer the answer from a few terms or one pass.",
+    "why": "sequence_recurrence was strongly negative (64% vs 75%) and appeared in a failed locker-process problem. The useful lesson is exact target-size simulation, not recurrence guessing, so the skill needs to be rewritten at the technique layer."
+   },
+   {
+    "op": "set_policy",
+    "text": "Build <=8 nodes from solver,coder,verifier,algebraist. Thinking off. Returned node final. Syntax: x=name('off',inputs...,tools=[...],skills=[...]) # note: ... . only_if='disagree' requires inputs. Use listed ids only. Every node gets a short note: target, method, constraints, pitfalls.\nTrivial: a=solver('off') # note; return a.\nDefault: a=coder('off',tools=['python'],skills=[...]); b=solver('off',skills=[...]); v=verifier('off',a,b,only_if='disagree') # note; return v.\nWith >=2 producers, final must be verifier over all producers.\nNumber theory: a=coder('off',tools=['python','number_theory'],skills=['number_theory']); b=solver('off',skills=['number_theory']); v=verifier('off',a,b,only_if='disagree'); return v.\nAlgebra/root/radical/system: a=algebraist('off',skills=['substitute_back']); b=coder('off',tools=['python'],skills=['substitute_back']); v=verifier('off',a,b,only_if='disagree'); return v. If L5/all values, add c=solver('off',skills=['all_values','substitute_back']) and v=verifier('off',a,b,c,only_if='disagree').\nCounting/process/search: a=coder('off',tools=['python'],skills=['counting_constraints','sequence_recurrence']); b=solver('off',skills=['counting_constraints','small_cases']); v=verifier('off',a,b,only_if='disagree'); return v. If L5/hard, add c=coder('off',tools=['python'],skills=['counting_constraints','all_values']) and v over a,b,c.\nGeometry/diagram/Asymptote/area/coordinates: a=coder('off',tools=['python'],skills=['substitute_back']); b=solver('off',skills=['small_cases']); v=verifier('off',a,b,only_if='disagree'); return v. Notes must transcribe Asymptote data, set exact equations, enumerate configurations, verify constraints. If L5/region/line counts, add a third producer and v over all.\nHard L5/weak: use 3 producers with different methods + verifier over all, only_if='disagree'.\nTools: producers get python; number_theory only for number theory. Do not use exact_solve, brute_force, check_answer, simplify_exact, coord_geometry. Verifier gets no tools by default; python only if heavy exact check unavoidable.\nSkills: producers get 1-3 matching skills: substitute_back, small_cases, counting_constraints, number_theory, sequence_recurrence, inverse_function, all_values. Verifier gets no skills.\nNotes: problem-specific. For all possible values, enumerate every branch/root/case and output requested format. Verifier note: if agree, one independent check; if disagree, re-derive decisive constraint, test candidates, output correct FINAL ANSWER.",
+    "why": "The report shows the main safe architecture is coder+coder/solver+verifier (90%), single solver is weak on nontrivial problems, combinator/algebraist are not needed in leave-one-out, and several failures came from returning a producer directly, using single solver on geometry/NT, and missing all-values requests. The handbook is the right layer for staffing, wiring, tool restriction, and category-specific notes; it removes unsupported combinator/case_split/proportion_units and keeps only supported skills."
+   }
+  ],
+  "repairs": 1,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.9,
+   "cost": 6068.3,
+   "hr_cost": 851.6,
+   "acc_hard": 0.8947,
+   "nodes": 2.9,
+   "shapes": {
+    "coder.off[T][S],solver.off[S]>verifier.off[T]?": 120,
+    "coder.off[T][S],solver.off[S]>verifier.off?": 35,
+    "solver.off[S]": 7,
+    "coder.off[T][S],solver.off[S]>verifier.off[T][S]?": 6
+   },
+   "n_shapes": 25,
+   "repaired": 0,
+   "retried": 8,
+   "fallback": 1
+  }
+ }
+]

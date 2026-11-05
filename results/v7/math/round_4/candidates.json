@@ -1,0 +1,141 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "Careful math solver. Reason step by step. Use provided exact tools. With python, use exact integer/rational/sympy computation for systems, roots, searches, simulations, geometry, and final checks; do not guess patterns. Functional equations: plug special values. Geometry: set exact coordinates, solve all equations, keep every admissible solution. Processes: simulate fully. Counts: classify and verify by small cases or enumeration. If all values are asked, list every value. Identify the exact quantity/form, verify, and output only the final answer in simplest exact form."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "Adversarial checker. Do not trust input work. Re-derive the answer independently from the original problem. If the input setup or computation is wrong, discard it and build your own. Use tools for exact checks; with python, recompute searches, simulations, systems, roots, and geometry exactly. Do not rely only on check_answer. For all values, solve all conditions and list every admissible value. For counts, verify by enumeration or small cases. If answers differ, find the exact error and output the answer that passes independent checks. Output only the final answer in the exact form asked."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6748.1,
+   "meta_cost": 3178.4,
+   "acc_hard": 0.8889,
+   "nodes": 1.68,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 32,
+    "solver[T][S]": 13,
+    "solver[S]": 3,
+    "solver[T][S]>verifier[T]": 2
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Harder problem: a = solver(...); v = verifier(a, tools=['python'], skills=[at most one matching skill]); return v. Verifier gets python when solver has python or answer is computational; never check_answer or check_answer_form."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 4,
+    "text": "Give at most two matching skills. Never give check_answer_form. tools= only: python, exact_solve, brute_force, simplify_exact, number_theory, coord_geometry, counting, polynomial, sequence. Do not use check_answer. skills= only skill names. Never mix or invent names."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 6,
+    "text": "For geometry: python + algebra_manipulation for coordinates, 3D, distances, areas, or Asymptote; counting_setup + python for counting regions/intersections; geometry_synthetic only for pure synthetic angle/area ratios. Never give coord_geometry or geometry_coordinates."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 7,
+    "text": "For number theory: divisors_primes + python/number_theory for divisor/prime/gcd/lcm; modular + python only for residues/powers; integer searches (tau, digits, bounded counts) use python/number_theory only, never integer_equations, check_answer, or modular; verifier gets python."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 8,
+    "text": "For algebra: give algebra_manipulation for systems/substitutions/complex; give polynomials_vieta for root/coefficients/symmetric sums, incl. roots of several polynomials; trig/complex: trig_complex + python; avoid polynomial/simplify_exact by default."
+   },
+   {
+    "op": "add_rule",
+    "text": "For functional equations, iterative processes, sequences, recursions, or repeated operations such as walks or lockers, give functions_sequences + python; do not give integer_equations or modular unless residues/divisibility are explicitly asked."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.86,
+   "cost": 6216.6,
+   "meta_cost": 3239.6,
+   "acc_hard": 0.8148,
+   "nodes": 1.62,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 31,
+    "solver[T][S]": 17,
+    "solver[T]": 1,
+    "solver[S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 1
+  }
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Harder problem: a = solver(...); v = verifier(a, ...); return v. If the solver has python or the answer is computational, give the verifier tools=['python'] and the same matching skill; otherwise give a quick exact check tool."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 4,
+    "text": "Give at most two matching skills. Never give check_answer_form or integer_equations. tools= only exact tool names (python, exact_solve, brute_force, check_answer, simplify_exact, number_theory, coord_geometry, counting, polynomial, sequence); skills= only skill names. Never mix or invent names."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 6,
+    "text": "Geometry: always python. Use geometry_coordinates for coordinates, Asymptote, 3D planes/spheres, line equations, folds, or region counts; add counting_setup for counts. Use geometry_synthetic only for pure angle/similarity/area ratios. Verifier gets same skill(s)."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 8,
+    "text": "For algebra: give functions_sequences for functional equations/iteration; give algebra_manipulation + python for systems/substitutions; give trig_complex for complex roots/trigonometry; give polynomials_vieta only for direct symmetric sums. Do not give polynomial or simplify_exact by default."
+   },
+   {
+    "op": "add_rule",
+    "text": "For iterative processes, walks, sequences, or repeated operations, give functions_sequences + python, not modular."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 6479.8,
+   "meta_cost": 3316.1,
+   "acc_hard": 0.8519,
+   "nodes": 1.68,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 33,
+    "solver[T][S]": 12,
+    "solver[T]": 2,
+    "solver[S]": 2
+   },
+   "n_shapes": 5,
+   "fallback": 2
+  }
+ }
+]

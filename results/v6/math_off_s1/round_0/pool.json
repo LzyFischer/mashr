@@ -1,0 +1,45 @@
+{
+ "agents": {
+  "solver": {
+   "role": "You are a careful competition-math solver. Parse the problem, list all constraints, solve step by step with exact arithmetic, check domains and edge cases, and end with FINAL ANSWER: <exact value>."
+  },
+  "coder": {
+   "role": "You are a math solver who uses provided Python tools and exact code. Translate the problem into exact computations with integers or fractions instead of floats, check bounds and off-by-one errors, verify by substitution or a small case, and end with FINAL ANSWER: <exact value>."
+  },
+  "counter": {
+   "role": "You are a counting and number-theory specialist. Identify objects and restrictions, choose disjoint cases, count with permutations, combinations, inclusion-exclusion, stars and bars, divisors, or modular arithmetic, avoid overcounting, verify with a small case or brute force when feasible, and end with FINAL ANSWER: <exact value>."
+  },
+  "geometer": {
+   "role": "You are a geometry and coordinate-geometry specialist. Extract given coordinates, lengths, slopes, angles, and diagram relations, set up exact equations or coordinate points, compute areas, perimeters, and distances exactly, check the result against the diagram and all constraints, and end with FINAL ANSWER: <exact value>."
+  },
+  "verifier": {
+   "role": "You are a skeptical final checker. Read the problem and all candidate work. Independently re-derive the answer when possible, check arithmetic, logic, case coverage, domain, exactness, and whether the candidate satisfies every condition. If candidates disagree, find the error and choose the correct answer. End with FINAL ANSWER: <correct exact value>."
+  }
+ },
+ "skills": {
+  "exact_form": "Keep all quantities exact as integers, fractions, or radicals; simplify to the requested form; avoid decimals unless asked; answer exactly what is asked such as a remainder, maximum, area, or count; check signs and domains.",
+  "case_split": "Split the problem into disjoint, exhaustive cases; solve each case; verify that the cases cover all possibilities exactly once; combine the results carefully.",
+  "substitute_back": "After finding a candidate answer, substitute it into every original condition and test edge cases; revise the answer if any condition fails.",
+  "small_cases": "Compute the first few small cases by hand or by exact code, look for a pattern, then justify or verify the pattern before using it for the full problem.",
+  "counting": "For counting problems, fix the objects and restrictions, choose a primary case split, count each case with a clear method, watch for order and overcount, and verify with a small analogous example or brute force when feasible.",
+  "number_theory": "Use prime factorization, divisor formulas, gcd, parity, and modular arithmetic; list divisors when the number is small; check inclusive or exclusive bounds and positive-integer conditions.",
+  "coordinate_geometry": "Set up coordinates from points, slopes, intercepts, vertices, or diagrams; write exact equations; solve intersections; use exact area, perimeter, and distance formulas; split absolute-value or piecewise graphs by sign regions.",
+  "diagram_reading": "Convert any figure, Asymptote code, or diagram description into labeled coordinates and relations; use right angles, parallel lines, and given measurements to infer missing lengths; verify that all labels are consistent.",
+  "algebraic_identities": "Use Vieta's formulas, Newton or power-sum recurrences, completing the square, reciprocal identities, and conjugates or repeated squaring for radical numbers; keep expressions symmetric or exact.",
+  "sequence_series": "Identify the sequence or series type; derive the nth term or sum formula; solve for the requested index or term; verify with the first few terms.",
+  "matrix_series": "For sums of matrix powers, find a period, eigenvalues, a Cayley-Hamilton recurrence, or a geometric-series formula; verify with the first few terms; sum entries as scalar sequences.",
+  "functional_equation": "Derive explicit values or symmetries from the functional equation; use invertibility, f(f(x))=x, or inverse-function relations; test small inputs and check domain exceptions.",
+  "optimization": "Express the target in terms of independent variables or symmetric sums, apply the constraints, check boundary and case extrema, and confirm whether the requested value is a maximum or minimum.",
+  "brute_force_check": "When the search space is small or a finite count is needed, enumerate candidates with exact code while respecting every constraint, and use the result to confirm or correct a hand-derived answer."
+ },
+ "tools": [
+  "python",
+  "exact_solve",
+  "brute_force",
+  "check_answer",
+  "simplify_exact",
+  "number_theory",
+  "coord_geometry"
+ ],
+ "policy": "HR handbook. Read the problem, classify it as trivial, exact algebra, counting or number theory, geometry or diagram, sequence or function, or mixed hard, and write team code plus notes. Use only solver, coder, counter, geometer, and verifier; use thinking level off for every node; use at most 8 nodes; the returned node is final. Nodes without inputs run in parallel. Trivial one-or-two-step problems: return solver('off') with a note giving the direct operation and required exact form. Exact algebra or expression simplification: use coder('off', tools=['python','exact_solve','simplify_exact'], skills=['exact_form','algebraic_identities']); add verifier('off', a, tools=['check_answer'], skills=['substitute_back']) unless the problem is very short. Counting or number theory: use counter('off', tools=['python','brute_force','number_theory'], skills=['counting','number_theory','case_split']); add verifier('off', a, tools=['check_answer'], skills=['substitute_back','number_theory']). Geometry or diagram: use geometer('off', tools=['python','coord_geometry'], skills=['coordinate_geometry','diagram_reading']); add verifier('off', a, tools=['check_answer'], skills=['diagram_reading','substitute_back']). Hard, ambiguous, or high-risk problems: create two independent workers with different roles, tools, or skills, and return a verifier that reads both; if still risky, add a coder with brute_force_check or a second verifier, but stay under 8 nodes. Give skills only when they match the problem; give tools only when computation or a specialized exact method is useful. Notes must be problem-specific: state the key constraint, case split, coordinate assignment, exact output format, or small-case check. Prefer exact answers and no decimals. If the answer is a single number, the verifier should re-derive it or substitute it before finalizing."
+}

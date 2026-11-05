@@ -1,0 +1,8 @@
+dataset math: dev-A 150, dev-B 50, test 156; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc
+starting organization: org.SEED
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+[cost] round 0 / dev-B eval: 3.2 min; Qwen3.5-9B: 0.23M gen + 0.27M prompt billed, 95 calls (0% cached)
+round 0 incumbent dev-B {'n': 50, 'acc': 0.84, 'cost': 5101.6, 'meta_cost': 3075.1, 'acc_hard': 0.7778, 'nodes': 0.86, 'direct': 24, 'direct_acc': 1.0, 'shapes': {'answer': 24, 'solver[T]': 8, 'solver[T][S]>verifier[T]': 6, 'solver[T][S]>verifier[T][S]': 4}, 'n_shapes': 10, 'fallback': 8}
+[cost] round 1 / dev-A eval: 5.1 min; Qwen3.5-9B: 0.68M gen + 0.81M prompt billed, 297 calls (0% cached)
+round 1: incumbent dev-A {'n': 150, 'acc': 0.88, 'cost': 4966.0, 'meta_cost': 2933.0, 'acc_hard': 0.8049, 'nodes': 0.93, 'direct': 69, 'direct_acc': 1.0, 'shapes': {'answer': 69, 'solver[T][S]>verifier[T]': 32, 'solver[T]': 20, 'solver[T][S]>verifier[T][S]': 15}, 'n_shapes': 9, 'fallback': 20}
+[cost] round 1 / evolver proposals (27B): 1.8 min; Qwen3.8-27B: 0.03M gen + 0.07M prompt billed, 3 calls (0% cached)

@@ -1,0 +1,113 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "writer",
+    "role": "Write the simplest SQLite query answering the exact question. Use evidence formulas, constants, and label mappings literally; return exact status labels. Add only stated conditions; do not add IS NOT NULL, >0, or positive-denominator filters unless explicitly required. Select exactly asked columns/order; join only for asked/filter values. For highest/lowest/top N use ORDER BY/LIMIT, ties only if asked. Use GROUP BY only to count/compare categories; for 'mostly' GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1. For rates use evidence's numerator/denominator row set; use CAST(x AS REAL)."
+   },
+   {
+    "op": "edit_agent",
+    "name": "checker",
+    "role": "Check the input query against the question and evidence. Run it. Return it unchanged unless a concrete error exists: wrong asked output columns/order, missing/extra stated condition, wrong join key, misspelled value, wrong ORDER/LIMIT, or 0/implausible rows. Do not add IS NOT NULL, >0, DISTINCT, GROUP BY, or other filters unless the question/evidence requires them. Keep evidence formulas and labels literal. Fix only the specific error; do not rewrite a correct query. Return final SQL."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.58,
+   "cost": 3340.8,
+   "meta_cost": 1683.0,
+   "acc_hard": 0.5714,
+   "nodes": 1.98,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 49,
+    "writer[T][S]": 1
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 1,
+    "text": "Simple question (no join, aggregate, ratio, evidence, or named value): one writer with run_sql; do not add checker."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Joins, aggregates, ratios or specific values: a writer with run_sql (add find_values only for named values), then a checker with run_sql."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "Only skills: writer value_matching (with find_values) for named values, counting for how many; checker output_columns. find_values only with value_matching. Never give any other skill."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.5,
+   "cost": 3259.7,
+   "meta_cost": 1502.3,
+   "acc_hard": 0.4286,
+   "nodes": 1.96,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 48,
+    "writer[T]": 2
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "writer",
+    "role": "Write the simplest SQLite query answering the exact question. Use only stated conditions; no defensive IS NOT NULL or > 0 unless required. Follow evidence formulas and label mappings literally, with exact labels. Select exactly the asked columns in order; omit helper sort/filter columns. Join only for an asked column or stated filter. For highest/lowest/top N use ORDER BY/LIMIT; ties only if asked. Do not GROUP BY, AVG, COUNT, DISTINCT, or window functions unless an aggregate is asked. For 'mostly/most', count categories and return the top one. Order existing average/rate columns directly."
+   },
+   {
+    "op": "edit_agent",
+    "name": "checker",
+    "role": "Check the input query against the question and evidence. Run it. Return unchanged unless a concrete error exists: extra/missing output column, wrong column/entity, extra unstated filter, missing stated condition, wrong join key, misspelled value, wrong ORDER/LIMIT, or implausible rows. Ensure evidence formulas/labels are literal. Remove helper columns and unstated filters. Do not add filters or rewrite a correct simple query. Return final SQL."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "Give value_matching with find_values for named values; counting for how many; output_columns to checker. Do not give join_paths, top_k_ties, ratio_percentage, check_result, evidence_first, dates_text, null_empty, subquery_vs_join, explore_then_write, sample_rows, or column_info."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.54,
+   "cost": 3418.7,
+   "meta_cost": 1404.0,
+   "acc_hard": 0.4762,
+   "nodes": 1.92,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 45,
+    "writer[T][S]": 4,
+    "writer[T]>checker[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  }
+ }
+]

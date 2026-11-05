@@ -1,0 +1,37 @@
+{
+ "agents": {
+  "solver": {
+   "role": "You are a careful contest-math solver. Show reasoning explicitly. Read the full problem, including diagrams, Asymptote code, units, and exact requested quantity. Define variables, list constraints, solve step by step with exact arithmetic. Check domains, edge cases, parity, sign, off-by-one, and answer format. Verify candidate by substitution or an independent check. End with exactly: FINAL ANSWER: <value>."
+  },
+  "coder": {
+   "role": "You are a math solver who uses provided Python tools when available. Show reasoning and code. Translate the problem into exact computation: use integers/Fractions/exact algebra, avoid floats for exact answers. Use only provided tools; choose relevant ones. Write short correct code, print useful intermediates, debug if needed. If no tools, solve by hand carefully. End with exactly: FINAL ANSWER: <value>."
+  },
+  "verifier": {
+   "role": "You are an independent verifier. You receive the problem and solutions. Re-derive or verify critical steps; check arithmetic, algebra, domain, units, off-by-one, sign, and whether the requested quantity was answered. If inputs agree, confirm by substitution or second method. If they disagree, locate the first failing step, discard flawed solution(s), and give correct answer. End with exactly: FINAL ANSWER: <value>."
+  }
+ },
+ "skills": {
+  "case_split": "Divide into disjoint, exhaustive cases by sign, parity, membership, range, or configuration; solve each, check no gaps/overlaps, combine.",
+  "substitute_back": "After a candidate answer or intermediate value, substitute into every original condition and requested expression; discard failures.",
+  "small_cases": "Compute first few small cases by hand/code, find a pattern, then prove or verify it before using it.",
+  "exact_algebra": "Use exact radicals as rational powers, clear roots, complete square, vertex form, conjugates; check extraneous solutions after squaring.",
+  "counting_constraints": "Choose direct count, complement, inclusion-exclusion, cases, or bijection; apply all restrictions; check over/undercount; enumerate small spaces.",
+  "number_theory": "Use exact factorization, divisors, gcd, modular arithmetic, residues, CRT; list divisors when small; test edge cases.",
+  "geometry_diagrams": "Place figures in coordinates or use formulas; derive lines/circles/parabolas/absolute-value shapes; compute intersections, distances, slopes, areas; infer missing rectilinear lengths.",
+  "roots_power_sums": "Use Vieta, Newton sums, recurrences, roots of unity (omega^3=1, 1+omega+omega^2=0); verify low powers before large-exponent formulas.",
+  "functional_equation": "Use given equation with special values, swapped variables, or sums/products matching condition; derive needed value/function; verify it satisfies original.",
+  "sequence_recurrence": "Identify recurrence, closed form, or period; compute initial terms exactly; use finite geometric sum; handle remainder after periods.",
+  "inverse_function": "Solve y=f(x) for x with domain restrictions; verify by composition; compute requested expression exactly.",
+  "proportion_units": "Set up exact ratios, convert units consistently (dozen=12), solve proportion, check final units match question."
+ },
+ "tools": [
+  "python",
+  "exact_solve",
+  "brute_force",
+  "check_answer",
+  "simplify_exact",
+  "number_theory",
+  "coord_geometry"
+ ],
+ "policy": "HR builds <=8 nodes from solver, coder, verifier; thinking off; returned node final. Use smallest team giving independent confirmation.\nEasy: a=solver('off'); return a.\nMedium: a=coder('off',tools=[...],skills=[...]); b=solver('off',skills=[...]); v=verifier('off',a,b,tools=['check_answer'],only_if='disagree'); return v.\nHard: 3-5 nodes with different methods; verifier over them; second verifier only if needed, <=8.\nTools: coder gets matching tools: python general; exact_solve equations; brute_force finite enumeration; check_answer test candidates; simplify_exact expressions; number_theory divisibility/gcd/modular; coord_geometry coordinates/areas. Verifier gets check_answer/simplify_exact when computation helps. No irrelevant tools/skills.\nSkills: give 1-3 matching skills. case_split regimes; substitute_back candidates; small_cases patterns; exact_algebra radicals/completing square; counting_constraints counting; number_theory divisibility; geometry_diagrams diagrams/coordinates; roots_power_sums roots/complex; functional_equation f; sequence_recurrence sequences; inverse_function inverses; proportion_units ratios.\nNotes: short note per node: target, method, constraints, pitfalls. Parallel nodes use different methods. Verifier note: compare inputs; if agree confirm; if disagree find first error and output correct FINAL ANSWER.\nSpecifics: extract Asymptote/diagram data; small counting bounds exact enumeration plus formula; large exponents use formulas/recurrences/periods/modular; max/min prove bound and exhibit example; remainders compute exact integer then mod; answers exact."
+}

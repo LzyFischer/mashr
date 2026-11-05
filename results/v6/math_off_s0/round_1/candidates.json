@@ -1,0 +1,351 @@
+[
+ {
+  "ops": [
+   {
+    "op": "add_agent",
+    "name": "geometer",
+    "role": "You are a coordinate/diagram geometry solver. First extract every exact given coordinate, length, slope, angle, and label from the text or Asymptote code; list them explicitly. Use exact arithmetic and line equations, distance, shoelace area, or similarity. Do not infer unlabeled measurements. If Python is provided, use it for exact coordinate computation. End with exactly: Answer: <final value>.",
+    "why": "Geometry L5 is 43% and several wrong examples are diagram/coordinate failures; a dedicated self-harness puts diagram extraction and exact coordinate computation on the layer where it is always needed for that employee."
+   },
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Reason step by step with exact arithmetic. Respect every constraint and handle all cases. If a diagram or Asymptote is present, first list exact given coordinates/lengths, then solve. If asked for all possible values, list every admissible value in the requested format. End with exactly: Answer: <final value>.",
+    "why": "Basic output-format and diagram-extraction practice should be always-on; the sphere wrong example shows a candidate found only one admissible value when all values were requested."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use provided tools only for exact computation; if none are provided, do exact hand computation. Prefer integers, fractions, and exact symbolic forms. For iterative processes, simulate the exact state in Python and test small cases before running the full size. Check edge cases. If asked for all possible values, list all. End with exactly: Answer: <final value>.",
+    "why": "Coder is used for computation, but the locker-process wrong example shows small-case inference without exact full simulation is unsafe; this is basic practice for a computational role."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Independently re-derive key steps and substitute candidate answer(s) into every original condition. If candidates disagree, identify the first invalid step. If the problem asks for all possible values, ensure every admissible value is included and formatted as requested. End with exactly: Answer: <final value>.",
+    "why": "Verifier leave-one-out is needed 11 times and rarely harmful; strengthening its role to resolve disagreements and enforce all-values output targets observed verifier successes and the sphere all-values failure."
+   },
+   {
+    "op": "remove_skill",
+    "id": "case_split",
+    "why": "Given to 104 nodes with 72% correctness versus 83% otherwise; the generic case-split lesson is already in the solver role and the skill behaves as harmful residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "substitute_back",
+    "why": "Given to 92 nodes with 77% versus 80% otherwise; substitution is already a basic verifier/solver practice, so the skill adds residue without evidence of gain."
+   },
+   {
+    "op": "remove_skill",
+    "id": "geometry_reasoning",
+    "why": "Given to 30 nodes with 60% versus 81% otherwise and appears in multiple geometry wrong examples; replace with a more concrete diagram/coordinate skill and geometer role."
+   },
+   {
+    "op": "remove_skill",
+    "id": "small_cases",
+    "why": "Given to 20 nodes with 70% versus 80% otherwise; the locker wrong example shows small-case inference without exact full simulation is dangerous, and exact simulation belongs in coder role/skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "combinatorial_counting",
+    "why": "Given to 17 nodes with 71% versus 80% otherwise; counting is better handled by exact computation/coder and problem-specific notes than by this generic skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "complex_modulus",
+    "why": "Given to 7 nodes with 57% versus 80% otherwise; no evidence it helps and it is a narrow conditional lesson the HR should not rely on."
+   },
+   {
+    "op": "edit_skill",
+    "id": "number_theory_counts",
+    "text": "Use for divisors, divisibility, digit/base constraints, coprime counts, or Diophantine restrictions. Factor exactly, expand base-b digits as powers, impose digit ranges, solve linear congruences, enumerate remaining small bounds exactly, and sum requested values.",
+    "why": "This skill has 100% correctness when given versus 79% otherwise; editing it to include base-digit equations directly addresses the base-conversion wrong example while keeping a proven high-value skill."
+   },
+   {
+    "op": "add_skill",
+    "id": "diagram_geometry",
+    "text": "Use for diagrams, Asymptote, coordinate geometry, shaded regions, or graph intersections. List all exact coordinates and given lengths. Compute intersections from line equations, then distances/areas with exact shoelace or distance formulas. Verify the final value against the original diagram constraints.",
+    "why": "Geometry L5 is 43% and wrong examples include Asymptote/diagram and coordinate area failures; this is a conditional technique, so it belongs as a skill rather than in every role."
+   },
+   {
+    "op": "add_skill",
+    "id": "state_simulation",
+    "text": "Use for iterative processes, walks, toggles, or state changes over many steps. Define the exact state transition, test 2-3 small sizes by hand, implement exact Python simulation, run the full size, and only use a closed form after proving the recurrence.",
+    "why": "The locker-process wrong example used small cases and got the large-N answer wrong; this conditional technique prevents unsafe pattern inference."
+   },
+   {
+    "op": "add_skill",
+    "id": "roots_of_unity_polygon",
+    "text": "Use for polygons whose vertices are roots of unity or complex roots. Identify all roots, order them by argument, and compute area exactly by shoelace or n/2*R^2*sin(2*pi/n). Simplify to the requested a+b*sqrt(c) form and check positivity/simplest form.",
+    "why": "The Precalculus L4 roots-of-unity area wrong example shows a specific missing technique; it is conditional, so it belongs in the skill library."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Output only valid team code and notes. Syntax: a = solver(\"off\", tools=[...], skills=[...]); v = verifier(\"off\", a, tools=[...]); return v. Then notes: one line per node. At most 8 nodes. Use only agents solver, coder, verifier, geometer. Tools only: python, exact_solve, brute_force, check_answer, simplify_exact, number_theory, coord_geometry. Skills only: exact_exponents, vieta_power_sums, algebraic_substitution, minimal_polynomial, quadratic_methods, number_theory_counts, parity_digit_counting, inverse_functions, matrix_power_sum, functional_equation, sequence_sums, diagram_geometry, state_simulation, roots_of_unity_polygon. Default: one strong candidate plus verifier with check_answer. Use solver for algebra/prealgebra/reasoning; coder for exact computation, simulation, large counts, matrices, number theory; geometer for Geometry, diagrams, Asymptote, coordinate/shaded-region problems. Use two candidates only for very hard L5 problems with genuinely different methods; give them different methods in notes. Verifier is final whenever there is more than one candidate. Tools: give check_answer to verifier. Give python to coder when exact computation or simulation is needed. Avoid coord_geometry; use exact_solve/number_theory/simplify_exact only when the note names a concrete exact operation. Skills: give only matching skills, usually 1-3. diagram_geometry for diagrams/coordinate geometry; state_simulation for iterative processes; roots_of_unity_polygon for root-of-unity polygons; number_theory_counts for divisibility/digit/base/counting; quadratic_methods for quadratics; exact_exponents for radicals; algebraic_substitution for reciprocal/algebraic relations; sequence_sums for sums; functional_equation for f conditions; matrix_power_sum for matrix/root-of-unity powers. Notes must be problem-specific: exact target, cases, tool use, and what to verify. For all possible values, note that every admissible value must be listed. For counting, state included/excluded. For max/min, require proof the bound is attained and no better value exists. Do not repeat generic role text.",
+    "why": "Leave-one-out shows verifier is often needed while extra candidates are rarely needed; tool/skill usage shows check_answer helps while coord_geometry, brute_force, generic case/simulation skills hurt or add residue. Clear syntax and valid ids address the observed HR repairs/rewrites/fallbacks."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.9,
+   "cost": 5561.5,
+   "hr_cost": 709.3,
+   "acc_hard": 0.886,
+   "nodes": 2.38,
+   "shapes": {
+    "coder.off[T][S]>verifier.off[T]": 45,
+    "solver.off[S]>verifier.off[T]": 37,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 34,
+    "solver.off[T][S]>verifier.off[T]": 14
+   },
+   "n_shapes": 27,
+   "repaired": 0,
+   "retried": 2,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Reason step by step using exact arithmetic; avoid decimals unless requested. Respect every constraint and make cases disjoint and exhaustive. For diagrams or graphs, list all exact labels, coordinates, intercepts, slopes, and lengths before solving. If tools are provided, use them only for exact arithmetic or checking; otherwise hand-compute. End with exactly: Answer: <final value>.",
+    "why": "solver.off[T] with tools but no skills had 25% accuracy, while solver.off[T][S] and solver.off[S] were much stronger. Moving case-handling and diagram extraction into the role makes them basic practice, while policy can keep tools off solver."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use provided tools to compute exact results; if no tools are provided, hand-compute exactly. In Python, write complete runnable code using integers or Fractions, avoid floats, and print the exact final value. Test small cases or edge conditions when a formula is inferred. Explain the result. End with exactly: Answer: <final value>.",
+    "why": "coder.off was 74% and python/brute_force were often worse than no tools, suggesting code or search errors. Making exact runnable code and edge-case testing part of the role targets the layer where computational reliability belongs."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Independently check candidate answer(s) by re-deriving key steps from the problem and substituting into original conditions. If candidates disagree, locate the specific error rather than averaging. Use check_answer or python only for exact verification. Ensure the final value matches the requested quantity and format. End with exactly: Answer: <final value>.",
+    "why": "verifier.off with inputs was 87% correct and leave-one-out showed it was needed 11 times versus harmful only once. Its role should encode independent re-derivation and error localization, not just agreement."
+   },
+   {
+    "op": "remove_skill",
+    "id": "case_split",
+    "why": "case_split was given to 104 nodes but accuracy was 72% with it versus 83% without it. Case handling is basic enough to belong in the solver role, not as a frequently given residual skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "substitute_back",
+    "why": "substitute_back was given to 92 nodes with 77% accuracy versus 80% without it. Substitution back is a basic verification practice and is already in the verifier role; as a skill it is residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "small_cases",
+    "why": "small_cases was given to 20 nodes with 70% accuracy versus 80% without it. The locker-process failure shows small-case guessing without proof is dangerous; the new process_simulation skill replaces it with a safer method."
+   },
+   {
+    "op": "remove_skill",
+    "id": "combinatorial_counting",
+    "why": "combinatorial_counting was given to 17 nodes with 71% accuracy versus 80% without it. Counting methodology should be problem-specific in notes, and process_simulation covers the observed iterative counting failure."
+   },
+   {
+    "op": "remove_skill",
+    "id": "complex_modulus",
+    "why": "complex_modulus was given to 7 nodes with 57% accuracy versus 80% without it. The observed complex/roots-of-unity failure suggests the old skill was too narrow; the new complex_methods skill is broader and safer."
+   },
+   {
+    "op": "remove_skill",
+    "id": "geometry_reasoning",
+    "why": "geometry_reasoning was given to 30 nodes with 60% accuracy versus 81% without it, and Geometry L5 was only 43%. The old generic skill is residue; the new diagram_geometry skill is more operational and tied to exact decomposition."
+   },
+   {
+    "op": "remove_skill",
+    "id": "sequence_sums",
+    "why": "sequence_sums was given to only 5 nodes with 80% accuracy versus 80% without it. The evidence does not support keeping it as a separate residual skill; sums can be handled by solver/coder with exact arithmetic notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "vieta_power_sums",
+    "why": "This skill does not appear in the residual usage table, so the HR never handed it out. Unused conditional knowledge is prompt residue and should be removed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "minimal_polynomial",
+    "why": "This skill does not appear in the residual usage table, so the HR never handed it out. Unused conditional knowledge is prompt residue and should be removed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "matrix_power_sum",
+    "why": "This skill does not appear in the residual usage table, so the HR never handed it out. Unused conditional knowledge is prompt residue and should be removed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "This skill does not appear in the residual usage table, so the HR never handed it out. Unused conditional knowledge is prompt residue and should be removed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "parity_digit_counting",
+    "why": "This skill does not appear in the residual usage table, so the HR never handed it out. Unused conditional knowledge is prompt residue and should be removed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "inverse_functions",
+    "why": "This skill does not appear in the residual usage table, so the HR never handed it out. Unused conditional knowledge is prompt residue and should be removed."
+   },
+   {
+    "op": "add_skill",
+    "id": "diagram_geometry",
+    "text": "Use for diagrams, coordinate, or graph geometry. First list every exact label, coordinate, intercept, slope, and length. For shaded area or perimeter, decompose into rectangles/triangles or use shoelace; subtract only the requested region. Use exact fractions; if python is provided, use it only for arithmetic. Verify with an independent decomposition.",
+    "why": "Geometry L5 was 43%, geometry_reasoning was 60% when given versus 81% otherwise, and coord_geometry tool was 17%. A concrete diagram skill replaces a harmful generic skill at the residual layer."
+   },
+   {
+    "op": "add_skill",
+    "id": "process_simulation",
+    "text": "Use for iterative, stateful, or process problems such as toggles, walks, lockers, or rule-generated sequences. Define the state and update rule exactly. If python is provided, simulate the full process or enough cases to detect an invariant; for large N derive a formula and verify it on small N. Do not infer from 2-3 cases without proof.",
+    "why": "The locker problem failed with brute_force/small_cases and small_cases was 70% versus 80% without it. This skill targets the observed failure mode: stateful processes need exact simulation or proven patterns, not small-case guessing."
+   },
+   {
+    "op": "add_skill",
+    "id": "polynomial_root_transforms",
+    "text": "Use when roots of one polynomial are shifted, scaled, or otherwise transformed roots of another. Write the conditions directly, subtract the polynomials to obtain equations in the roots, use Vieta sums/products, and solve the resulting system exactly with exact_solve or hand algebra. Check all roots and multiplicities.",
+    "why": "Intermediate Algebra L5 was 71%, and the cubic root-shift problem failed despite exact_solve and algebraic_substitution. This is a distinct technique for that observed failure, so it belongs as a residual skill, not in every solver role."
+   },
+   {
+    "op": "add_skill",
+    "id": "complex_methods",
+    "text": "Use for complex numbers, roots of unity, moduli, and polygon areas. Use polar form or conjugates as appropriate. For roots of unity, identify the exact roots, order them by argument, and compute polygon area by shoelace or regular-polygon formula. For |z|, split z=0 and z!=0, set r=|z|, solve exactly, and check all cases.",
+    "why": "Precalculus was 67%, complex_modulus was 57% when given versus 80% otherwise, and the roots-of-unity polygon failure shows the old skill was too narrow. This broader skill covers the observed complex/precalculus failures."
+   },
+   {
+    "op": "edit_skill",
+    "id": "number_theory_counts",
+    "text": "Use for divisors, factor counts, coprime pairs, subsets of divisors, base conversion, digit restrictions, or integer divisibility constraints. Factor exactly, use divisor formulas, convert bases to integer equations, bound digits, solve linear Diophantine conditions, and count or sum all valid solutions exactly.",
+    "why": "number_theory_counts was 100% when given versus 79% without it, and the base-conversion Number Theory problem failed without it. Extending the skill to base/digit constraints puts the observed lesson in the same proven residual skill."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build the smallest reliable team, at most 8 nodes, all thinking off. Output valid code: x = employee(\"off\", inputs=[...], tools=[...], skills=[...]). Tools are only: python, exact_solve, brute_force, check_answer, simplify_exact, number_theory. Never use coord_geometry. Skills are only: quadratic_methods, exact_exponents, number_theory_counts, algebraic_substitution, diagram_geometry, process_simulation, polynomial_root_transforms, complex_methods. Do not put skill names in tools or tool names in skills. First node must be a strong standalone candidate. Use 1 solver for direct low-risk problems: one-step algebra, proportions, standard formulas, simple counting, simple inverse functions. Give solver no tools or only check_answer; give it 0-2 matching skills. Use 1 coder for exact computation, symbolic solving, large counts, coordinate arithmetic, matrix or polynomial systems, or small exact search. Give coder python and at most one or two specialized tools; avoid brute_force unless the search space is tiny and exact; avoid exact_solve unless the system is explicit and symbolic. Use 2 independent candidates plus verifier for multi-step, constrained, computational, diagram, number-theory, functional, complex, or error-prone problems. Use 3+ candidates only if very hard and methods differ. Final node is usually verifier when there is more than one candidate; give verifier check_answer and, when useful, python for exact verification. Notes are required and must be problem-specific: state the quantity to compute, the exact case split, the tool to use, and what to verify. Do not repeat generic role text. For max/min/attainment, require proof the bound is attained and no better. For counting, state included/excluded cases and the final requested expression. Prefer exact answers; avoid decimals unless requested. Keep teams small while preserving accuracy.",
+    "why": "HR prompt cost was 873/question and HR repeatedly dropped unknown tools/skills. The handbook must separate tools from skills, ban the strongly harmful coord_geometry tool, route computation tools to coder, keep verifier for multi-candidate cases, and point to the skills with positive evidence while removing references to removed residue."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.84,
+   "cost": 6770.6,
+   "hr_cost": 818.1,
+   "acc_hard": 0.807,
+   "nodes": 2.71,
+   "shapes": {
+    "coder.off[T][S],solver.off[S],verifier.off[T][S]": 52,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 33,
+    "solver.off[S]>verifier.off[T]": 20,
+    "coder.off[T][S],solver.off[S],verifier.off[T]": 16
+   },
+   "n_shapes": 40,
+   "repaired": 8,
+   "retried": 16,
+   "fallback": 5
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Reason step by step with exact arithmetic. Respect every constraint; make cases disjoint and exhaustive. If asked for all possible values or their sum, find every admissible value and check it before summing. For geometry, extract exact data, trace boundaries, and report positive lengths/areas. End with exactly: Answer: <final value>.",
+    "why": "Failures include missing admissible roots and negative or mis-traced geometry; these are basic solver practices, not conditional skills."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use provided tools for exact results; if none, hand compute. Prefer integers, fractions, exact symbolic forms. For iterative processes, simulate the full exact state to termination; do not infer from small cases without proof. If asked for all possible values, enumerate and sum all admissible values. Check edge cases. End with exactly: Answer: <final value>.",
+    "why": "Coder failures involved premature pattern inference and single-node computation; exact simulation and exhaustive enumeration are core coder practices."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Independently re-derive key steps and substitute candidates into every original condition. If candidates disagree, recompute from scratch and identify the error. If the problem asks for all possible values or their sum, verify that every admissible value is included. For geometry, confirm exact coordinates/boundaries and positive lengths/areas. Output the correct answer. End with exactly: Answer: <final value>.",
+    "why": "Verifier left-one-out shows 11 needed vs 1 harmful; it must specifically catch omitted values, sign/area errors, and disagreement resolution."
+   },
+   {
+    "op": "edit_skill",
+    "id": "geometry_reasoning",
+    "text": "Use for diagrams, coordinate, or graph geometry. Extract every given label/coordinate. Assign exact coordinates, trace the exact boundary for shaded/non-shaded regions, and use distance, slope, intercepts, shoelace area, or perimeter by summing boundary segments. Return positive lengths/areas; do not assume a shape unless proved.",
+    "why": "Geometry L5 is 43% and geometry_reasoning nodes were 60% correct vs 81% otherwise; the current text is too vague and allowed negative or incorrect boundary assumptions."
+   },
+   {
+    "op": "edit_skill",
+    "id": "combinatorial_counting",
+    "text": "Use for counting with restrictions. Choose a clean bijection or disjoint cases; count total and subtract invalid when easier. For sequences/positions, transform variables and check bounds. Verify boundary cases and the requested quantity; do not assume symmetry without proof.",
+    "why": "Counting L5 failures used vague counting or simulation; combinatorial_counting was 71% when given vs 80% otherwise, so it needs a stricter operational method."
+   },
+   {
+    "op": "add_skill",
+    "id": "exact_simulation",
+    "text": "Use when a process evolves step by step (walks, toggles, recurrences with state). Implement the exact full process to termination or derive a proven recurrence/invariant. Track all state; use small cases only to test the model; do not extrapolate from small N without proof.",
+    "why": "The locker problem failed because small-case inference replaced exact simulation; this is a conditional technique for process problems."
+   },
+   {
+    "op": "remove_skill",
+    "id": "case_split",
+    "why": "Given 104 times but 72% correct vs 83% otherwise; case handling is already a basic solver/verifier practice and the skill is overused residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "substitute_back",
+    "why": "Given 92 times but 77% vs 80% otherwise; substitution is already explicit in the verifier role, so the skill is redundant residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "small_cases",
+    "why": "Given 20 times but 70% vs 80% otherwise; it encouraged unsafe extrapolation in process and counting failures."
+   },
+   {
+    "op": "remove_skill",
+    "id": "complex_modulus",
+    "why": "Given 7 times but 57% vs 80% otherwise; no evidence it helps and it likely misdirects complex-plane geometry."
+   },
+   {
+    "op": "remove_skill",
+    "id": "sequence_sums",
+    "why": "Only 5 uses and neutral 80% vs 80%; generic sums are covered by solver/coder roles and exact tools, so it is low-value residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "inverse_functions",
+    "why": "No reported usage or accuracy support; inverse-function problems are direct enough for the solver role without a dedicated skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "minimal_polynomial",
+    "why": "No reported usage or accuracy support; exact_solve and algebraic_substitution cover the common cases, so this is unsupported residue."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build smallest reliable team. Output code then notes. Line form: a = solver(\"off\", [inputs], tools=[...], skills=[...]); return final. Inputs are previous variable names; no-input nodes parallel; at most 8 nodes. Tools only: python, exact_solve, brute_force, check_answer, simplify_exact, number_theory. Never give coord_geometry. Skills only: quadratic_methods, exact_exponents, number_theory_counts, algebraic_substitution, geometry_reasoning, combinatorial_counting, exact_simulation, functional_equation, parity_digit_counting, vieta_power_sums, matrix_power_sum. Do not invent.\n\nStaffing: trivial one-step formula/no diagram/search: solver alone. Exact computation/symbolic/finite search/radicals: one coder + verifier. Multi-step, constrained, diagram, counting, number-theory, functional-equation, complex, all-possible-values: two independent candidates + verifier; notes use different methods. 3 candidates only if very hard. Never single solver/coder for diagrams, counting, number theory, iterative processes, or all-possible-values.\n\nTools: give check_answer to verifier. Candidates get at most one primary tool: exact_solve equations/polynomials; number_theory divisors/gcd/congruences; brute_force finite search/process; simplify_exact radicals; python general exact. Multiple tools only if note requires.\n\nSkills: 1-2 only when triggered. quadratic_methods quadratics/graphs; exact_exponents radicals/rational powers; number_theory_counts divisors/gcd/congruences; algebraic_substitution x+1/x relations; geometry_reasoning diagrams/coordinate; combinatorial_counting restricted counting; exact_simulation step processes; functional_equation f conditions; parity_digit_counting digit/parity; vieta_power_sums root power sums; matrix_power_sum matrix powers/roots-of-unity.\n\nNotes: one line per node, problem-specific: target, cases, tool, verification. For all-possible-values/sums, say enumerate every admissible value and sum. For geometry, say extract coordinates, trace exact boundary, output positive length/area. For counting/process, say exact state or proven formula and check boundaries. Do not repeat role. Prefer exact answers; avoid decimals unless requested.",
+    "why": "Report shows HR syntax errors, overstaffed correct questions, single-solver failures on hard categories, and harmful tools/skills. This handbook tightens staffing, restricts coord_geometry, routes number-theory/counting/geometry to supported skills, and removes unsupported residue."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.835,
+   "cost": 5556.7,
+   "hr_cost": 684.2,
+   "acc_hard": 0.7895,
+   "nodes": 2.16,
+   "shapes": {
+    "solver.off[T][S]": 45,
+    "solver.off[T][S],solver.off[T][S]>verifier.off[T]": 27,
+    "solver.off[T][S]>verifier.off[T]": 23,
+    "coder.off[T][S],solver.off[T][S]>verifier.off[T]": 17
+   },
+   "n_shapes": 38,
+   "repaired": 3,
+   "retried": 7,
+   "fallback": 1
+  }
+ }
+]

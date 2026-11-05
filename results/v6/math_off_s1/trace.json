@@ -1,0 +1,134 @@
+[
+ {
+  "round": 0,
+  "accepted": true,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.87,
+   "cost": 5084.3,
+   "hr_cost": 773.6,
+   "acc_hard": 0.8509,
+   "nodes": 1.97,
+   "shapes": {
+    "counter.off[T][S]>verifier.off[T][S]": 63,
+    "solver.off[T][S]>verifier.off[T][S]": 19,
+    "geometer.off[T][S]>verifier.off[T][S]": 18,
+    "coder.off[T][S]>verifier.off[T][S]": 15
+   },
+   "n_shapes": 27,
+   "repaired": 1,
+   "retried": 6,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 1,
+  "accepted": true,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.9,
+   "cost": 5210.8,
+   "hr_cost": 722.7,
+   "acc_hard": 0.886,
+   "nodes": 2.19,
+   "shapes": {
+    "counter.off[T][S]>verifier.off[T]": 45,
+    "solver.off[T][S]>verifier.off[T]": 40,
+    "solver.off>verifier.off[T]": 25,
+    "solver.off[S]>verifier.off[T]": 18
+   },
+   "n_shapes": 29,
+   "repaired": 1,
+   "retried": 5,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 2,
+  "accepted": false,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.9,
+   "cost": 5210.8,
+   "hr_cost": 722.7,
+   "acc_hard": 0.886,
+   "nodes": 2.19,
+   "shapes": {
+    "counter.off[T][S]>verifier.off[T]": 45,
+    "solver.off[T][S]>verifier.off[T]": 40,
+    "solver.off>verifier.off[T]": 25,
+    "solver.off[S]>verifier.off[T]": 18
+   },
+   "n_shapes": 29,
+   "repaired": 1,
+   "retried": 5,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 3,
+  "accepted": false,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.9,
+   "cost": 5210.8,
+   "hr_cost": 722.7,
+   "acc_hard": 0.886,
+   "nodes": 2.19,
+   "shapes": {
+    "counter.off[T][S]>verifier.off[T]": 45,
+    "solver.off[T][S]>verifier.off[T]": 40,
+    "solver.off>verifier.off[T]": 25,
+    "solver.off[S]>verifier.off[T]": 18
+   },
+   "n_shapes": 29,
+   "repaired": 1,
+   "retried": 5,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 4,
+  "accepted": false,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.9,
+   "cost": 5210.8,
+   "hr_cost": 722.7,
+   "acc_hard": 0.886,
+   "nodes": 2.19,
+   "shapes": {
+    "counter.off[T][S]>verifier.off[T]": 45,
+    "solver.off[T][S]>verifier.off[T]": 40,
+    "solver.off>verifier.off[T]": 25,
+    "solver.off[S]>verifier.off[T]": 18
+   },
+   "n_shapes": 29,
+   "repaired": 1,
+   "retried": 5,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 5,
+  "accepted": false,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.9,
+   "cost": 5210.8,
+   "hr_cost": 722.7,
+   "acc_hard": 0.886,
+   "nodes": 2.19,
+   "shapes": {
+    "counter.off[T][S]>verifier.off[T]": 45,
+    "solver.off[T][S]>verifier.off[T]": 40,
+    "solver.off>verifier.off[T]": 25,
+    "solver.off[S]>verifier.off[T]": 18
+   },
+   "n_shapes": 29,
+   "repaired": 1,
+   "retried": 5,
+   "fallback": 1
+  }
+ }
+]

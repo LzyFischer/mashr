@@ -1,0 +1,417 @@
+{
+ "stages": [
+  {
+   "stage": "design (27B designer)",
+   "seconds": 117.5,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 2,
+     "cached": 0,
+     "prompt": 8371,
+     "gen": 18260,
+     "billed_prompt": 21867,
+     "billed_gen": 18260
+    }
+   }
+  },
+  {
+   "stage": "round 0 / dev-B eval",
+   "seconds": 1125.4,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 612,
+     "cached": 0,
+     "prompt": 903178,
+     "gen": 836229,
+     "billed_prompt": 903178,
+     "billed_gen": 836229
+    }
+   }
+  },
+  {
+   "stage": "round 1 / dev-A eval",
+   "seconds": 605.0,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 464,
+     "cached": 0,
+     "prompt": 661397,
+     "gen": 580070,
+     "billed_prompt": 661397,
+     "billed_gen": 580070
+    }
+   }
+  },
+  {
+   "stage": "round 1 / leave-one-out",
+   "seconds": 441.4,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 157,
+     "cached": 85,
+     "prompt": 47347,
+     "gen": 136638,
+     "billed_prompt": 47347,
+     "billed_gen": 136638
+    }
+   }
+  },
+  {
+   "stage": "round 1 / residual ablation",
+   "seconds": 342.9,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 369,
+     "cached": 7,
+     "prompt": 381174,
+     "gen": 579922,
+     "billed_prompt": 381174,
+     "billed_gen": 579922
+    }
+   }
+  },
+  {
+   "stage": "round 1 / designer proposals (27B)",
+   "seconds": 224.3,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 5,
+     "cached": 0,
+     "prompt": 48319,
+     "gen": 62318,
+     "billed_prompt": 147133,
+     "billed_gen": 62318
+    }
+   }
+  },
+  {
+   "stage": "round 1 / dev-B gate (3 candidates)",
+   "seconds": 2579.7,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 1846,
+     "cached": 0,
+     "prompt": 2415739,
+     "gen": 2461704,
+     "billed_prompt": 2415739,
+     "billed_gen": 2461704
+    }
+   }
+  },
+  {
+   "stage": "round 2 / dev-A eval",
+   "seconds": 1126.2,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 485,
+     "cached": 0,
+     "prompt": 617390,
+     "gen": 639997,
+     "billed_prompt": 617390,
+     "billed_gen": 639997
+    }
+   }
+  },
+  {
+   "stage": "round 2 / leave-one-out",
+   "seconds": 231.8,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 150,
+     "cached": 78,
+     "prompt": 56392,
+     "gen": 133140,
+     "billed_prompt": 56392,
+     "billed_gen": 133140
+    }
+   }
+  },
+  {
+   "stage": "round 2 / residual ablation",
+   "seconds": 1237.8,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 362,
+     "cached": 26,
+     "prompt": 360830,
+     "gen": 515716,
+     "billed_prompt": 360830,
+     "billed_gen": 515716
+    }
+   }
+  },
+  {
+   "stage": "round 2 / designer proposals (27B)",
+   "seconds": 148.0,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 5,
+     "cached": 0,
+     "prompt": 64426,
+     "gen": 57688,
+     "billed_prompt": 179347,
+     "billed_gen": 57688
+    }
+   }
+  },
+  {
+   "stage": "round 2 / dev-B gate (3 candidates)",
+   "seconds": 2053.9,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 1938,
+     "cached": 2,
+     "prompt": 2355855,
+     "gen": 2649761,
+     "billed_prompt": 2355855,
+     "billed_gen": 2649761
+    }
+   }
+  },
+  {
+   "stage": "round 3 / dev-A eval",
+   "seconds": 0.2,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 485,
+     "cached": 485,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 3 / leave-one-out",
+   "seconds": 0.1,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 150,
+     "cached": 150,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 3 / residual ablation",
+   "seconds": 0.1,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 362,
+     "cached": 362,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 3 / designer proposals (27B)",
+   "seconds": 153.7,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 6,
+     "cached": 0,
+     "prompt": 94426,
+     "gen": 68708,
+     "billed_prompt": 249443,
+     "billed_gen": 68708
+    }
+   }
+  },
+  {
+   "stage": "round 3 / dev-B gate (2 candidates)",
+   "seconds": 1988.9,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 1288,
+     "cached": 0,
+     "prompt": 1613644,
+     "gen": 1691830,
+     "billed_prompt": 1613644,
+     "billed_gen": 1691830
+    }
+   }
+  },
+  {
+   "stage": "round 4 / dev-A eval",
+   "seconds": 0.2,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 485,
+     "cached": 485,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 4 / leave-one-out",
+   "seconds": 0.0,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 150,
+     "cached": 150,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 4 / residual ablation",
+   "seconds": 0.1,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 362,
+     "cached": 362,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 4 / designer proposals (27B)",
+   "seconds": 155.1,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 6,
+     "cached": 0,
+     "prompt": 105308,
+     "gen": 70133,
+     "billed_prompt": 271207,
+     "billed_gen": 70133
+    }
+   }
+  },
+  {
+   "stage": "round 4 / dev-B gate (3 candidates)",
+   "seconds": 1801.7,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2004,
+     "cached": 0,
+     "prompt": 2515774,
+     "gen": 2797334,
+     "billed_prompt": 2515774,
+     "billed_gen": 2797334
+    }
+   }
+  },
+  {
+   "stage": "round 5 / dev-A eval",
+   "seconds": 0.2,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 485,
+     "cached": 485,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 5 / leave-one-out",
+   "seconds": 0.1,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 150,
+     "cached": 150,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 5 / residual ablation",
+   "seconds": 0.1,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 362,
+     "cached": 362,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 5 / designer proposals (27B)",
+   "seconds": 163.2,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 6,
+     "cached": 0,
+     "prompt": 121140,
+     "gen": 68892,
+     "billed_prompt": 302874,
+     "billed_gen": 68892
+    }
+   }
+  },
+  {
+   "stage": "round 5 / dev-B gate (3 candidates)",
+   "seconds": 1125.3,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2008,
+     "cached": 0,
+     "prompt": 2592775,
+     "gen": 2797951,
+     "billed_prompt": 2592775,
+     "billed_gen": 2797951
+    }
+   }
+  },
+  {
+   "stage": "test (5 systems)",
+   "seconds": 746.5,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 1593,
+     "cached": 156,
+     "prompt": 1553992,
+     "gen": 1712914,
+     "billed_prompt": 1553992,
+     "billed_gen": 1712914
+    }
+   }
+  }
+ ],
+ "total": {
+  "seconds": 16369.4,
+  "models": {
+   "Qwen/Qwen3.5-9B": {
+    "calls": 16267,
+    "cached": 3345,
+    "prompt": 16075487,
+    "gen": 17533206,
+    "billed_prompt": 16075487,
+    "billed_gen": 17533206
+   },
+   "Qwen/Qwen3.8-27B": {
+    "calls": 30,
+    "cached": 0,
+    "prompt": 441990,
+    "gen": 345999,
+    "billed_prompt": 1171871,
+    "billed_gen": 345999
+   }
+  }
+ }
+}

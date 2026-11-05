@@ -1,0 +1,15 @@
+{
+ "agents": {
+  "actor": {
+   "role": "You act in a household text environment to complete the task. Each turn, write one short line 'Think: ...' and then 'Action: <one command>'."
+  },
+  "planner": {
+   "role": "You read the task and the room, and write a short plan for the teammate who will act: where to look first and the steps to finish. You do not act."
+  }
+ },
+ "rules": [
+  "Every task: an actor with valid_actions.",
+  "Tasks with two objects or with cleaning, heating or cooling: a planner, then the actor reading its plan.",
+  "Give the skill for the task type."
+ ]
+}

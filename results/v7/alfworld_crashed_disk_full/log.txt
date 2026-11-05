@@ -1,0 +1,13 @@
+task alfworld: dev-A 150, dev-B 50, test 134; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc
+starting organization: the seed
+[cost] round 0 / dev-B eval: 16.0 min; Qwen3.5-9B: 0.15M gen + 1.85M prompt billed, 925 calls (2% cached)
+round 0 incumbent dev-B {'n': 50, 'acc': 0.82, 'cost': 10170.4, 'meta_cost': 2206.5, 'acc_hard': 0.7838, 'nodes': 1.92, 'shapes': {'planner[S]>actor[T][S]': 40, 'planner[T][S]>actor[T][S]': 5, 'actor[T][S]': 4, 'actor[T][S],planner[S]': 1}, 'n_shapes': 4, 'fallback': 0}
+[cost] round 1 / dev-A eval: 13.5 min; Qwen3.5-9B: 0.45M gen + 5.71M prompt billed, 2881 calls (2% cached)
+round 1: incumbent dev-A {'n': 150, 'acc': 0.82, 'cost': 10430.4, 'meta_cost': 2051.9, 'acc_hard': 0.7879, 'nodes': 1.91, 'shapes': {'planner[S]>actor[T][S]': 116, 'planner[T][S]>actor[T][S]': 14, 'actor[T][S]': 13, 'actor[T][S],planner[S]': 5}, 'n_shapes': 5, 'fallback': 0}
+[cost] round 1 / evolver proposals (27B): 1.2 min; Qwen3.8-27B: 0.03M gen + 0.06M prompt billed, 3 calls (0% cached)
+[cost] round 1 / dev-B gate (3 candidates): 12.8 min; Qwen3.5-9B: 0.47M gen + 6.13M prompt billed, 3168 calls (2% cached)
+  cand 0 (task-agent): 2 ops, repairs 0, dev-B {'n': 50, 'acc': 0.68, 'cost': 12357.9, 'meta_cost': 2870.1, 'acc_hard': 0.5946, 'nodes': 1.96, 'shapes': {'planner[S]>actor[T][S]': 42, 'planner[T][S]>actor[T][S]': 4, 'actor[T][S]': 2, 'actor[T][S],planner[S]': 2}, 'n_shapes': 4, 'fallback': 0}
+  cand 1 (meta-agent): 3 ops, repairs 0, dev-B {'n': 50, 'acc': 0.84, 'cost': 10002.3, 'meta_cost': 2150.5, 'acc_hard': 0.7838, 'nodes': 2.0, 'shapes': {'planner[S]>actor[T][S]': 50}, 'n_shapes': 1, 'fallback': 0}
+  cand 2 (task-agent+meta-agent): 6 ops, repairs 0, dev-B {'n': 50, 'acc': 0.9, 'cost': 10514.5, 'meta_cost': 2496.6, 'acc_hard': 0.8649, 'nodes': 2.0, 'shapes': {'planner[S]>actor[T][S]': 42, 'actor[T][S],planner[S]': 8}, 'n_shapes': 2, 'fallback': 0}
+round 1: accepted; incumbent dev-B {'n': 50, 'acc': 0.9, 'cost': 10514.5, 'meta_cost': 2496.6, 'acc_hard': 0.8649, 'nodes': 2.0, 'shapes': {'planner[S]>actor[T][S]': 42, 'actor[T][S],planner[S]': 8}, 'n_shapes': 2, 'fallback': 0}
+[cost] round 2 / dev-A eval: 6.2 min; Qwen3.5-9B: 0.45M gen + 3.37M prompt billed, 1655 calls (1% cached)

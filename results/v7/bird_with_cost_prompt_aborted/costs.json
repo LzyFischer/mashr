@@ -1,0 +1,123 @@
+{
+ "stages": [
+  {
+   "stage": "round 0 / dev-B eval",
+   "seconds": 251.8,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 183,
+     "cached": 15,
+     "prompt": 248769,
+     "gen": 74644,
+     "billed_prompt": 256320,
+     "billed_gen": 74644
+    }
+   }
+  },
+  {
+   "stage": "round 1 / dev-A eval",
+   "seconds": 193.4,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 539,
+     "cached": 22,
+     "prompt": 720512,
+     "gen": 231792,
+     "billed_prompt": 750845,
+     "billed_gen": 231792
+    }
+   }
+  },
+  {
+   "stage": "round 1 / evolver proposals (27B)",
+   "seconds": 143.0,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 4,
+     "cached": 0,
+     "prompt": 26547,
+     "gen": 41854,
+     "billed_prompt": 93490,
+     "billed_gen": 41854
+    }
+   }
+  },
+  {
+   "stage": "round 1 / dev-B gate (3 candidates)",
+   "seconds": 542.6,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 519,
+     "cached": 0,
+     "prompt": 828235,
+     "gen": 302131,
+     "billed_prompt": 917176,
+     "billed_gen": 302131
+    }
+   }
+  },
+  {
+   "stage": "round 2 / dev-A eval",
+   "seconds": 2.6,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 539,
+     "cached": 539,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 2 / evolver proposals (27B)",
+   "seconds": 77.5,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 3,
+     "cached": 0,
+     "prompt": 22356,
+     "gen": 30188,
+     "billed_prompt": 57457,
+     "billed_gen": 30188
+    }
+   }
+  },
+  {
+   "stage": "round 2 / dev-B gate (3 candidates)",
+   "seconds": 515.7,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 543,
+     "cached": 20,
+     "prompt": 815075,
+     "gen": 291451,
+     "billed_prompt": 853889,
+     "billed_gen": 291451
+    }
+   }
+  }
+ ],
+ "total": {
+  "seconds": 2018.4,
+  "models": {
+   "Qwen/Qwen3.5-9B": {
+    "calls": 2323,
+    "cached": 596,
+    "prompt": 2612591,
+    "gen": 900018,
+    "billed_prompt": 2778230,
+    "billed_gen": 900018
+   },
+   "Qwen/Qwen3.8-27B": {
+    "calls": 7,
+    "cached": 0,
+    "prompt": 48903,
+    "gen": 72042,
+    "billed_prompt": 150947,
+    "billed_gen": 72042
+   }
+  }
+ }
+}

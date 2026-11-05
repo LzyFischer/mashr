@@ -1,0 +1,73 @@
+{
+ "org_round0": {
+  "n": 156,
+  "acc": 0.9167,
+  "cost": 5947.9,
+  "meta_cost": 3156.3,
+  "acc_hard": 0.8919,
+  "nodes": 1.57,
+  "shapes": {
+   "solver[T][S]": 59,
+   "solver[T][S]>verifier[T][S]": 53,
+   "solver[T][S]>verifier[T]": 12,
+   "solver[S]": 7
+  },
+  "n_shapes": 14,
+  "fallback": 3
+ },
+ "org_final": {
+  "n": 156,
+  "acc": 0.9615,
+  "cost": 6153.3,
+  "meta_cost": 3216.4,
+  "acc_hard": 0.9459,
+  "nodes": 1.69,
+  "shapes": {
+   "solver[T][S]>verifier[T][S]": 96,
+   "solver[T][S]": 40,
+   "solver[T][S]>verifier[T]": 9,
+   "solver[S]": 8
+  },
+  "n_shapes": 6,
+  "fallback": 1
+ },
+ "single": {
+  "n": 156,
+  "acc": 0.9167,
+  "cost": 1509.7,
+  "meta_cost": 0.0,
+  "acc_hard": 0.8649,
+  "nodes": 1.0,
+  "shapes": {
+   "solver": 156
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "coder_tools": {
+  "n": 156,
+  "acc": 0.7949,
+  "cost": 1323.4,
+  "meta_cost": 0.0,
+  "acc_hard": 0.7703,
+  "nodes": 1.0,
+  "shapes": {
+   "coder[T]": 156
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "solve_verify": {
+  "n": 156,
+  "acc": 0.9167,
+  "cost": 2899.7,
+  "meta_cost": 0.0,
+  "acc_hard": 0.8514,
+  "nodes": 2.0,
+  "shapes": {
+   "solver>verifier[T]": 156
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ }
+}

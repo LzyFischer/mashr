@@ -1,0 +1,134 @@
+[
+ {
+  "round": 0,
+  "accepted": true,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.875,
+   "cost": 6101.0,
+   "hr_cost": 890.2,
+   "acc_hard": 0.8421,
+   "nodes": 2.46,
+   "shapes": {
+    "coder.off[T][S],solver.off[T][S]>verifier.off[T]": 34,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 32,
+    "coder.off[T][S]>verifier.off[T]": 21,
+    "solver.off[T][S]>verifier.off[T][S]": 16
+   },
+   "n_shapes": 34,
+   "repaired": 4,
+   "retried": 14,
+   "fallback": 3
+  }
+ },
+ {
+  "round": 1,
+  "accepted": true,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.9,
+   "cost": 5561.5,
+   "hr_cost": 709.3,
+   "acc_hard": 0.886,
+   "nodes": 2.38,
+   "shapes": {
+    "coder.off[T][S]>verifier.off[T]": 45,
+    "solver.off[S]>verifier.off[T]": 37,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 34,
+    "solver.off[T][S]>verifier.off[T]": 14
+   },
+   "n_shapes": 27,
+   "repaired": 0,
+   "retried": 2,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 2,
+  "accepted": true,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.905,
+   "cost": 5665.0,
+   "hr_cost": 671.0,
+   "acc_hard": 0.8947,
+   "nodes": 2.54,
+   "shapes": {
+    "solver.off[S]>coder.off[T][S]>verifier.off[T]": 79,
+    "coder.off[T][S]>verifier.off[T]": 35,
+    "solver.off[S]>verifier.off[T]": 32,
+    "solver.off[S]>coder.off[T]>verifier.off[T]": 19
+   },
+   "n_shapes": 27,
+   "repaired": 2,
+   "retried": 1,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 3,
+  "accepted": true,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.91,
+   "cost": 5337.2,
+   "hr_cost": 432.8,
+   "acc_hard": 0.9123,
+   "nodes": 2.33,
+   "shapes": {
+    "solver.off[S]>verifier.off[T]": 121,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 48,
+    "coder.off[T],solver.off[S]>verifier.off[T]": 8,
+    "solver.off[S]>coder.off[T][S]>verifier.off[T]": 6
+   },
+   "n_shapes": 12,
+   "repaired": 0,
+   "retried": 0,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 4,
+  "accepted": false,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.91,
+   "cost": 5337.2,
+   "hr_cost": 432.8,
+   "acc_hard": 0.9123,
+   "nodes": 2.33,
+   "shapes": {
+    "solver.off[S]>verifier.off[T]": 121,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 48,
+    "coder.off[T],solver.off[S]>verifier.off[T]": 8,
+    "solver.off[S]>coder.off[T][S]>verifier.off[T]": 6
+   },
+   "n_shapes": 12,
+   "repaired": 0,
+   "retried": 0,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 5,
+  "accepted": false,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.91,
+   "cost": 5337.2,
+   "hr_cost": 432.8,
+   "acc_hard": 0.9123,
+   "nodes": 2.33,
+   "shapes": {
+    "solver.off[S]>verifier.off[T]": 121,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 48,
+    "coder.off[T],solver.off[S]>verifier.off[T]": 8,
+    "solver.off[S]>coder.off[T][S]>verifier.off[T]": 6
+   },
+   "n_shapes": 12,
+   "repaired": 0,
+   "retried": 0,
+   "fallback": 0
+  }
+ }
+]

@@ -1,0 +1,32 @@
+{
+ "agents": {
+  "solver": {
+   "role": "You are a careful contest-math solver. Read the full problem, including diagrams, Asymptote code, units, and the exact requested quantity. Define variables, list constraints, solve step by step with exact arithmetic. Check domains, edge cases, parity, sign, off-by-one, and answer format. If asked for all possible values, list or sum them exactly as requested. Verify the candidate by substitution or an independent check. End with exactly: FINAL ANSWER: <value>."
+  },
+  "coder": {
+   "role": "You are an exact computation specialist. Use only provided tools. Translate the problem into exact computation with integers/Fractions/exact algebra; avoid floats. For diagrams/Asymptote, transcribe every coordinate, length, angle, and requested quantity exactly; do not infer symmetry. For counting/process, use exact formulas, exact enumeration, or exact target-state simulation; print the final requested count. If no tools, solve by hand. Debug code if needed. End with exactly: FINAL ANSWER: <value>."
+  },
+  "verifier": {
+   "role": "You are an independent verifier. You receive the problem and solutions. If inputs agree, perform one decisive independent check of the key equation, substitution, or requested quantity. If they disagree, do not choose by preference: re-derive the decisive constraint from the problem, test each candidate exactly, locate the first failing step, and output the correct answer. Check arithmetic, algebra, domain, units, off-by-one, sign, and whether the requested quantity was answered. End with exactly: FINAL ANSWER: <value>."
+  },
+  "algebraist": {
+   "role": "You are an exact-algebra specialist. Solve polynomial, root, radical, symmetric-sum, and system problems by exact elimination, Vieta, symmetric sums, Newton sums, conjugates, and finite case enumeration. Use resultants only when they reduce the system. Enumerate all finite coefficient/root/branch cases exactly. Verify every candidate by substitution in the original equations. End with exactly: FINAL ANSWER: <value>."
+  }
+ },
+ "skills": {
+  "substitute_back": "After a candidate answer or intermediate value, substitute into every original condition and requested expression; discard failures.",
+  "counting_constraints": "Model the exact state/sample space. Use direct count, complement, inclusion-exclusion, or bijection. Apply every restriction, including parity, order, adjacency, and boundaries. If finite and small, enumerate exactly with Python; otherwise derive an exact formula and verify by substitution or a second exact method. Never extrapolate from a pattern.",
+  "number_theory": "Use exact factorization, divisors, gcd, modular arithmetic, residues, CRT. For gcd(Ax+B, Cx+D), eliminate x by an integer linear combination and test divisors of the constant. For modular sums, find each base's period, reduce exponents, sum full periods plus remainder. For 'first k n', search upward exactly and verify each property.",
+  "inverse_function": "Solve y=f(x) for x with domain restrictions; verify by composition; compute requested expression exactly."
+ },
+ "tools": [
+  "python",
+  "exact_solve",
+  "brute_force",
+  "check_answer",
+  "simplify_exact",
+  "number_theory",
+  "coord_geometry"
+ ],
+ "policy": "Build <=8 nodes from solver,coder,verifier,algebraist. Thinking off. Returned node final. Syntax: x=name('off',inputs...,tools=[...],skills=[...]) # note: ... . only_if='disagree' requires inputs. Use only listed ids. Every node gets a short note: target, method, constraints, pitfalls, format. If >=2 producers, final must be verifier over all. Return one node.\n\nEasy: a=solver('off') # note: exact direct; return a.\n\nStandard: a=coder('off',tools=['python'],skills=[...]); b=solver('off',skills=[...]); v=verifier('off',a,b,only_if='disagree') # note: check requested quantity; return v.\n\nCounting/process: a=coder('off',tools=['python'],skills=['counting_constraints','substitute_back']); b=solver('off',skills=['counting_constraints','substitute_back']); v=verifier('off',a,b,only_if='disagree') # note: exact state/formula/simulation; return v.\n\nNumber theory: a=coder('off',tools=['python','number_theory'],skills=['number_theory']); b=solver('off',skills=['number_theory']); v=verifier('off',a,b,only_if='disagree') # note: gcd/modular/period; return v.\n\nAlgebra: a=algebraist('off',skills=['substitute_back']); b=coder('off',tools=['python'],skills=['substitute_back']); v=verifier('off',a,b,only_if='disagree') # note: Vieta/elimination, verify candidates; return v.\n\nGeometry: a=coder('off',tools=['python'],skills=['substitute_back']); b=solver('off',skills=['substitute_back']); v=verifier('off',a,b,only_if='disagree') # note: transcribe diagram data, exact equations; return v.\n\nHard L5/weak: 3 producers + verifier, e.g. a=coder(...), b=solver(...), c=algebraist/coder with different method; v=verifier('off',a,b,c,only_if='disagree'); return v. Producers different methods.\n\nTools: producers python by default; number_theory for NT. Avoid exact_solve, coord_geometry, check_answer, simplify_exact, brute_force unless tiny exact enumeration. Verifier no tools unless heavy exact check needs python.\n\nSkills: 1-3 matching. substitute_back candidates; counting_constraints counts; number_theory modular/divisibility; inverse_function direct. Notes carry case enumeration and method."
+}

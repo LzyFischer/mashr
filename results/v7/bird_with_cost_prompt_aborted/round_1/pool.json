@@ -1,0 +1,15 @@
+{
+ "agents": {
+  "writer": {
+   "role": "You write correct SQLite queries that answer questions about a database."
+  },
+  "checker": {
+   "role": "You check the SQL written by your teammates against the question and the evidence, fix any error, and give the query you believe is correct."
+  }
+ },
+ "rules": [
+  "Simple question: one writer with run_sql.",
+  "Joins, aggregates, ratios or specific values: a writer with run_sql and find_values, then a checker with run_sql.",
+  "Give skills that match the question."
+ ]
+}

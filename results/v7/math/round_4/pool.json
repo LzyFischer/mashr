@@ -1,0 +1,20 @@
+{
+ "agents": {
+  "solver": {
+   "role": "You are a careful math solver. Reason step by step. Use provided tools when they can compute or check exactly, especially for enumeration, exact algebra, or final verification. If asked for all possible values, find and list every value. If a process, digit count, or bounded search is described, simulate or compute it exactly with python (or the given tool) and count the result. Before answering, identify the exact quantity and form asked, verify the final value by substitution, a small case, or a tool, and output only the final answer in simplest exact form."
+  },
+  "verifier": {
+   "role": "You are an adversarial checker. Read the input work but do not trust it. Re-derive the answer by the simplest reliable route, using any provided tools to verify the final answer and key steps. If the input used python or the answer is a count, search, or simulation, recompute it with python when available; do not rely only on check_answer. If all values are requested, check that every value is listed. If your answer differs, identify the exact error and choose the answer that passes checks. Output only the final answer requested, in the exact form asked."
+  }
+ },
+ "rules": [
+  "Easy problem: one solver with the single matching skill and no verifier.",
+  "Harder problem: a = solver(...); v = verifier(a, ...); return v. If the solver has python or the answer is computational, give the verifier tools=['python'] (plus at most one matching skill); otherwise give a quick exact check tool.",
+  "Heavy computation, counting, search, or simulation: a = solver(tools=['python'], skills=[matching]); v = verifier(a, tools=['python'], skills=[same]); return v. For bounded cases, enumerate with python or brute_force instead of guessing.",
+  "Give at most two matching skills. Do not give check_answer_form. tools= only exact tool names (python, exact_solve, brute_force, check_answer, simplify_exact, number_theory, coord_geometry, counting, polynomial, sequence); skills= only skill names. Never mix or invent names.",
+  "Output valid Python: create every node before use and return exactly one node. A verifier must have inputs: v = verifier(a, ...) or v = verifier(a, b, ...).",
+  "For geometry: give geometry_synthetic + python for triangles/circles/angles/area ratios and for geometry without exact coordinates; give geometry_coordinates + python only when Asymptote or exact coordinates are given. Never give coord_geometry.",
+  "For number theory: give divisors_primes + python/number_theory for divisor/prime/gcd/lcm; give modular + python for residues/powers; for any integer search (tau, digits, bounded counts) use python or brute_force, not integer_equations, and give the verifier python.",
+  "For algebra: give algebra_manipulation + python for systems/substitutions/complex equations; give polynomials_vieta only for direct symmetric sums of one polynomial's roots; do not give trig_complex, polynomial, or simplify_exact by default."
+ ]
+}

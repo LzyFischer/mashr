@@ -1,0 +1,253 @@
+[
+ {
+  "ops": [
+   {
+    "op": "remove_agent",
+    "name": "geometer",
+    "why": "geometer nodes were correct only 38% of the time, geometer>verifier was 50%, and leave-one-out showed geometer inputs were not needed (0 needed, 0 harmful). Geometry can be handled by solver/coder with exact transcription notes, so the weak specialist is residue."
+   },
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Treat any note as a target/format instruction, not a solution. Reason step by step with exact arithmetic. Respect every constraint and handle all cases. If a diagram or Asymptote is present, first list exact given coordinates/lengths and the exact requested region, then solve. If asked for all possible values, list every admissible value in the requested format. End with exactly: Answer: <final value>.",
+    "why": "Notes were associated with lower accuracy (86% with notes vs 93% without), so the solver must not be biased by note calculations. The diagram sentence keeps the basic always-needed geometry practice in the role layer."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Treat any note as a target/format instruction, not a solution. Use provided tools only for exact computation; if none, hand-compute exactly. In Python, write complete runnable code using integers/Fractions/sympy exact types, avoid floats, and print the final exact value. For iterative processes, simulate the full exact state; test tiny cases only to validate. Check edge cases. If asked for all possible values, list all. End with exactly: Answer: <final value>.",
+    "why": "Python nodes were less accurate than no-tool nodes overall (80% vs 89%), and several wrong examples involved imprecise computation or tool misuse. The role layer should enforce exact, runnable computation as a basic practice."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Independently re-derive key steps and substitute candidate answer(s) into every original condition. If candidates disagree, identify the first invalid step; do not average. Use check_answer if provided. If asked for all possible values, ensure every admissible value is included and formatted as requested. End with exactly: Answer: <final value>.",
+    "why": "check_answer was strongly positive (92% vs 82%) and verifier changed 17 answers to correct while changing 0 to wrong. The role should make that verification practice explicit and prevent averaging disagreeing candidates."
+   },
+   {
+    "op": "remove_skill",
+    "id": "diagram_geometry",
+    "why": "diagram_geometry was strongly harmful: nodes given it were correct 47% vs 88% otherwise, and geometry failures used it while misreading requested regions. The needed transcription practice belongs in solver/coder roles and problem-specific HR notes, not as a residual skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "sequence_sums",
+    "why": "sequence_sums was harmful: 67% correct when given vs 87% otherwise, and it appeared in wrong counting/geometry examples. Generic sums are better handled by exact solver/coder work and concise notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "polynomial_root_transforms",
+    "why": "polynomial_root_transforms was negative (60% vs 86%) and appeared in a wrong root-transform example. The technique is too narrow and the evidence does not support it as a skill; exact system setup belongs in notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "functional_equation was negative (67% vs 86%) with low usage. Functional-equation problems are better handled by problem-specific notes and the solver role than by a residual skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "minimal_polynomial",
+    "why": "minimal_polynomial was slightly negative (80% vs 86%) with low usage and no clear evidence of benefit. Algebraic-number work can be handled by exact solver/coder notes without this residue."
+   },
+   {
+    "op": "edit_skill",
+    "id": "number_theory_counts",
+    "text": "Use for divisor, gcd, congruence, digit/base, or Diophantine counts. Factor exactly; write constraints as exact equations/congruences. Prefer exact Python enumeration when bounds are small or a closed form is uncertain. For circular nonadjacent k-subsets use n/(n-k)*C(n-k,k). Verify the requested final expression.",
+    "why": "number_theory_counts was overused and slightly negative (83% vs 87%), and a counting failure used an incorrect closed form. The edit keeps the conditional technique but forces exact enumeration and checks the requested expression, addressing the evidence."
+   },
+   {
+    "op": "edit_skill",
+    "id": "state_simulation",
+    "text": "Use for walks, toggles, lockers, or other state changes. Define exact state and transition. If python is provided, simulate the full process exactly with integers; test tiny cases only to validate the model. Do not extrapolate without a proven invariant. Output the requested value.",
+    "why": "state_simulation had small positive evidence (100% vs 86%) and process problems need a conditional exact-simulation technique. The edit reinforces full exact simulation and prevents unsafe extrapolation."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Output only valid code, then notes. Code lines: x = solver(\"off\", tools=[], skills=[]); y = coder(\"off\", x, tools=[\"python\"], skills=[]); v = verifier(\"off\", x, y, tools=[\"check_answer\"]); return v. Inputs are previous variable names after \"off\". At most 8 nodes. Use only solver, coder, verifier. Tools only: python, check_answer, simplify_exact. Do not output exact_solve, brute_force, number_theory, coord_geometry, skill names in tools, or tool names in skills. Skills only: quadratic_methods, number_theory_counts, inverse_functions, state_simulation. Give at most one skill, only to a candidate when clearly triggered. Default: a = solver(\"off\", tools=[], skills=[]); v = verifier(\"off\", a, tools=[\"check_answer\"]); return v. Use for direct algebra, prealgebra, standard formulas, short exact reasoning. Use coder for exact computation, simulation, enumeration, coordinate arithmetic, matrices, or large integer arithmetic: a = coder(\"off\", tools=[\"python\"], skills=[]); v = verifier(\"off\", a, tools=[\"check_answer\"]); return v. For hard L5, all-possible-values, constrained counting/number theory, geometry/diagrams, or genuinely different methods: use two independent candidates plus verifier: a = solver(\"off\", tools=[], skills=[]); b = coder(\"off\", tools=[\"python\"], skills=[]); v = verifier(\"off\", a, b, tools=[\"check_answer\"]); return v. Candidate nodes must not read each other unless the second is explicitly checking the first. Notes: one line per node, at most 60 chars. State only target quantity, format, and one method keyword. Do not include calculations, candidate answers, or step-by-step solutions. For all-possible-values, require every admissible value and requested format. For counting, state included/excluded cases. For max/min, require attainment and no better value. For diagrams, require exact coordinates and requested boundary. Prefer exact answers; avoid decimals unless requested.",
+    "why": "The evidence supports a smaller default team (solver>verifier 96%), coder only for exact computation, independent candidates for hard cases, check_answer for verifier, and minimal notes because notes were associated with lower accuracy. Restricting tools to python/check_answer/simplify_exact follows the tool evidence: check_answer and simplify_exact were positive, while exact_solve, number_theory, python overuse, and coord_geometry were not."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.91,
+   "cost": 5337.2,
+   "hr_cost": 432.8,
+   "acc_hard": 0.9123,
+   "nodes": 2.33,
+   "shapes": {
+    "solver.off[S]>verifier.off[T]": 121,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 48,
+    "coder.off[T],solver.off[S]>verifier.off[T]": 8,
+    "solver.off[S]>coder.off[T][S]>verifier.off[T]": 6
+   },
+   "n_shapes": 12,
+   "repaired": 0,
+   "retried": 0,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "remove_agent",
+    "name": "geometer",
+    "why": "Geometer nodes are 38% correct on 8 uses, diagram_geometry is 47% when given vs 88% otherwise, and leave-one-out shows geometer input was never needed. Geometry is better handled by solver/coder with exact notes/tools than by this weak dedicated employee."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use provided tools only for exact computation; if none, hand compute exactly. Prefer integers, fractions, exact symbolic forms. If python is provided, write complete runnable code with integers/Fractions, avoid floats, print exact final value. For diagrams/Asymptote, transcribe exact coordinates/fill commands, distinguish shaded/non-shaded and perimeter/area. Check edge cases. List all possible values if requested. End with exactly: Answer: <final value>.",
+    "why": "Coder is the strongest computational node (86% with inputs) and should absorb geometry computation after removing geometer. The added Asymptote/perimeter guidance targets the observed shaded-region failure without making geometry an always-on burden for non-geometry problems."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Independently re-derive key steps and substitute candidate answer(s) into every original condition. If candidates disagree, identify the first invalid step and do not average. If check_answer is provided, use it. For geometry, verify requested region, boundary, and quantity. If all possible values are requested, ensure every admissible value is included and formatted. End with exactly: Answer: <final value>.",
+    "why": "Verifier is final in 146 uses, improved 17 cases and harmed none in leave-one-out. Adding check_answer usage and geometry quantity checks addresses wrong examples where the verifier accepted the wrong region or did not test candidates."
+   },
+   {
+    "op": "remove_skill",
+    "id": "diagram_geometry",
+    "why": "Given to 19 nodes with 47% correctness versus 88% otherwise; it is strongly harmful and overlaps the geometer/coder geometry guidance. Remove the residue and keep geometry lessons in the coder role and HR notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "sequence_sums",
+    "why": "Given to 15 nodes with 67% correctness versus 87% otherwise; it appears in several wrong counting/geometry examples and adds little beyond exact computation or problem-specific notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "polynomial_root_transforms",
+    "why": "Given to 5 nodes with 60% correctness versus 86% otherwise; the root-transform failure shows this narrow conditional skill is not helping and is prompt residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "minimal_polynomial",
+    "why": "Given to 10 nodes with 80% correctness versus 86% otherwise; no positive evidence and algebraic-number cases can be handled by exact computation and problem-specific notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "Given to 3 nodes with 67% correctness versus 86% otherwise; rare and negative, so it is unsupported residue."
+   },
+   {
+    "op": "edit_skill",
+    "id": "number_theory_counts",
+    "text": "Use only for nontrivial divisor counts, congruences, base/digit constraints, coprime counts, or Diophantine restrictions. State the exact counting principle first; do not use it for one-line counts. Check boundary cases, included/excluded values, and the requested final expression.",
+    "why": "number_theory_counts was given 94 times with 83% correctness versus 87% otherwise and appears in simple-count failures. Editing it to restrict scope keeps the useful number-theory technique but removes overuse as a generic counting crutch."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Output only valid team code, then notes. Line form: a = solver(\"off\", tools=[], skills=[]); b = coder(\"off\", a, tools=[\"python\"], skills=[]); v = verifier(\"off\", a, b, tools=[\"check_answer\"]); return v. Inputs are positional variable names after \"off\". At most 8 nodes. Use only employees solver, coder, verifier. Tools only: python, check_answer, simplify_exact. Skills only: quadratic_methods, number_theory_counts, inverse_functions, state_simulation. Never put a skill name in tools or a tool name in skills. Do not use exact_solve, brute_force, number_theory, or coord_geometry. Give check_answer to verifier. Give python only to coder when exact computation, simulation, enumeration, or coordinate arithmetic is needed. Give simplify_exact only to coder for radical/exact simplification. Use solver for direct algebra, prealgebra, standard formulas, functional equations, and small exact reasoning; give it no tools or only check_answer. Use coder for exact computation, large counts, simulations, coordinate/Asymptote arithmetic, matrices, number theory, and exact simplification. Default: one strong candidate plus verifier. For diagrams, Asymptote, shaded/non-shaded regions, coordinate geometry, 3D plane-distance geometry, hard L5 algebra, counting with restrictions, or all-possible-values problems, use two independent candidates plus verifier: usually solver and coder, with different methods in notes. Verifier must be final whenever there is more than one candidate. Notes: one line per node, problem-specific. State the exact target, case split, tool use, and verification. For all possible values, require every admissible value and requested format. For counting, state included/excluded cases and exact final expression. For max/min, require proof the bound is attained and no better value exists. For processes, require exact state transition and full simulation or proven invariant. For geometry, require exact requested region, coordinates, perimeter vs area, and sign choices if 3D. Do not repeat generic role text.",
+    "why": "The handbook removes the weak geometer, bans tools with negative evidence (exact_solve, number_theory, coord_geometry) and fixes HR syntax errors by allowing only a small tool set. It directs geometry to coder/solver with verifier, matching the node evidence, and reserves two-candidate teams for the low-accuracy L5 categories where the current failures occurred."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.885,
+   "cost": 6315.6,
+   "hr_cost": 639.4,
+   "acc_hard": 0.8772,
+   "nodes": 2.92,
+   "shapes": {
+    "solver.off[S]>coder.off[T][S]>verifier.off[T]": 133,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 27,
+    "solver.off>coder.off[T]>verifier.off[T]": 9,
+    "solver.off[S]>coder.off[T]>verifier.off[T]": 9
+   },
+   "n_shapes": 17,
+   "repaired": 2,
+   "retried": 2,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Reason step by step with exact arithmetic. Parse wording exactly, especially operation order: 'subtract X from Y' means Y-X. Respect every constraint and handle all cases. If a diagram or Asymptote is present, first list exact given coordinates/lengths, then solve. If asked for all possible values, find every admissible value/root/sign choice and list them in the requested format. End with exactly: Answer: <final value>.",
+    "why": "Basic solver failures include Prealgebra L4 sign/order error and Precalculus L5 missing one admissible radius; exact wording and all-values enumeration are always-on solver practices, not residual skills."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use provided tools only for exact computation; if none are provided, do exact hand computation. In Python, write complete runnable code using integers/Fractions/exact forms, avoid floats, and print the exact final value. For iterative processes, simulate the exact state and test small cases only to validate the model. For all possible values, print every admissible value. Check edge cases. End with exactly: Answer: <final value>.",
+    "why": "Python-tool nodes were 80% correct versus 89% otherwise and coder-without-input was 76%; exact-code discipline and all-values printing are basic computational practices that reduce code/extrapolation errors."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Independently re-derive the requested quantity from the original wording and substitute candidate answer(s) into every original condition. Do not average or blend candidates. If candidates disagree, identify the first invalid step. For all possible values, check every root/sign/admissibility case. For geometry, verify the exact requested boundary/region, not just the candidate's interpretation. End with exactly: Answer: <final value>.",
+    "why": "Verifier changed 24 answers and 17 to correct with no harmful leave-one-out cases, but final geometry/all-values failures show it must re-derive requested quantity and region from the prompt rather than trust candidate framing."
+   },
+   {
+    "op": "edit_agent",
+    "name": "geometer",
+    "role": "You are a diagram/Asymptote exact solver. Parse Asymptote literally: list every exact coordinate, length, angle, and fill/draw command. Decide exactly which region is requested: shaded means filled; non-shaded may be an outer complement or a hole, and its perimeter/area uses only that region's boundary. Use exact rational/surd arithmetic in Python for distances, intersections, areas, and perimeters. Do not use coord_geometry or infer unlabeled measurements. For 3D coordinate/plane problems, consider all sign choices. End with exactly: Answer: <final value>.",
+    "why": "Geometer nodes were 38% correct and the Prealgebra L5 shaded-region failure answered the outer perimeter instead of the non-shaded hole; literal Asymptote parsing and requested-boundary identification are core geometer practices, not HR-residual lessons."
+   },
+   {
+    "op": "edit_skill",
+    "id": "diagram_geometry",
+    "text": "Use only for actual diagrams/Asymptote/shaded-region problems. Parse fill/draw literally. For non-shaded, identify the exact requested boundary: if it is a hole, use the hole boundary, not the outer boundary. Compute exact coordinates, intersections, shoelace area, or perimeter in Python. Do not use for analytic 3D sphere/plane problems unless coordinates are explicitly given.",
+    "why": "diagram_geometry was 47% correct when given versus 88% otherwise and was misused on an analytic sphere problem; the skill is conditional, so it needs a precise trigger and region rule rather than removal, while HR policy restricts its use."
+   },
+   {
+    "op": "edit_skill",
+    "id": "number_theory_counts",
+    "text": "Use only for divisor counts, digit/base constraints, congruences, or integer Diophantine counting. Do not use for ordinary combinatorics/probability. Factor exactly, impose digit ranges, solve congruences, enumerate small bounds exactly in Python, state included/excluded cases, and compute the requested final expression.",
+    "why": "number_theory_counts was 83% correct when given versus 87% otherwise and appeared in wrong combinatorics/floor-counting examples; tightening the trigger is a residual-skill fix, while basic exact counting remains in coder/solver roles."
+   },
+   {
+    "op": "remove_skill",
+    "id": "sequence_sums",
+    "why": "Given to 15 nodes with 67% correctness versus 87% otherwise and appears in wrong triangle-count and parabola-intersection examples; generic sum guidance is residue when exact Python/coder notes can handle the specific sum."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "Given to 3 nodes with 67% correctness versus 86% otherwise; the narrow conditional method has negative evidence and is better handled by problem-specific notes plus the solver role."
+   },
+   {
+    "op": "remove_skill",
+    "id": "minimal_polynomial",
+    "why": "Given to 10 nodes with 80% correctness versus 86% otherwise; algebra L4/L5 are already 100%, so this unused-by-most negative conditional skill is residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "polynomial_root_transforms",
+    "why": "Given to 5 nodes with 60% correctness versus 86% otherwise and appears in the wrong cubic-roots example; the conditional Vieta transform is not reliably helping and can be handled by exact notes/coder computation."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Output only valid team code, then notes. Line form: a = solver(\"off\", tools=[], skills=[]); b = coder(\"off\", a, tools=[\"python\"], skills=[]); v = verifier(\"off\", a, b, tools=[\"check_answer\"]); return v. Inputs are positional variable names after \"off\". At most 8 nodes. Use only employees solver, coder, verifier, geometer. Tools only: python, check_answer, simplify_exact. Do not request exact_solve, number_theory, brute_force, or coord_geometry. Skills only: quadratic_methods, number_theory_counts, inverse_functions, state_simulation, diagram_geometry. Never put a skill name in tools or a tool name in skills.\n\nStaffing: For one-line direct arithmetic/algebra, solver alone may be returned. Otherwise final node must be verifier with check_answer. Use solver for direct algebra, prealgebra, standard formulas, and small exact enumeration; give it no tools or only check_answer. Use coder for exact computation, large counts, simulations, coordinate arithmetic, matrices, number theory, and exact simplification; give it python and simplify_exact only when radical simplification is the final step. Use geometer only for actual diagrams, Asymptote, shaded/non-shaded regions, or coordinate geometry with explicit coordinates; give it python and diagram_geometry. Do not use geometer or diagram_geometry for analytic 3D sphere/plane problems unless coordinates are explicitly given; use solver/coder there.\n\nUse two candidates only for hard L5 or genuinely different methods; if parallel, give different methods in notes. Verifier is final whenever there is more than one candidate. Notes: one line per node, problem-specific, no calculations, no role repetition. State exact target, case split, tool use, and verification. For all possible values, require every admissible value/root/sign choice in requested format. For counting, state included/excluded cases and exact final expression. For max/min, require proof bound is attained and no better value exists. For processes, require exact state transition and full simulation or proven invariant. For geometry, require exact requested region/boundary and exact coordinates.",
+    "why": "The handbook layer controls staffing, tools, skills, and notes. Evidence: check_answer 92 vs 82, simplify_exact 100 vs 85, but exact_solve 75 vs 87, number_theory 79 vs 86, python 80 vs 89, and notes 86 vs 93; restrict tools, keep verifier final for nontrivial cases, prevent bare hard candidates, and force short non-solution notes to reduce harmful residue."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.9,
+   "cost": 4907.2,
+   "hr_cost": 583.4,
+   "acc_hard": 0.8947,
+   "nodes": 2.08,
+   "shapes": {
+    "solver.off[S]>verifier.off[T]": 71,
+    "solver.off[S]>coder.off[T][S]>verifier.off[T]": 47,
+    "solver.off[S]": 40,
+    "coder.off[T][S]>verifier.off[T]": 11
+   },
+   "n_shapes": 20,
+   "repaired": 1,
+   "retried": 1,
+   "fallback": 0
+  }
+ }
+]

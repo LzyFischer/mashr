@@ -1,0 +1,39 @@
+{
+ "agents": {
+  "solver": {
+   "role": "You are a careful contest-math solver. Read the full problem, including diagrams, Asymptote code, units, and the exact requested quantity. Define variables, list constraints, solve step by step with exact arithmetic. Check domains, edge cases, parity, sign, off-by-one, and answer format. If asked for all possible values, list or sum them exactly as requested. Verify the candidate by substitution or an independent check. End with exactly: FINAL ANSWER: <value>."
+  },
+  "coder": {
+   "role": "You are an exact computation specialist. Use only provided tools. Translate the problem into exact computation: integers/Fractions/exact algebra; avoid floats for exact answers. Prefer direct exact formulas, recurrences, or exact Python enumeration. For diagrams/Asymptote, first transcribe every given coordinate, length, angle, and requested quantity exactly; do not infer unstated symmetry. Debug code if needed. If no tools are provided, solve by hand carefully. End with exactly: FINAL ANSWER: <value>."
+  },
+  "verifier": {
+   "role": "You are an independent verifier. You receive the problem and solutions. If inputs agree, perform one decisive independent check of the key equation, substitution, or requested quantity. If they disagree, do not choose by preference: re-derive the decisive constraint from the problem, test each candidate exactly, locate the first failing step, and output the correct answer. Check arithmetic, algebra, domain, units, off-by-one, sign, and whether the requested quantity was answered. End with exactly: FINAL ANSWER: <value>."
+  },
+  "algebraist": {
+   "role": "You are an exact-algebra specialist. Solve polynomial, root, radical, symmetric-sum, and system problems by exact elimination, Vieta, symmetric sums, Newton sums, conjugates, and finite case enumeration. Use resultants only when they reduce the system. Enumerate all finite coefficient/root/branch cases exactly. Verify every candidate by substitution in the original equations. End with exactly: FINAL ANSWER: <value>."
+  },
+  "combinator": {
+   "role": "You are a counting and probability specialist. Model the exact state space or sample space. Use direct count, complement, inclusion-exclusion, invariants, or exact simulation. Track every restriction and avoid over/undercount. Verify with small cases and by substituting the final count into the original process. End with exactly: FINAL ANSWER: <value>."
+  }
+ },
+ "skills": {
+  "case_split": "Split only when a finite, disjoint, exhaustive set of cases materially simplifies the problem. State the case criterion, solve each case exactly, combine, and check no gaps or overlaps. Do not split merely to appear systematic.",
+  "substitute_back": "After a candidate answer or intermediate value, substitute into every original condition and requested expression; discard failures.",
+  "small_cases": "Compute first few small cases by hand/code, find a pattern, then prove or verify it before using it.",
+  "counting_constraints": "Choose direct count, complement, inclusion-exclusion, cases, or bijection; apply all restrictions; check over/undercount; enumerate small spaces.",
+  "number_theory": "Use exact factorization, divisors, gcd, modular arithmetic, residues, and CRT. For last-digit/modular sums, find each base's period, reduce the exponent, and sum full periods plus remainder. For 'find first k n', search upward exactly and verify each property.",
+  "sequence_recurrence": "Identify recurrence, closed form, or period. For stateful processes, define the state exactly, simulate small N and the target N with exact code, print counts/invariants, and verify before using any formula. Do not extrapolate from one pass.",
+  "inverse_function": "Solve y=f(x) for x with domain restrictions; verify by composition; compute requested expression exactly.",
+  "proportion_units": "Set up exact ratios, convert units consistently (dozen=12), solve proportion, check final units match question."
+ },
+ "tools": [
+  "python",
+  "exact_solve",
+  "brute_force",
+  "check_answer",
+  "simplify_exact",
+  "number_theory",
+  "coord_geometry"
+ ],
+ "policy": "Build <=8 nodes from solver,coder,verifier,algebraist,combinator. Thinking off. Returned node final. Syntax: x=name('off',inputs...,tools=[...],skills=[...]) # note: ... . only_if='disagree' requires inputs. Use listed ids only. Every node gets a short note: target, method, constraints, pitfalls.\nEasy: a=solver('off') # note:...; return a.\nStandard: a=coder('off',tools=['python'],skills=[...]); b=solver('off',skills=[...]); v=verifier('off',a,b,only_if='disagree') # note:...; return v.\nCounting/process: a=coder('off',tools=['python'],skills=['sequence_recurrence','counting_constraints']); b=combinator('off',skills=['counting_constraints','small_cases']); v=verifier('off',a,b,only_if='disagree'). Note: exact state, simulate/derive target, no pattern extrapolation.\nNumber theory: a=coder('off',tools=['python','number_theory'],skills=['number_theory']); b=solver('off',skills=['number_theory']); v=verifier('off',a,b,only_if='disagree').\nAlgebra/root/radical: a=algebraist('off',skills=['case_split','substitute_back']); b=coder('off',tools=['python'],skills=['case_split','substitute_back']); v=verifier('off',a,b,only_if='disagree'). Note: Vieta/elimination, enumerate branches, verify.\nGeometry/diagram/area: a=coder('off',tools=['python'],skills=['case_split','substitute_back']); b=solver('off',skills=['case_split','small_cases']); v=verifier('off',a,b,only_if='disagree'). Note: transcribe Asymptote, exact equations, configurations.\nGeometry counting/regions: a=combinator('off',skills=['counting_constraints','small_cases']); b=coder('off',tools=['python'],skills=['counting_constraints','small_cases']); v=verifier('off',a,b,only_if='disagree'). Note: formula, small parameter, exact enumeration if finite.\nHard L5/weak: 3 producers + verifier, e.g. a=coder(...), b=solver(...), c=combinator or algebraist with different method; v=verifier('off',a,b,c,only_if='disagree'); return v. Producers different methods. If not, 2 strong producers + specific verifier note.\nTools: producers python; number_theory for NT; exact_solve only small exact systems. Avoid coord_geometry, check_answer, simplify_exact, brute_force unless tiny exact enumeration. Verifier no tools by default; python only if heavy exact check needed.\nSkills: 1-3 matching. case_split forced regimes; substitute_back candidates; small_cases test formulas; counting_constraints counts; number_theory modular/divisibility; sequence_recurrence stateful; proportion_units/inverse_function direct."
+}

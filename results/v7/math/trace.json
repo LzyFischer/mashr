@@ -1,0 +1,122 @@
+[
+ {
+  "round": 0,
+  "accepted": true,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.86,
+   "cost": 6182.6,
+   "meta_cost": 3130.6,
+   "acc_hard": 0.8148,
+   "nodes": 1.6,
+   "shapes": {
+    "solver[T][S]": 19,
+    "solver[T][S]>verifier[T][S]": 19,
+    "solver[T][S]>verifier[T]": 4,
+    "solver[T][S],verifier[T][S]": 2
+   },
+   "n_shapes": 9,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 1,
+  "accepted": true,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6548.9,
+   "meta_cost": 3167.8,
+   "acc_hard": 0.8889,
+   "nodes": 1.66,
+   "shapes": {
+    "solver[T][S]>verifier[T]": 17,
+    "solver[T][S]>verifier[T][S]": 16,
+    "solver[T][S]": 13,
+    "solver[S]": 4
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 2,
+  "accepted": false,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6548.9,
+   "meta_cost": 3167.8,
+   "acc_hard": 0.8889,
+   "nodes": 1.66,
+   "shapes": {
+    "solver[T][S]>verifier[T]": 17,
+    "solver[T][S]>verifier[T][S]": 16,
+    "solver[T][S]": 13,
+    "solver[S]": 4
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 3,
+  "accepted": true,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6320.3,
+   "meta_cost": 3104.1,
+   "acc_hard": 0.9259,
+   "nodes": 1.72,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 33,
+    "solver[T][S]": 13,
+    "solver[T][S]>verifier[T]": 3,
+    "solver[S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 4,
+  "accepted": false,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6320.3,
+   "meta_cost": 3104.1,
+   "acc_hard": 0.9259,
+   "nodes": 1.72,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 33,
+    "solver[T][S]": 13,
+    "solver[T][S]>verifier[T]": 3,
+    "solver[S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 5,
+  "accepted": false,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6320.3,
+   "meta_cost": 3104.1,
+   "acc_hard": 0.9259,
+   "nodes": 1.72,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 33,
+    "solver[T][S]": 13,
+    "solver[T][S]>verifier[T]": 3,
+    "solver[S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ }
+]

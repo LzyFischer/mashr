@@ -1,0 +1,72 @@
+{
+ "org_round0": {
+  "n": 300,
+  "acc": 0.63,
+  "cost": 2669.9,
+  "meta_cost": 784.9,
+  "acc_hard": 0.5217,
+  "nodes": 1.98,
+  "shapes": {
+   "writer[T][S]>checker[T][S]": 277,
+   "writer[T][S]": 11,
+   "writer[T][S],writer[T][S]>checker[T][S]": 5,
+   "writer[T]": 3
+  },
+  "n_shapes": 8,
+  "fallback": 3
+ },
+ "org_final": {
+  "n": 300,
+  "acc": 0.61,
+  "cost": 2729.9,
+  "meta_cost": 1229.8,
+  "acc_hard": 0.513,
+  "nodes": 1.85,
+  "shapes": {
+   "writer[T][S]>checker[T][S]": 255,
+   "writer[T][S]": 43,
+   "writer[T]": 2
+  },
+  "n_shapes": 3,
+  "fallback": 0
+ },
+ "single": {
+  "n": 300,
+  "acc": 0.53,
+  "cost": 475.1,
+  "meta_cost": 0.0,
+  "acc_hard": 0.4261,
+  "nodes": 1.0,
+  "shapes": {
+   "writer": 300
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "writer_tools": {
+  "n": 300,
+  "acc": 0.56,
+  "cost": 869.5,
+  "meta_cost": 0.0,
+  "acc_hard": 0.4783,
+  "nodes": 1.0,
+  "shapes": {
+   "writer[T]": 300
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "write_check": {
+  "n": 300,
+  "acc": 0.5867,
+  "cost": 1614.0,
+  "meta_cost": 0.0,
+  "acc_hard": 0.4783,
+  "nodes": 2.0,
+  "shapes": {
+   "writer[T]>checker[T]": 300
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ }
+}

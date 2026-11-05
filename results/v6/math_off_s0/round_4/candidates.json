@@ -1,0 +1,183 @@
+[
+ {
+  "ops": [
+   {
+    "op": "remove_skill",
+    "id": "number_theory_counts",
+    "why": "Given to 101 nodes at 76% vs 82% otherwise - the most overused and net-harmful skill. The wrong examples show the 9B HR fires it on non-number-theory problems (shaded-perimeter geometry, repeating decimal, polynomial degree, triangle counting, sphere radii), where its 'factor/enumerate' recipe misdirects. Its one true use (circular nonadjacent subsets) is a rare conditional fact better kept in an HR note than an always-misapplied skill. Removing it stops the dominant misapplication; genuine divisor/congruence work is handled by solver/coder + note."
+   },
+   {
+    "op": "remove_skill",
+    "id": "quadratic_methods",
+    "why": "Given to 77 nodes at 78% vs 81% otherwise and misapplied in two wrong examples (the r1^k+r2^k power-sum quadratic and the cubic root-shift problem) where 'vertex form/discriminant/Vieta' nudged the 9B toward the wrong frame. Vieta/completing-the-square are basic algebra already in the solver role, so this conditional skill is residue that the HR cannot gate correctly."
+   },
+   {
+    "op": "edit_skill",
+    "id": "state_simulation",
+    "text": "Use for walks, toggles, lockers, or other state changes. Define exact state and transition. If python is provided, run the full process independently with integers; do not use another node's answer as the target. Test 2-3 tiny sizes only to validate the model. Do not extrapolate without a proven invariant. Output the requested value.",
+    "why": "The locker failure (10 vs 342) was a residual-harness failure, not a staffing one: the solver note said 'simulate manually' and the coder note said 'verify the manual result', so the Python node rubber-stamped a wrong hand answer instead of running independently. The skill text now forbids using another node's answer as the target and requires an independent full run with a small-case sanity check. This is a technique that helps only process problems, so it stays a residual skill the HR hands out only when triggered."
+   },
+   {
+    "op": "edit_skill",
+    "id": "inverse_functions",
+    "text": "Use only for explicit inverse-function problems asking for f^-1(x) or a composition involving f^-1. Solve y=f(x) for x to get f^-1(x); if f(f(x))=x, then f^-1=f. Simplify the requested expression. Do not use for general functional equations.",
+    "why": "Only skill with a positive signal (89% vs 80%) but it was misapplied to the f(a)+f(b)=n^2 functional equation (2 vs 96), where HR saw 'f' and attached an inverse-function recipe. Tighten the trigger to explicit f^-1 so it is not fired on functional equations, which get a problem-specific note instead."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Output only valid code, then notes. Syntax: a = solver(\"off\", tools=[], skills=[]); b = coder(\"off\", tools=[\"python\"], skills=[]); v = verifier(\"off\", a, b, tools=[\"check_answer\"]); return v. Inputs are prior variable names after \"off\"; no-input nodes parallel. Max 8 nodes. Use only solver, coder, verifier. Tools only: python, check_answer, simplify_exact. Do not output exact_solve, brute_force, number_theory, coord_geometry. Skills only: inverse_functions, state_simulation. Never mix skill/tool names.\n\nDefault: a = solver(\"off\", tools=[], skills=[]); v = verifier(\"off\", a, tools=[\"check_answer\"]); return v. Use for direct algebra, prealgebra, standard formulas, short exact reasoning, and all routine L4. Do not add a second candidate on L4. Use one coder for mechanical exact computation, large integer arithmetic, stated simulation, matrix/power: a = coder(\"off\", tools=[\"python\"], skills=[]); v = verifier(\"off\", a, tools=[\"check_answer\"]); return v. Use two independent candidates plus verifier only for hard L5: a = solver(\"off\", tools=[], skills=[]); b = coder(\"off\", tools=[\"python\"], skills=[]); v = verifier(\"off\", a, b, tools=[\"check_answer\"]); return v. Candidates must not read each other. Give different methods in notes. If diagram/Asymptote present, candidate b should be coder with python, transcribe exact coordinates and compute.\n\nTools: check_answer always to verifier. python only to coder needing exact computation. simplify_exact only to coder for final radical/exact simplification. Never give python to solver.\n\nSkills: max one, only when unambiguously triggered. state_simulation only for step-by-step processes: walks, toggles, lockers, recurrences with state. inverse_functions only for explicit f^-1(x). Otherwise no skill.\n\nNotes: one line per node, <=50 chars. State only target, exact output format, one method keyword. Never write equations, derivations, intermediate values, candidate answers. Coder note must say simulate independently, never verify other answer. All possible values: list every admissible value, requested format. Counting: included/excluded, final expression. Max/min: attained and no better. Diagrams: exact coordinates, requested boundary. Prefer exact answers; avoid decimals unless requested.",
+    "why": "Three evidence-driven policy fixes. (1) The 'Most expensive correct' are all L4 at 11k-16k cost using 3-node teams while L4 is 100% accurate, so the policy now forbids a second candidate on L4 (free cost cut at equal accuracy) and reserves two-candidate teams for hard L5. (2) python is the most harmful tool (69% vs 83%; coder alone 65%), so python is restricted to mechanical computation and never given to a solver, and the default stays the 93%-accurate solver>verifier. (3) Notes help overall (+14%) but long notes containing derivations caused several L5 failures ('roots of unity', 'f(2^k)=0', 'verify the manual result'); the policy now caps notes at 50 chars and bans equations/derivations/candidate answers, plus requires the coder to simulate independently. Skills are reduced to the two that survive the residual table (inverse_functions positive, state_simulation for the process class) so the HR has fewer things to misfire."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.91,
+   "cost": 5520.2,
+   "hr_cost": 456.6,
+   "acc_hard": 0.886,
+   "nodes": 2.48,
+   "shapes": {
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 49,
+    "solver.off>verifier.off[T]": 42,
+    "coder.off[T],solver.off>verifier.off[T]": 41,
+    "solver.off[S]>verifier.off[T]": 36
+   },
+   "n_shapes": 12,
+   "repaired": 0,
+   "retried": 2,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Treat any note as a target/format instruction, not a solution. If inputs are present, treat them as hypotheses: independently recompute the requested quantity from the problem, check the code/model, and do not merely confirm. Use provided tools only for exact computation; if none, hand-compute exactly. In Python, use integers/Fractions/sympy exact types, avoid floats, and print the exact value. For diagrams, parse exact coordinates and requested boundary. Simulate iterative states; test tiny cases only to validate. End with exactly: Answer: <final value>.",
+    "why": "coder with inputs was 80% correct and changed to correct 4 times, while parallel coder candidates were weak; independent recomputation and explicit diagram parsing address observed geometry, process, and computation failures."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Treat any note as a target/format instruction, not a solution. Independently re-derive key steps and substitute candidate answer(s) into every original condition. If candidates disagree, identify the first invalid step; do not average. Use check_answer if provided. If a candidate came from code, verify the model, boundary conditions, and final substitution. If asked for all possible values, ensure every admissible value is included and formatted as requested. End with exactly: Answer: <final value>.",
+    "why": "verifier is net positive (needed 5 vs harmful 4 in leave-one-out), notes are helpful but should not be treated as solutions, and code-based candidates need explicit verification of assumptions and final substitution."
+   },
+   {
+    "op": "remove_skill",
+    "id": "number_theory_counts",
+    "why": "Given to 101 nodes with 76% correctness versus 82% otherwise and appears in wrong counting, geometry, number theory, and precalculus examples; it is overused generic counting residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "quadratic_methods",
+    "why": "Given to 77 nodes with 78% correctness versus 81% otherwise; basic quadratic practice belongs in the solver role, and the skill is negative residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "state_simulation",
+    "why": "Given to 4 nodes with 50% correctness versus 81% otherwise and the locker process was wrong; full exact simulation is already in the coder role and should be guided by problem-specific notes."
+   },
+   {
+    "op": "edit_skill",
+    "id": "inverse_functions",
+    "text": "Use only when the problem explicitly asks for f^{-1}(x) or an inverse composition. Solve y=f(x) for x to obtain f^{-1}(x); if f(f(x))=x, then f^{-1}=f. Do not use for functional equations, recurrences, or equations involving f(a)+f(b). Simplify the requested expression exactly.",
+    "why": "inverse_functions was positive (89% vs 80%) on 9 uses, but the functional-equation wrong example shows it can be misapplied; restrict it to explicit inverse-function problems."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Output only valid code, then notes. Line form: a = solver(\"off\", tools=[], skills=[]); v = verifier(\"off\", a, tools=[\"check_answer\"]); return v. Inputs are previous variable names after \"off\". At most 8 nodes. Use only solver, coder, verifier. Tools only: python, check_answer, simplify_exact. Skills only: inverse_functions. Never put skill names in tools or tool names in skills. Do not use exact_solve, brute_force, number_theory, or coord_geometry.\n\nStaffing: Default: a = solver(\"off\", tools=[], skills=[]); v = verifier(\"off\", a, tools=[\"check_answer\"]); return v. Use this for direct algebra, prealgebra, standard formulas, short exact reasoning, and most problems. Use the 3-node chain only when exact computation is essential: simulation, enumeration, large integer arithmetic, coordinate/Asymptote arithmetic, matrices, polynomial/complex exact values, or hard L5/all-possible-values with computational checking. Chain: a = solver(\"off\", tools=[], skills=[]); b = coder(\"off\", a, tools=[\"python\"], skills=[]); v = verifier(\"off\", a, b, tools=[\"check_answer\"]); return v. Coder must read solver; do not use parallel independent candidates, coder first, or coder alone. Give simplify_exact only to coder or verifier when the final expression is an unsimplified radical/exact form.\n\nSkills: give inverse_functions only when the problem explicitly asks for f^{-1} or an inverse composition. Do not give it for functional equations, recurrences, or equations in f. Otherwise give no skills.\n\nNotes: one line per node, at most 100 chars. Problem-specific: exact target, case split, method keyword, verification. No calculations, candidate answers, or role text. For all possible values, require every admissible value and requested format. For counting, state included/excluded cases and final expression. For max/min, require attainment and no better value. For diagrams, require exact requested boundary/region and coordinates. For processes, require full exact simulation or proven invariant. Prefer exact answers; avoid decimals unless requested.",
+    "why": "solver>verifier is the strongest architecture (93% on 89 uses) while parallel coder candidates are weaker (72% on 32 uses) and coder input is often costly; sequential coder reading solver is better when computation is needed (85% on 13 uses). Harmful skills are removed, and notes are kept problem-specific because notes were associated with higher correctness."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.87,
+   "cost": 4506.1,
+   "hr_cost": 439.3,
+   "acc_hard": 0.8509,
+   "nodes": 2.12,
+   "shapes": {
+    "solver.off>verifier.off[T]": 143,
+    "solver.off>coder.off[T]>verifier.off[T]": 19,
+    "solver.off[T]>verifier.off[T]": 15,
+    "solver.off[T][S]>verifier.off[T]": 10
+   },
+   "n_shapes": 8,
+   "repaired": 0,
+   "retried": 0,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a contest-math solver. Treat notes as target/format instructions, not solutions. Reason step by step with exact arithmetic. Respect all constraints and cases. For diagrams/Asymptote, first list exact coordinates/lengths and the exact requested region; for non-shaded, decide hole vs outer boundary. For processes, do not extrapolate from small cases; derive invariant or exact formula. If all possible values are asked, list every admissible value in requested format. End exactly: Answer: <final value>.",
+    "why": "Diagram boundary and process-extrapolation failures are basic practices the solver should always follow, not conditional residual skills."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Treat notes as target/format instructions, not solutions. Use provided tools only for exact computation; if none, hand-compute exactly. In Python, write runnable exact code with integers/Fractions/sympy, avoid floats, and print the final exact value. For processes, simulate full exact state; test tiny cases only to validate. For diagrams/Asymptote, transcribe exact coordinates and compute only the requested boundary, checking hole vs outer boundary. Check edge cases. If all possible values are asked, list all. End exactly: Answer: <final value>.",
+    "why": "The diagram and locker failures show the coder needs explicit exact-boundary and full-simulation practices when doing computational work."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Independently re-derive key steps and substitute candidate answer(s) into every original condition. If candidates disagree, identify the first invalid step; do not average. Use check_answer if provided. For diagrams, verify exact requested region/boundary, including hole vs outer boundary. For processes, verify transition and full run or proven invariant. If all possible values are asked, ensure every admissible value is included and formatted as requested. End exactly: Answer: <final value>.",
+    "why": "The verifier is the final accuracy gate and should explicitly check the diagram boundary and process state where failures occurred."
+   },
+   {
+    "op": "edit_skill",
+    "id": "inverse_functions",
+    "text": "Use only when the problem explicitly asks for an inverse function f^{-1} or asks to invert f. Solve y=f(x) for x to get f^{-1}(x); if f(f(x))=x, then f^{-1}=f. Do not use for general functional equations or recurrence-style constraints. Simplify the requested expression exactly.",
+    "why": "inverse_functions has small positive evidence but was misapplied to a functional-equation failure; narrowing it preserves the benefit and prevents misuse."
+   },
+   {
+    "op": "remove_skill",
+    "id": "number_theory_counts",
+    "why": "It was given to 101 nodes with 76% correctness versus 82% otherwise, and it appears in multiple wrong examples where it misdirected combinatorics, geometry, and simple fraction conversion. Exact counting guidance belongs in notes and the solver/coder roles."
+   },
+   {
+    "op": "remove_skill",
+    "id": "quadratic_methods",
+    "why": "It was given to 77 nodes with 78% correctness versus 81% otherwise, and it appears in wrong non-quadratic examples including diagrams, inequalities, and polynomial systems. Basic quadratic algebra is already solver-level practice."
+   },
+   {
+    "op": "remove_skill",
+    "id": "state_simulation",
+    "why": "It was given to 4 nodes with 50% correctness versus 81% otherwise, and the locker failure shows it was used with unsafe manual pattern-finding. Full exact simulation and invariant reasoning belong in the coder role and HR notes."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Output only valid code, then notes. Line form: a = solver(\"off\", tools=[], skills=[]); v = verifier(\"off\", a, tools=[\"check_answer\"]); return v. Inputs are previous variable names after \"off\". At most 8 nodes. Use only solver, coder, verifier. Tools only: python, check_answer, simplify_exact. Skills only: inverse_functions. Do not put skill names in tools or tool names in skills.\n\nStaffing: Prefer exactly one candidate plus verifier. Use solver for algebra, prealgebra, counting proofs, functional equations, number theory, and geometry reasoning. Use coder when exact computation, simulation, enumeration, coordinate arithmetic, matrices, large integers, or radical simplification is needed; give coder python then. Give check_answer to verifier. Give simplify_exact only to coder for radical simplification. Do not use parallel independent candidates. Use solver>coder>verifier only when the solver's method needs exact computation, simulation, or coordinate arithmetic; coder must read solver and verify/compute it, not solve independently.\n\nNotes: one line per node, at most 80 chars. State target, exact case split or transformation, method keyword, and what to verify. Do not include calculations, candidate answers, or step-by-step solutions. For all possible values, require every admissible value and requested format. For counting, state included/excluded cases and exact final expression. For max/min, require attainment and no better value. For diagrams, require exact coordinates and requested boundary, including hole versus outer boundary. For processes, require exact state transition and full simulation or proven invariant. Give inverse_functions only for explicit inverse-function problems, not functional equations. Prefer exact answers; avoid decimals unless requested.",
+    "why": "The best architecture is solver>verifier at 93% and low cost, while parallel two-candidate architectures are weaker and expensive. Notes help, check_answer helps, and the harmful skills are removed. This policy keeps the team minimal, uses coder only for computation, and puts diagram/process lessons in notes and roles."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.865,
+   "cost": 4696.6,
+   "hr_cost": 425.1,
+   "acc_hard": 0.8509,
+   "nodes": 2.23,
+   "shapes": {
+    "solver.off>verifier.off[T]": 101,
+    "solver.off>coder.off[T]>verifier.off[T]": 29,
+    "solver.off[T]>verifier.off[T]": 16,
+    "coder.off[T],solver.off,verifier.off[T]": 10
+   },
+   "n_shapes": 17,
+   "repaired": 0,
+   "retried": 1,
+   "fallback": 0
+  }
+ }
+]

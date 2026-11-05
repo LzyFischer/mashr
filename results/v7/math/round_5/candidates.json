@@ -1,0 +1,131 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful math solver. Reason step by step. Use provided tools exactly for enumeration, algebra, search, and final checks. If all values are asked, list every value. For processes, walks, digit/bounded searches, or divisor counts, simulate or brute force exactly with python. For coordinate, 3D, sphere, plane, fold, or Asymptote geometry, write exact coordinate equations and solve with python. Identify the exact quantity and form asked, verify by substitution or small case, output only simplest exact answer."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are an adversarial checker. Do not trust input work. Re-derive the answer by the simplest reliable route, using tools to verify final and key steps. If the answer is a count, search, simulation, process, or all-values problem, recompute with python when available; do not rely only on check_answer. For coordinate, 3D, sphere, plane, fold, or Asymptote geometry, re-check coordinate equations and every solution. If all values are requested, check none are missing. Choose the answer that passes exact checks. Output only the final answer in the exact form asked."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6377.8,
+   "meta_cost": 3077.1,
+   "acc_hard": 0.8889,
+   "nodes": 1.7,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 33,
+    "solver[T][S]": 11,
+    "solver[T]": 2,
+    "solver[S]": 2
+   },
+   "n_shapes": 5,
+   "fallback": 1
+  }
+ },
+ {
+  "layers": [
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 4,
+    "text": "Give at most two matching skills. Never give check_answer_form; it is not a useful skill here. tools= only exact tool names; skills= only exact skill names. Never mix or invent names."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 6,
+    "text": "Geometry: always give python. Use geometry_coordinates for explicit coordinates, Asymptote, 3D, spheres, folds, line arrangements, or region/intersection counts; add counting_setup for counts. Use geometry_synthetic only for pure angle/similarity/area ratios. Never give coord_geometry."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 7,
+    "text": "Number theory: divisors_primes + python/number_theory for divisor/prime/gcd/lcm; modular + python only for residues/powers. For integer searches (tau, digits, bounded counts) use python + number_theory, not integer_equations; verifier gets python."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 8,
+    "text": "Algebra: algebra_manipulation + python for systems/substitutions; functions_sequences + python for functional equations/iteration; trig_complex + python for complex/trig; polynomials_vieta only for direct symmetric sums. For all possible values use exact_solve/python."
+   },
+   {
+    "op": "add_rule",
+    "text": "When the answer is a set of values or asks for all possible values, give python or exact_solve and the matching skill to both nodes; the verifier must confirm every required value is listed, not just one."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6547.4,
+   "meta_cost": 3147.7,
+   "acc_hard": 0.8889,
+   "nodes": 1.7,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 34,
+    "solver[T][S]": 14,
+    "solver[S]": 1,
+    "solver[T][S]>verifier[T]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 6,
+    "text": "Geometry: always python. geometry_coordinates for Asymptote, coordinates, 3D planes/spheres, distances, folds, line equations; counting_setup for regions/triangles/intersections; geometry_synthetic only for pure angle/similarity/area ratios. Verifier gets same skill. Never coord_geometry."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 7,
+    "text": "For number theory: divisors_primes + python/number_theory for divisor/prime/gcd/lcm; modular + python only for residues/powers; any integer search (tau, digits, bounded counts, consecutive conditions) uses python only, never integer_equations, check_answer, or modular; verifier gets python."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 8,
+    "text": "For algebra: give algebra_manipulation + python for systems/substitutions; give polynomials_vieta only for direct symmetric sums of one polynomial's roots; for complex roots, roots of unity, or trigonometry give trig_complex + python; do not give polynomial or simplify_exact by default."
+   },
+   {
+    "op": "add_rule",
+    "text": "Functional equations, iteration, walks, sequences, recursions, or repeated operations: give functions_sequences + python to solver and verifier; do not give integer_equations or modular unless residues are explicitly asked."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6611.5,
+   "meta_cost": 3285.2,
+   "acc_hard": 0.9259,
+   "nodes": 1.76,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 35,
+    "solver[T][S]": 11,
+    "solver[T][S]>verifier[T]": 3,
+    "solver[S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ }
+]

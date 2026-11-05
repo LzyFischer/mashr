@@ -1,0 +1,145 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "writer",
+    "role": "Write one SQLite query. Use evidence literally: formulas, value mappings, columns, output order. For named values use find_values for exact stored text. If sample_rows/column_info are available, use them for formats/missing values. Select exactly what is asked: 'which X' only; yes/no uses evidence label; use evidence order. Aggregate only when asked. No DISTINCT, GROUP BY, LIMIT, ORDER BY, or extra filters unless required. Add IS NOT NULL for requested non-null attributes. Top/lowest: ORDER BY asked column LIMIT 1 unless ties. Use REAL for rates."
+   },
+   {
+    "op": "edit_agent",
+    "name": "checker",
+    "role": "Review the input query against the question and evidence. List required conditions and output columns. Keep the query if it satisfies them; do not rewrite a correct query. Fix only concrete errors: wrong output columns/order, missing/extra aggregate, wrong value/join/date/time, missing-label answer, or NULL/0 missing values. Run the query and check rows. Do not add DISTINCT, GROUP BY, extra filters, or helper columns unless the question/evidence requires them. Prefer the simplest query that matches the evidence formula and returns the asked columns."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.56,
+   "cost": 3228.3,
+   "meta_cost": 1045.1,
+   "acc_hard": 0.4762,
+   "nodes": 1.88,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 44,
+    "writer[T][S]": 5,
+    "writer[T]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 1
+  }
+ },
+ {
+  "layers": [
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 1,
+    "text": "Simple question: a = writer(tools=['run_sql'], skills=['output_columns']); return a. Use one node only."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Join, aggregate, ratio, superlative, named value, or multi-condition question: a = writer(tools=['run_sql']); c = checker(a, tools=['run_sql'], skills=['output_columns']); return c. Never use parallel writers."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "Writer skills only when needed: top_k_ties for highest/lowest/most/least; dates_text for dates/years/times; null_empty for missing/without; explore_then_write for evidence or multi-condition questions. Do not give other skills."
+   },
+   {
+    "op": "add_rule",
+    "text": "Give only run_sql as a tool. Do not give find_values, column_info, or sample_rows."
+   },
+   {
+    "op": "add_rule",
+    "text": "Always end with return <node variable> where that variable is the final node defined above. Do not return an undefined name or omit return."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.54,
+   "cost": 2430.6,
+   "meta_cost": 930.8,
+   "acc_hard": 0.5714,
+   "nodes": 1.82,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 40,
+    "writer[T][S]": 9,
+    "writer[T]>checker[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "writer",
+    "role": "You write SQLite queries that answer exactly the question. Use evidence literally: same columns, constants, and formulas. Do not add DISTINCT, GROUP BY, aggregates, or filters (IS NOT NULL, > 0) unless the question or evidence requires them. Verify named values with find_values or SELECT DISTINCT. Check date/time/missing formats with sample_rows or column_info. Run the final query; if rows are empty or implausible, find the failing filter and fix it."
+   },
+   {
+    "op": "edit_agent",
+    "name": "checker",
+    "role": "You review the input query against the question and evidence. List each condition, formula, and asked output column. Check joins, columns, values, and that no extra DISTINCT, GROUP BY, or filter was added. Run the query with run_sql. If the output is wrong, fix only that specific error and rerun. Return the corrected query, or the unchanged query if it is correct."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 1,
+    "text": "Direct single-table lookup with no join or aggregate: one writer with run_sql; add find_values only if it filters on a named value."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Joins, aggregates, ratios, top-k, or named values: writer with run_sql and find_values, then checker with run_sql. Do not use parallel writers."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "Give at most 2 skills per node. The final node must have output_columns. If evidence is present, the writer must also have evidence_first. Otherwise give at most one other matching task skill."
+   },
+   {
+    "op": "add_rule",
+    "text": "Always end the team code with return <node>, where <node> is a defined agent; never use an undefined node or omit return."
+   },
+   {
+    "op": "add_rule",
+    "text": "For missing values, zeros, dates, times, or ambiguous formats, give the writer sample_rows and the matching skill (null_empty or dates_text)."
+   },
+   {
+    "op": "add_rule",
+    "text": "For highest, lowest, most, or least, give top_k_ties and do not add GROUP BY unless the question asks for a grouped aggregate."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.5,
+   "cost": 3696.7,
+   "meta_cost": 1495.4,
+   "acc_hard": 0.4286,
+   "nodes": 1.98,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 47,
+    "writer[T]": 2,
+    "checker[T][S],writer[T][S],writer[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 2
+  }
+ }
+]

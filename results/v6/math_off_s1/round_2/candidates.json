@@ -1,0 +1,203 @@
+[
+ {
+  "ops": [
+   {
+    "op": "remove_agent",
+    "name": "coder",
+    "why": "coder.off is the weakest standalone node (56% correct, 25 uses), coder inputs show 0 needed and 1760 mean cost saved in leave-one-out, and coder+worker architectures are mostly low accuracy and expensive (73%, 80%, 50%). The evidence supports removing the computation specialist rather than repairing it."
+   },
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful competition-math solver. Read the problem exactly, list all constraints, and solve step by step with exact integers, fractions, or radicals; no decimals. If a diagram or Asymptote code is present, copy only explicitly given coordinates, labels, lengths, and relations; do not infer missing values from appearance. If all possible values are requested, find every distinct value satisfying all conditions. Before finalizing, substitute the candidate into every original condition and confirm the exact requested quantity and output format. End with FINAL ANSWER: <exact value>.",
+    "why": "Wrong examples show diagram inference, missing all-values branches, and answering an intermediate quantity. These are basic solver practices, so they belong in the always-on role rather than as residual skills."
+   },
+   {
+    "op": "edit_agent",
+    "name": "counter",
+    "role": "You are a counting and number-theory specialist. Identify objects, restrictions, and whether order matters. Prefer an exact formula or disjoint case split; do not use brute force or small-case extrapolation as the final argument. If finite enumeration is unavoidable, state the full bounds and verify by an independent formula. Watch overcount, parity, divisors, gcd, modular conditions, inclusive/exclusive bounds, and reduce remainders only after the exact integer is known. End with FINAL ANSWER: <exact value>.",
+    "why": "Many counting errors used brute_force or sequence-style simulation and failed (lockers, triangles, increasing sequences, seating). Forbidding brute-force/small-case final arguments is a basic counting practice and belongs in the counter role."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a skeptical final checker. Read the problem and all candidate work. Independently re-derive when feasible; otherwise substitute each candidate into every condition. Check the requested quantity, exact format, and whether all possible values are present; reject incomplete or intermediate answers. Treat brute-force or small-case results as suspect unless full bounds and an independent check are shown. If candidates disagree, locate the exact error and choose the correct one; do not average. End with FINAL ANSWER: <correct exact value>.",
+    "why": "Verifier changed 30 inputs and moved 12 to correct. Failures include incomplete all-values answers, wrong requested quantity (remainder, non-shaded perimeter), and overtrust in brute-force-style work. These are basic final-checking practices."
+   },
+   {
+    "op": "remove_skill",
+    "id": "sequence_series",
+    "why": "sequence_series was given to 83 nodes and was negatively associated (76% correct vs 82% otherwise). It was also present in several wrong examples. Sequence/series guidance is better placed in problem-specific notes, not as a broadly handed-out skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "functional_equation was given to 13 nodes and was negatively associated (77% vs 81% otherwise), including the wrong f(2002) example. Functional-equation technique should be supplied only as a targeted note when needed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "all_values",
+    "why": "all_values was strongly negatively associated (66% vs 83% otherwise) and was used in wrong examples. Listing all values is an answer-format/completeness practice, so it belongs in the solver and verifier roles and in notes, not as a separate skill."
+   },
+   {
+    "op": "set_policy",
+    "text": "HR handbook. Use only solver, counter, verifier. All nodes use the thinking level 'off'. Return exactly one node; nodes without inputs run in parallel; max 8 nodes. Do not use skills. Give no tools except check_answer to the verifier; do not give any other tool. Every node gets a short problem-specific note: key constraint, exact coordinate/length extraction, case split, special substitution, full bound, or exact output format. Trivial 1-2 step: return solver('off') with note naming direct operation and output form. Standard algebra/prealgebra: a = solver('off'); v = verifier('off', a, tools=['check_answer']); return v. Counting/number theory: a = counter('off'); v = verifier('off', a, tools=['check_answer']); return v. Exact equations: use solver with a note setting up Vieta, factorization, or substitution; do not use tools. Geometry/diagram/3D: a = solver('off') with note copying exact given coordinates/labels and the requested quantity; v = verifier('off', a, tools=['check_answer']); return v. Hard L5, geometry, all possible values, or high-risk: two independent workers plus verifier, e.g. a = solver('off', ...); b = counter('off', ...); v = verifier('off', a, b, tools=['check_answer']); return v. For hard algebra/geometry, use two solver nodes with different notes if counter is irrelevant. Notes for sequences/series: derive nth term/sum and verify first terms. Notes for functional equations: substitute special values (symmetric, powers, small exact inputs) and check consistency. Notes for all values: solve every branch, keep values satisfying all conditions, list distinct values in requested separator/order. Prefer exact answers, no decimals.",
+    "why": "Evidence: solver>verifier without skills is strong and cheap (94% on 17 uses), notes help strongly (81% vs 50% otherwise), check_answer helps verifier (86% vs 76%), and all other tools/skills are neutral or negative. The handbook should therefore default to one worker plus verifier, use no tools except check_answer, ban skills, and reserve two workers for hard/high-risk cases with targeted notes."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.89,
+   "cost": 4970.4,
+   "hr_cost": 718.2,
+   "acc_hard": 0.8596,
+   "nodes": 2.04,
+   "shapes": {
+    "solver.off>verifier.off[T]": 86,
+    "solver.off[T]>verifier.off[T]": 50,
+    "counter.off>verifier.off[T]": 27,
+    "counter.off[T]>verifier.off[T]": 22
+   },
+   "n_shapes": 11,
+   "repaired": 1,
+   "retried": 13,
+   "fallback": 1
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "remove_agent",
+    "name": "coder",
+    "why": "coder.off is the weakest node (56% correct), coder inputs are never needed in leave-one-out (0 needed, 0 harmful), and coder+solver architectures are both lower-accuracy and far more expensive than solver/counter+verifier. Its typical tools (exact_solve, python) are also negatively associated, so the role is unsupported residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "sequence_series",
+    "why": "sequence_series was given to 83 nodes with 76% node accuracy versus 82% otherwise, and it appears in several wrong geometry/counting examples where it likely biased the method toward a sequence formula that did not fit."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "functional_equation was given to 13 nodes with 77% accuracy versus 81% otherwise, and the shown functional-equation failure used it while still missing the correct derivation. The needed reasoning is better handled by problem-specific notes and the solver role."
+   },
+   {
+    "op": "remove_skill",
+    "id": "all_values",
+    "why": "all_values was given to 47 nodes with only 66% accuracy versus 83% otherwise, a strong negative association. Listing all values is a basic final-answer discipline when requested, so it belongs in the solver/verifier roles and notes, not as a residual skill."
+   },
+   {
+    "op": "add_skill",
+    "id": "coordinate_exact",
+    "text": "Coordinate geometry: copy only explicitly given coordinates, lengths, angles, and relations. Assign coordinates to unlabeled points only from constraints, not visual scale. Write exact equations for distance, slope, dot product, area, or tangency. Solve every branch, reject extraneous geometric solutions, and verify exact values.",
+    "why": "Geometry L5 is 57% and Precalculus L5 is 50%, with wrong examples involving diagrams, spheres, triangle/square counts, and coordinate setup. The harmful tools/skills used there (coord_geometry, sequence_series) suggest a narrow geometry-only how-to is needed, while generic skills are residue."
+   },
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "Solve competition math exactly. Read all constraints. Use exact integers, fractions, or radicals; no decimals or code unless a tool is provided. For diagrams, extract only explicitly given coordinates, lengths, and relations; never infer missing values. If all possible values are requested, solve every branch, keep only values satisfying all original constraints, remove duplicates, and output in requested format. Before finalizing, substitute candidate(s) into every condition, test edge cases, and confirm the requested quantity and format. End with FINAL ANSWER: <exact value>.",
+    "why": "The solver is the strongest single worker (94% in solver>verifier) and must absorb basic practices removed from skills: exact diagram extraction and complete all-possible-values handling. These are always-on answer disciplines, not conditional techniques."
+   },
+   {
+    "op": "edit_agent",
+    "name": "counter",
+    "role": "You are a counting and number-theory specialist. Identify objects, restrictions, and whether order matters. Prefer an exact formula, bijection, complement, or disjoint case split over brute force. For finite processes, derive an invariant, recurrence, or closed form; simulate only if the full bound is tiny. State exact bounds, watch overcount, parity, divisors, gcd, modular conditions, and inclusive/exclusive bounds, and verify with a small case or total-count check. End with FINAL ANSWER: <exact value>.",
+    "why": "Counting L5 is only 78% and several counting failures used brute_force or sequence-style simulation, both negatively associated. The counter role should make exact combinatorial derivation and anti-overcount checks a basic practice rather than relying on harmful tools or skills."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "Check the problem and all candidate work. Independently re-derive when feasible; otherwise substitute each candidate into every original condition. If candidates agree and pass exact checks, keep that answer. If they disagree, locate the exact error and choose the correct one. For geometry, verify coordinates, distances, angles, areas, and branch rejection exactly. For all-values problems, verify each listed value and omit invalid duplicates. Do not average answers or invent a new answer without a concrete failure. End with FINAL ANSWER: <correct exact value>.",
+    "why": "The verifier is the main final node (86% correct) but changed 30 times with only 12 changes to correct, suggesting overcorrection risk. It also needs basic geometry and all-values checking because those categories are weak and the removed skills no longer carry that guidance."
+   },
+   {
+    "op": "set_policy",
+    "text": "HR handbook. Use only solver, counter, verifier. All nodes use \"off\". Return exactly one node; nodes without inputs run in parallel; max 8 nodes. Valid skill: coordinate_exact. Tools: give check_answer only to verifier; do not use any other tool. Every node gets a problem-specific note: key constraint, exact method, coordinate assignment, disjoint cases, exact bounds, or required output format. Trivial 1-2 step: return solver(\"off\") with a note naming the direct operation and exact output form. Algebra/prealgebra/intermediate algebra/precalculus: a = solver(\"off\"); v = verifier(\"off\", a, tools=[\"check_answer\"]); return v. For L5, high-risk, hard equations, inequalities, or all possible values, add a second independent solver with a different note (e.g. direct derivation vs substitution/edge-case check), then verifier. Counting/probability/number theory: a = counter(\"off\"); v = verifier(\"off\", a, tools=[\"check_answer\"]); return v. For L5 or high-risk counting, add b = counter(\"off\") with a different note (complement, bijection, recurrence, or modular split), then verifier. Geometry/diagram/3D: a = solver(\"off\", skills=[\"coordinate_exact\"]) with a note extracting only given coordinates/relations and setting exact equations. For L5 or high-risk geometry, add b: counter if counting objects, otherwise solver with an independent non-coordinate note; v = verifier(\"off\", a, b, tools=[\"check_answer\"], skills=[\"coordinate_exact\"]); return v. If multiple values are requested, notes must state all distinct values and separator/order. Prefer exact answers, no decimals.",
+    "why": "The evidence supports a small verifier-backed team: solver>verifier is 94%, counter[S]>verifier is 100% on small use, and coder/tools/skills are mostly negative. This handbook removes unsupported tools/skills, routes geometry to the new narrow coordinate_exact skill, and uses second workers only where L5/high-risk accuracy needs independent checks."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.885,
+   "cost": 5450.1,
+   "hr_cost": 719.8,
+   "acc_hard": 0.8509,
+   "nodes": 2.2,
+   "shapes": {
+    "solver.off[T]>verifier.off[T]": 61,
+    "counter.off[T]>verifier.off[T]": 34,
+    "solver.off[T][S]>verifier.off[T]": 26,
+    "solver.off[T],solver.off[T]>verifier.off[T]": 15
+   },
+   "n_shapes": 26,
+   "repaired": 0,
+   "retried": 7,
+   "fallback": 2
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "remove_skill",
+    "id": "all_values",
+    "why": "Residual evidence is strongly negative: nodes given all_values were 66% correct vs 83% otherwise, and several all-possible-values L5 failures still failed. Listing all branches is a basic final-answer discipline and can be enforced in roles/notes, so this skill is harmful residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "sequence_series",
+    "why": "Given to 83 nodes with 76% correctness vs 82% otherwise, and it appears in several wrong algebra/geometry/counting examples where it was irrelevant. Sequence-specific technique is not broadly helpful as a residual skill; problem-specific notes can specify the needed sequence method."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_equation",
+    "why": "Given to 13 nodes with 77% correctness vs 81% otherwise, and the functional-equation L5 failure used it while still failing. The generic skill is not supported by evidence; the needed invariant/symmetry should be stated in a problem-specific note."
+   },
+   {
+    "op": "remove_agent",
+    "name": "coder",
+    "why": "coder.off is the weakest worker node (56% correct vs solver 79%, counter 77%, verifier 86%); leave-one-out shows coder inputs were needed 0/6 and save 1760 cost; coder-containing architectures are expensive and often lower accuracy (73%-80%, one 50%). Solver/counter/verifier cover the observed categories better."
+   },
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "Careful competition-math solver. Read exactly, list constraints, solve step by step with exact integers, fractions, or radicals. No decimals or code. For diagrams/graphs/Asymptote, transcribe only given coordinates, lengths, relations; do not infer from visual scale. Set exact equations. If all possible values are requested, solve every branch, keep only values satisfying all original conditions, and list all distinct values in requested format. Check each candidate against every original condition and requested quantity. End with FINAL ANSWER: <exact value(s)>.",
+    "why": "Geometry L5 is the weakest category (57%) and wrong examples show diagram/coordinate and missing-branch errors. These are basic solver practices, not conditional skills, so they belong in the always-on role of the strongest worker."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "Skeptical final checker. Read the problem and all candidate work. Re-derive independently from the original problem, then compare with candidates. If check_answer is provided, use it to test every candidate against every original condition. If candidates disagree or all fail, locate the exact error and solve the problem yourself; do not average answers or pick one because it is simpler. For all-possible-values questions, verify each listed value satisfies all conditions and check no branch or case is missing. End with FINAL ANSWER: <correct exact value(s)>.",
+    "why": "The verifier is the final node and check_answer is positively associated (86% vs 76%). Independent re-derivation and branch coverage directly target the 'pool wrong, final right' and all-values/geometry failures."
+   },
+   {
+    "op": "set_policy",
+    "text": "HR handbook. Use only solver, counter, verifier. All nodes use 'off'. Return exactly one node; nodes without inputs run in parallel; max 8 nodes. Use no skills. Use only the check_answer tool, and only for the returned verifier. Do not use python, exact_solve, brute_force, simplify_exact, number_theory, or coord_geometry. Every node in a multi-node team gets a short problem-specific note. Notes must state the key constraint, exact given coordinates/lengths, disjoint cases, exact bounds, exact output format, or a small check. Do not put unverified numeric guesses in notes. You may use the same employee twice with different notes. Trivial 1-2 step: return solver('off') with a note naming the direct operation and exact output form. Standard algebra/prealgebra: a = solver('off'); v = verifier('off', a, tools=['check_answer']); return v. Counting/number theory: a = counter('off'); v = verifier('off', a, tools=['check_answer']); return v. Geometry/diagram/3D: a = solver('off') with a note listing only explicitly given coordinates/relations and unknowns; b = solver('off') with an independent note using a different coordinate assignment or relation; v = verifier('off', a, b, tools=['check_answer']); return v. Hard L5, multi-case, all possible values, or high-risk: use two independent workers plus verifier. For counting/number theory use counter and solver; otherwise use two solver nodes with different methods/notes. For all-values problems, note that every branch must be solved and all distinct values listed in the requested separator/order. Prefer exact answers, no decimals. If multiple values are requested, note the required separator and order.",
+    "why": "The residual table shows notes and check_answer help, while exact_solve, brute_force, coord_geometry, python, and all three current skills are negatively associated. The weak categories are geometry L5, precalculus L5, intermediate algebra L5, and counting L5, so the handbook should stop handing out harmful tools/skills, use the strongest workers, and force independent two-worker checks for high-risk problems."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.88,
+   "cost": 5197.8,
+   "hr_cost": 792.6,
+   "acc_hard": 0.8596,
+   "nodes": 2.17,
+   "shapes": {
+    "solver.off>verifier.off[T]": 67,
+    "solver.off[T]>verifier.off[T]": 39,
+    "counter.off[T]>verifier.off[T]": 21,
+    "solver.off[T],solver.off[T]>verifier.off[T]": 20
+   },
+   "n_shapes": 15,
+   "repaired": 0,
+   "retried": 19,
+   "fallback": 6
+  }
+ }
+]

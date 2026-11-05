@@ -1,0 +1,16 @@
+{
+ "agents": {
+  "actor": {
+   "role": "You act in a household text environment. Each turn output exactly 'Think: <short>' then 'Action: <one exact command>'. Use valid_actions for legal commands, memory to avoid revisiting checked places, and goal_reminder for steps left. If a command fails twice, pick a different valid command or new place. For clean/heat/cool tasks, use the exact clean/heat/cool command at the sinkbasin/microwave/fridge, then place the object."
+  },
+  "planner": {
+   "role": "You read the task and initial room. Write a short plan for the actor, at most 4 lines: 1) likely places for the target object, 2) exact command sequence to finish, 3) key pitfall. Do not act. Keep names exact and commands short."
+  }
+ },
+ "rules": [
+  "Every task: the returned actor has tools ['valid_actions', 'memory', 'goal_reminder'].",
+  "Every task: a planner adviser with no tools, then the actor reading its plan. The planner must be an input to the actor, never parallel with it.",
+  "Give the actor 'action_syntax' plus the matching skill: pick_place, pick_two, clean_task, heat_task, cool_task, or look_in_light. Give the planner 'search_order' plus that matching skill.",
+  "For clean, heat, or cool tasks, also give the actor 'pick_place'."
+ ]
+}

@@ -1,0 +1,132 @@
+[
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Reason step by step with exact arithmetic. Respect every constraint; make case splits disjoint and exhaustive. Extract exact diagram data first; for coordinate geometry, assign exact coordinates and equations. For quadratics, keep all admissible roots. For searches or iterative processes, use the exact full range or a proven invariant; do not extrapolate from small cases. If a set/list is requested, output every value comma-separated. For counts, output exact integer. End with exactly: Answer: <final value>.",
+    "why": "Solver is the strongest node and weak failures involved incomplete searches or extrapolation. Completeness is a basic always-on solver practice, not a conditional skill."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Read the problem and all candidate work. Independently re-derive key steps; use exact arithmetic for checks. If candidates disagree, find the error against original conditions. If an equation has multiple branches/roots, check each in the original conditions and output every admissible value, comma-separated. If a candidate's search or process used a range/state, verify it is exact and complete. If a count is asked, output exact integer. Do not rely on unproved guesses. End with exactly: Answer: <final value>.",
+    "why": "Verifier with inputs was net positive, but tools were not. The verifier should enforce exact independent checking and completeness without relying on tools."
+   },
+   {
+    "op": "remove_agent",
+    "name": "coder",
+    "why": "Coder nodes were 73% correct versus solver 86%, and coder-containing architectures were lower-accuracy and high-cost. Python/tool nodes overall were worse than no-tool nodes, so the separate computational employee is unsupported residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "algebraic_substitution",
+    "why": "Nodes given algebraic_substitution were 77% correct versus 87% otherwise. The technique is basic enough for the solver role and problem-specific notes; as a residual skill it is negative."
+   },
+   {
+    "op": "remove_skill",
+    "id": "number_theory_counts",
+    "why": "Nodes given number_theory_counts were 76% correct versus 86% otherwise. Number-theory counting should be handled by exact reasoning and notes, not a broadly issued skill that underperformed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "algebraic_conjugates",
+    "why": "This skill has no observed usage in the report, so it is unused conditional residue in the skill library and HR prompt."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build the smallest reliable team using only solver and verifier; every node is off. Output only code lines, then notes. Use node names a and b. For one node: a = solver(\"off\") then return a. For two nodes: a = solver(\"off\") then b = verifier(\"off\", a) then return b. Omit tools= and skills=. Then notes: one line per node, format name: text. No other text. At most 2 nodes; prefer 1. Do not use parallel nodes. Staffing: direct low-risk: return solver alone. Multi-step, constrained, all-values, max/min, geometry, counting, number theory, iterative processes, or error-prone algebra: solver -> verifier. Notes: one concise line for each node. State the exact target, cases, bounds, full range, or verification needed. For all possible values: list every admissible value. For counts: exact integer and complete range. For max/min: prove bound attained. For processes: track exact state or prove invariant; do not extrapolate from small cases. Do not include unproved guesses, likely answers, or partial finals. Prefer exact answers; no decimals unless requested.",
+    "why": "Notes were strongly positive (86% vs 40%), while tools and current skills were negative or unused. The weak categories were hard multi-step geometry/counting/algebra problems, so the handbook should force a simple solver->verifier path, strict notes, and strict output format to reduce syntax failures and residue."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6047.4,
+   "hr_cost": 3041.3,
+   "acc_hard": 0.8889,
+   "nodes": 1.64,
+   "shapes": {
+    "solver.off>verifier.off": 24,
+    "solver.off": 16,
+    "solver.off[T]>verifier.off[T]": 8,
+    "solver.off[T]": 2
+   },
+   "n_shapes": 4,
+   "repaired": 0,
+   "retried": 0,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "remove_agent",
+    "name": "coder",
+    "why": "Coder nodes were 73% correct versus 86% for solver, and coder-containing architectures were mostly 75-100% with high cost; its computational discipline is better handled by solver/verifier roles and problem-specific notes, so it is residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "algebraic_substitution",
+    "why": "Nodes given algebraic_substitution were 77% correct versus 87% otherwise, and it appeared in several hard wrong notes; substitution is a basic solver practice, not a supported conditional skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "number_theory_counts",
+    "why": "Nodes given number_theory_counts were 76% correct versus 86% otherwise, and it appeared in wrong geometry/counting uses; exact divisor/count reasoning is better left to roles and concise notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "algebraic_conjugates",
+    "why": "It does not appear in the residual usage table, so the HR is not handing it out; it is unused residue in the skill library."
+   },
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a contest-math solver. Use exact arithmetic, step by step. Respect all constraints; case splits disjoint/exhaustive. Extract diagram data; for coordinates, set exact equations. Solve quadratics fully, keep admissible roots. For finite searches, processes, or functional equations, define the exact universe/rule and count or compute exhaustively; no extrapolation. If answer is a set/list, list every distinct requested value comma-separated. If asked for a sum/product of parameters in a form, output that quantity. Counts: exact integer. End with exactly: Answer: <final value>.",
+    "why": "Failures included omitted all-values, parameter-sum format errors, and pattern extrapolation in functional/process problems; these are basic solver practices that should always be present in the role."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Re-derive key steps or solve independently; use tools only if provided. If candidates disagree, locate the error against original conditions. Check every branch, root, and configuration; collect every distinct admissible value. Verify any search range is exact and complete. If all values are requested, output the full comma-separated list. If asked for a sum/product of parameters in a form, output that quantity. Counts: exact integer. End with exactly: Answer: <final value>.",
+    "why": "Verifier nodes with inputs were 88% correct and changed answers toward correct more often than toward wrong, but failures show missed branches, omitted all-values, and wrong requested parameter sums; the role must force complete collection of admissible values and requested final quantity."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build the smallest reliable team using only solver and verifier; every node 'off'. Output exactly node lines, a return line, then notes. Node line syntax: name = solver('off', tools=[], skills=[]) or name = verifier('off', inputs, tools=[], skills=[]). inputs are previously defined node variables. Do not pass problem as input. Always set tools=[] and skills=[]. Nodes without inputs run in parallel. Returned node is final. Max 8 nodes; prefer 1-3.\nStaffing:\n- Direct low-risk one-step or standard formula: return one solver.\n- Multi-step, constrained, all-values, max/min, geometry, counting, number theory, iterative process, or error-prone algebra: solver -> verifier.\n- Very hard or genuinely different methods: two solver nodes with different notes, both -> verifier. The verifier must receive every candidate node it verifies as input. Never return a verifier with no inputs.\nNotes: write 'notes:' then one line per node: name: <one concise line>. Give a note to every node in a multi-node team. A note must state the exact target, cases, bounds, full range, or independent check. Do not include guesses, likely answers, partial finals, or generic instructions. For all possible values: list every distinct admissible value comma-separated. For counts: exact integer and complete range. For max/min: prove bound attained. If answer is a sum/product of parameters in a requested form, output that requested quantity. Prefer exact answers; no decimals unless requested.",
+    "why": "No-tools nodes were 90% correct versus 79% when tools were given, check_answer/python/exact_solve/simplify_exact/coord_geometry all underperformed, and solver/solver->verifier architectures were the strongest. Notes were strongly positive (86% with notes vs 40% without). This policy removes negative residual equipment, enforces verifier inputs, and keeps notes concise and non-speculative."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6736.9,
+   "hr_cost": 3318.4,
+   "acc_hard": 0.963,
+   "nodes": 1.6,
+   "shapes": {
+    "solver.off": 16,
+    "solver.off[T]>verifier.off[T]": 14,
+    "solver.off[T]": 8,
+    "solver.off>verifier.off": 7
+   },
+   "n_shapes": 8,
+   "repaired": 0,
+   "retried": 0,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": null,
+  "repairs": 2,
+  "fail": [
+   "'coder': {\"role\": 1..600 chars}",
+   "'verifier': {\"role\": 1..600 chars}"
+  ]
+ }
+]

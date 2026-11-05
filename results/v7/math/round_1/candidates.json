@@ -1,0 +1,175 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful math solver. Identify the exact quantity asked and find all required values. Reason in short steps. Work exactly; if python is available, use one short script to compute or verify the final value, then check it in the original conditions. For algebra use exact equations/Vieta; for counting bound/enumerate; for geometry use coordinates. Do not restate the problem. End with 'Answer: value'."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a verifier. If prior work is provided, independently re-derive the answer and compare; find the first error. If no prior work is provided, solve it yourself. Keep steps short. Use tools only for short exact checks (substitution, enumeration, exact_solve). Verify all conditions, missing cases, and the exact quantity asked. If derivations disagree, choose the one that passes all checks. End with 'Answer: value'."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational solver. Use short Python or provided tools; if python is available, write one short script that computes the final value. Prefer exact integer/rational/sympy results over floats. For search/counting, bound the space and verify candidates; for geometry, compute coordinates exactly. Keep output compact: no long explanations, no huge lists; print only needed values. Check the result in the original problem. End with 'Answer: value'."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6013.6,
+   "meta_cost": 3229.4,
+   "acc_hard": 0.8889,
+   "nodes": 1.44,
+   "shapes": {
+    "solver[T][S]": 25,
+    "solver[T][S]>verifier[T][S]": 12,
+    "solver[T][S]>verifier[T]": 8,
+    "solver[S]": 2
+   },
+   "n_shapes": 7,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_rule",
+    "rule": 1,
+    "text": "Easy problem: one solver. Give python only if computation is needed, plus at most one matching skill."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Harder problem: one solver with python. Add a verifier only if exact checking is needed; the verifier must read the solver and get tools=['python'], no skills."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "Computation, counting, search, or simulation: one solver with python, plus at most one matching tool. Do not use coder."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 4,
+    "text": "Give at most two tools and one skill. Use exact names; tools= only tool names, skills= only skill names. Do not invent or mix names."
+   },
+   {
+    "op": "add_rule",
+    "text": "Never create a verifier without the solver as an input; do not pass problem_text or undefined variables."
+   },
+   {
+    "op": "add_rule",
+    "text": "Do not give check_answer_form or integer_equations by default. Use counting_setup for counting/digit problems, divisors_primes for divisor/prime problems, trig_complex for trig/complex, geometry_synthetic for synthetic geometry."
+   },
+   {
+    "op": "add_rule",
+    "text": "For coordinate geometry, use python and exact_solve; give geometry_coordinates only if exact coordinates or Asymptote are given, and never give coord_geometry or the polynomial tool."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 5768.1,
+   "meta_cost": 3112.4,
+   "acc_hard": 0.8889,
+   "nodes": 1.42,
+   "shapes": {
+    "solver[T][S]": 23,
+    "solver[T][S]>verifier[T]": 17,
+    "solver[T]": 6,
+    "solver[T][S]>verifier[T][S]": 3
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  }
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent"
+  ],
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful math solver. Reason step by step. Use provided tools when they can compute or check exactly, especially for enumeration, exact algebra, or final verification. Before answering, identify the exact quantity and form asked, verify the final value by substitution, a small case, or a tool, and output only the final answer in simplest exact form."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are an adversarial checker. Read the input work but do not trust it. Re-derive the answer by the simplest reliable route, using any provided tools to verify the final answer and key steps. If your answer differs, identify the exact error and choose the answer that passes checks. Output only the final answer requested, in the exact form asked."
+   },
+   {
+    "op": "remove_agent",
+    "name": "coder"
+   },
+   {
+    "op": "edit_rule",
+    "rule": 1,
+    "text": "Easy problem: one solver with the single matching skill and no verifier."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 2,
+    "text": "Harder problem: a = solver(...); v = verifier(a, ...); return v. The verifier must take the solver as input and, when a quick exact check is possible, be given a tool to check the final answer."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 3,
+    "text": "Heavy computation, counting or search: a = solver(tools=['python'] or a matching exact tool, ...); v = verifier(a, ...); return v. For bounded cases, enumerate with python or brute_force instead of guessing."
+   },
+   {
+    "op": "edit_rule",
+    "rule": 4,
+    "text": "Give at most two skills whose when-clause matches. Do not give check_answer_form; final-answer checking is built into the solver and verifier roles. Put only tool names in tools= and only skill names in skills=."
+   },
+   {
+    "op": "add_rule",
+    "text": "Never return a verifier with no inputs. A checker must be wired after the work it checks: v = verifier(a, ...) or v = verifier(a, b, ...)."
+   },
+   {
+    "op": "add_rule",
+    "text": "For geometry: give geometry_synthetic for triangles/circles/angle/area ratios; give geometry_coordinates only when exact coordinates or Asymptote are given; add python or coord_geometry for exact computation."
+   },
+   {
+    "op": "add_rule",
+    "text": "For number theory: give divisors_primes for divisor/prime/gcd/lcm questions; give modular for residues/powers; for digit or bounded integer counts give python or brute_force, not integer_equations."
+   },
+   {
+    "op": "add_rule",
+    "text": "For algebra: give polynomials_vieta for roots/coefficients/symmetric sums; give algebra_manipulation for systems/substitutions; use simplify_exact or check_answer only to confirm the final exact form."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6548.9,
+   "meta_cost": 3167.8,
+   "acc_hard": 0.8889,
+   "nodes": 1.66,
+   "shapes": {
+    "solver[T][S]>verifier[T]": 17,
+    "solver[T][S]>verifier[T][S]": 16,
+    "solver[T][S]": 13,
+    "solver[S]": 4
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ }
+]

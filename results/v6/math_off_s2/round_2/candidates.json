@@ -1,0 +1,471 @@
+[
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful competition-math solver. Read the problem exactly, including all figure/graph data, identify the requested quantity and form, solve step by step with exact arithmetic, check domains, signs, edge cases, and all conditions, verify by substitution or independent check when useful, and put the final answer alone on the last line.",
+    "why": "Notes are strongly beneficial (84% vs 58%), and several failures involved misreading graphs/figures or generic reasoning; making exact reading and verification basic practice belongs in the solver role."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use only provided Python tools. Prefer exact rational, integer, or symbolic computation and simplify_exact; use exact_solve for equation solving and brute_force only for explicitly small finite searches. Derive exact formulas before enumerating, bound searches, verify completeness, cross-check small cases, and put the final answer alone on the last line.",
+    "why": "simplify_exact is positive (93% vs 81%), while broad python/exact_solve/brute_force use is negative (78/78/75 vs 84); coder should default to exact simplification and bounded computation."
+   },
+   {
+    "op": "edit_agent",
+    "name": "counter",
+    "role": "You are a discrete counting specialist. Model objects and restrictions explicitly; derive exact formulas, disjoint cases, or inclusion-exclusion. Respect labeled versus unlabeled choices. Treat floor/ceil/modular conditions as exact inequalities or congruences. Use enumeration only for small bounded checks. Put the final answer alone on the last line.",
+    "why": "counter is weak alone (75%; counter-off single 71%), and restricted_counting/digit_counting are negative; floor/ceil failures show counting needs exact inequality/congruence practice in the role."
+   },
+   {
+    "op": "edit_agent",
+    "name": "geometer",
+    "role": "You are a geometry specialist. Convert figures, graphs, and verbal geometry into exact coordinates, lengths, areas, or angle relations. Use exact algebra, symmetry, intercepts, slopes, and angle chasing. Avoid floating point and avoid area-only shortcuts unless area is requested. Verify with a second exact check. Put the final answer alone on the last line.",
+    "why": "geometer is the weakest node (65%) and coordinate_geometry_area/coord_geometry are strongly negative; the role must enforce exact coordinate/angle methods rather than generic area heuristics."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a skeptical verifier. Given proposed solutions, do not assume correctness. Use check_answer when provided to test candidates against every condition, domain, sign, and requested quantity. Independently re-derive or find a decisive check, diagnose disagreements, and output the best-supported answer. If all proposals are wrong, compute the correct answer. Put the final answer alone on the last line.",
+    "why": "verifier with inputs is strong (91%), check_answer is positive (91% vs 78%), and leave-one-out shows verifier is sometimes needed (7) but never harmful in the sample; it should be a decisive tester, not a parallel producer."
+   },
+   {
+    "op": "remove_skill",
+    "id": "case_split",
+    "why": "Strong negative residual evidence (72% when given vs 86% otherwise, 76 uses) and it appears in several failures; case splitting is basic practice that belongs in roles/notes, not as a broadly assigned skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "coordinate_geometry_area",
+    "why": "Strongly harmful (40% vs 85%) and used in multiple geometry/prealgebra failures; exact coordinate algebra and targeted skills are safer."
+   },
+   {
+    "op": "remove_skill",
+    "id": "restricted_counting",
+    "why": "Negative evidence (77% vs 84%, 43 uses); counter's role already covers restriction modeling, and overgeneral counting skills add residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "exact_radical_equations",
+    "why": "Negative evidence (79% vs 83%, 39 uses) and it appears in HR id confusion; radical work is better handled by exact_solve/simplify_exact or more targeted skills."
+   },
+   {
+    "op": "remove_skill",
+    "id": "parity_combinatorics",
+    "why": "Slightly negative (80% vs 83%) and low usage; parity tricks are better placed in problem-specific notes or the counter role."
+   },
+   {
+    "op": "remove_skill",
+    "id": "digit_counting",
+    "why": "Negative evidence (71% vs 83%) and it was used in a wrong floor/ceil example; digit restrictions need exact position notes, not a generic skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "rate_proportion",
+    "why": "No positive residual evidence and it appears in HR output errors as an unknown/misplaced id; basic rate/proportion setup belongs in solver role and notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "conjugate_radicals",
+    "why": "No positive evidence in the report and likely unused; keeping it adds residue to a full skill library."
+   },
+   {
+    "op": "remove_skill",
+    "id": "matrix_periodicity",
+    "why": "No positive evidence in the report; matrix powers/periodicity are better handled by coder with exact tools and problem-specific notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "inverse_function",
+    "why": "No positive evidence in the report; inverse-function problems are basic exact algebra and can be briefed in notes when needed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "linear_averages_intercepts",
+    "why": "No positive evidence in the report; linear equations with averages/intercepts are basic solver/coder work and belong in notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_pairing",
+    "why": "No positive evidence in the report; functional equations are better handled by solver/coder with exact reasoning and a note."
+   },
+   {
+    "op": "remove_skill",
+    "id": "angle_chasing",
+    "why": "No positive evidence in the residual table; basic angle chasing belongs in the geometer role, not as a residual skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "symmetric_power_sums",
+    "why": "No positive residual evidence and it was used on a failed shifted-root cubic; the more specific shifted_root_vieta skill is a better layer for that technique."
+   },
+   {
+    "op": "add_skill",
+    "id": "sphere_tangent_planes",
+    "text": "For a sphere tangent to coordinate planes in an octant, center is (\u00b1r,\u00b1r,\u00b1r) with signs from octant. Distances to xy,xz,yz planes are coordinates of the point. Substitute (x,y,z) into (x-r)^2+(y-r)^2+(z-r)^2=r^2, solve exactly, keep positive real radii, verify distances.",
+    "why": "A wrong Precalculus L5 sphere problem used coord_geometry/area skills; this exact coordinate-plane method belongs as a conditional skill for that problem type."
+   },
+   {
+    "op": "add_skill",
+    "id": "floor_ceil_counting",
+    "text": "Convert floor/ceil equations to integer inequalities: k <= u < k+1 for floor k, k < u <= k+1 for ceil k. Derive exact bounds or congruences for the integer variable, count intervals by length, and test endpoints/small values.",
+    "why": "A wrong Intermediate Algebra L5 floor/ceil problem was mis-solved with brute force/digit counting; exact inequality conversion is a targeted technique for this category."
+   },
+   {
+    "op": "add_skill",
+    "id": "roots_unity_area",
+    "text": "For polygons from roots of unity, list vertices in correct cyclic order on the unit circle. Use exact trig values or regular-polygon sector formulas, then shoelace/base-height exactly. Simplify radicals and reduce fractions before extracting requested constants.",
+    "why": "A wrong Precalculus L4 roots-of-unity area problem used coordinate_geometry_area; cyclic exact coordinates and shoelace are the decisive technique."
+   },
+   {
+    "op": "add_skill",
+    "id": "line_arrangement_counting",
+    "text": "For triangles/cells from line families, classify intersections and use exact coordinates/rational arithmetic. Count by orientation, side, or inclusion-exclusion; verify a small parameter case before scaling and avoid double counting.",
+    "why": "A wrong Geometry L5 line-arrangement triangle count was brute-forced incorrectly; this skill targets exact classification and small-case verification."
+   },
+   {
+    "op": "add_skill",
+    "id": "polynomial_factorization",
+    "text": "For integer factorization of sparse/reciprocal polynomials, try y=x^k, symmetric forms such as (x^m+ax^n+1)(x^m-cx^n+1), Vieta/rational-root checks. Verify expansion exactly, then evaluate requested values.",
+    "why": "A wrong Intermediate Algebra L5 reciprocal polynomial factorization used generic reciprocal_algebra/case_split; a specific factorization checklist is needed."
+   },
+   {
+    "op": "add_skill",
+    "id": "shifted_root_vieta",
+    "text": "When roots of one polynomial are shifted roots of another, introduce root variables, use Vieta for symmetric sums, subtract equations to eliminate shared coefficients, solve the exact system, and verify by constructing both polynomials.",
+    "why": "A wrong Intermediate Algebra L5 shifted-root cubic failed with symmetric_power_sums; the shifted-root Vieta method is the targeted layer for that technique."
+   },
+   {
+    "op": "add_skill",
+    "id": "graph_grid_reading",
+    "text": "For unit-grid graphs, read exact coordinates of vertices, intercepts, turning points, and clear grid intersections. Use vertex form or a three-point system; solve exactly and check the equation at several grid points.",
+    "why": "A wrong Algebra L5 parabola graph problem misread the grid; exact grid reading is a conditional skill for figure/graph problems."
+   },
+   {
+    "op": "add_skill",
+    "id": "pair_intersection_counting",
+    "text": "For counting intersection points of many curves with no three sharing a point, count valid pairwise intersections. Compute the intersection multiplicity for a representative pair, exclude tangent/disjoint cases, and verify small subsets before using C(n,2) or pair sums.",
+    "why": "A wrong Intermediate Algebra L5 parabola intersection-count problem was brute-forced; pairwise intersection counting with representative checks is the targeted method."
+   },
+   {
+    "op": "edit_skill",
+    "id": "parabola_vertex",
+    "text": "For quadratic graphs, read exact coordinates of vertex, intercepts, and clear grid points. Use vertex form or solve for a,b,c exactly; verify all visible points and the requested expression.",
+    "why": "parabola_vertex is positive (92% vs 82%), but a graph-reading failure shows it should explicitly require exact grid-point verification."
+   },
+   {
+    "op": "edit_skill",
+    "id": "rectilinear_perimeter",
+    "text": "For right-angle rectilinear figures, infer missing side lengths from given sides and area only if forced. Perimeter is total horizontal plus total vertical; do not assume symmetry or use area alone. Verify by reconstructing coordinates.",
+    "why": "A wrong Prealgebra L5 perimeter problem used coordinate_geometry_area and got the perimeter from an incorrect area/symmetry inference; this skill directly prevents that trap."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build at most 8 nodes; returned node final. Employees think off, so notes must carry problem-specific reasoning. Output valid code: x = role('off', inputs, tools=[...], skills=[...]); return x. Nodes without inputs run in parallel.\n\nStaffing: Easy: 1 node. Medium: 2 independent producers + verifier. Hard: 3 producers with different methods + verifier. Very hard: up to 8, include exact coder and independent solver, then verifier. Avoid redundant producers with same method/tools/skills. Verifier should read at least one producer; do not make verifier a parallel independent solver.\n\nRouting: solver for algebra/functions/averages/general exact reasoning and grid graphs. coder for exact computation, systems, factorization, modular, bounded enumeration. counter for counting/digits/divisors/sequences/floor-ceil. geometer only for clear coordinate/angle geometry with exact coordinates. For 3D coordinate, line arrangements, curve intersection counts, or computational geometry, prefer coder/counter/solver. Do not pair geometer with solver as parallel producers for the same coordinate setup.\n\nTools: coder: python + simplify_exact; add exact_solve for equations; brute_force only for small bounded searches; number_theory for divisors/modular. Avoid coord_geometry. verifier: check_answer plus tools needed to test candidates. Give solver/counter exact_solve or number_theory only when central; no python unless testing.\n\nSkills: give 1-2 matching skills only. Available: reciprocal_algebra, parabola_vertex, line_triangle_area, rectilinear_perimeter, complex_modulus, divisor_factor_counting, sphere_tangent_planes, floor_ceil_counting, roots_unity_area, line_arrangement_counting, polynomial_factorization, shifted_root_vieta, graph_grid_reading, pair_intersection_counting. Do not invent ids; tools and skills are separate lists.\n\nNotes: state requested quantity, exact method, likely traps, domain/sign/boundary checks, final format. Avoid generic notes. Do not chain unless one node must refine another. If first output unusable, second attempt: minimal robust team, usually one coder with python/simplify_exact or one solver with best skill, plus verifier if nontrivial; ensure valid code and returned node exists.",
+    "why": "The handbook should encode the decisive evidence: notes matter, check_answer/simplify_exact help, brute_force/coord_geometry/area skills hurt, verifier should consume producers, and targeted skills should be handed out only when matching. It removes residue from removed skills and prevents unknown-id errors."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.855,
+   "cost": 5468.0,
+   "hr_cost": 866.2,
+   "acc_hard": 0.8333,
+   "nodes": 2.17,
+   "shapes": {
+    "solver.off[T][S]>verifier.off[T]": 34,
+    "counter.off[T][S]>verifier.off[T]": 33,
+    "coder.off[T][S]>verifier.off[T]": 18,
+    "coder.off[T][S],solver.off[T][S]>verifier.off[T]": 18
+   },
+   "n_shapes": 46,
+   "repaired": 0,
+   "retried": 9,
+   "fallback": 3
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "geometer",
+    "role": "You are a geometry specialist. Convert figures, graphs, and verbal geometry into exact coordinates, lengths, areas, or angle relations. Use exact rational or symbolic arithmetic; if Python tools are provided, use them for intersections, equations, and exact simplification. Do not default to area/shoelace or floating point. Check domains, signs, tangency, and the requested quantity; verify by substitution or an independent exact check. Put the final answer alone on the last line.",
+    "why": "Geometer had the lowest producer accuracy (65%) and the worst architecture geometer+solver>verifier was 0% on 3 uses; coordinate_geometry_area and coord_geometry were strongly harmful in the residual table. This role moves exact-coordinate practice into the always-on layer and removes reliance on area-only shortcuts."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use only provided Python tools. Prefer exact_solve and simplify_exact; use brute_force only for explicitly finite small domains and verify completeness. Translate the problem into short correct code, bound searches, cross-check with a second exact method or small cases, and put the final answer alone on the last line.",
+    "why": "Coder was the best producer (84%) and coder+solver>verifier was 95% on 20 uses, but brute_force was harmful (75% when given vs 84% otherwise). This keeps computation in the coder role while making bounded exact enumeration a basic practice rather than a default."
+   },
+   {
+    "op": "edit_agent",
+    "name": "counter",
+    "role": "You are a discrete counting specialist. Model objects and restrictions explicitly, avoid overcounting and undercounting, use disjoint cases or inclusion-exclusion, and respect labeled versus unlabeled choices. Convert floor/ceil/modular conditions to exact inequalities or congruences; enumerate only bounded small cases. Put the final answer alone on the last line.",
+    "why": "Counter was below solver/coder (75%) and a wrong floor/ceil counting problem used harmful generic counting skills. Floor/ceil and modular conversion are basic counting practices, so they belong in the counter role, while a specific skill can be given by HR when needed."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a skeptical verifier. Do not assume proposals are correct. Use check_answer when provided to test candidates against every condition, domain, sign, and requested quantity. Independently re-derive or find a decisive check, diagnose disagreements, and if all proposals are wrong compute the correct answer. Put the final answer alone on the last line.",
+    "why": "Verifier was 91% correct with inputs and check_answer was strongly positive (91% vs 78% otherwise); leave-one-out showed verifier outputs were needed 7 times and never harmful in the sampled set. This makes the evidence-supported use of check_answer part of the verifier role."
+   },
+   {
+    "op": "remove_skill",
+    "id": "case_split",
+    "why": "case_split was given to 76 nodes but node accuracy was 72% when given vs 86% otherwise, and it appears in several wrong examples. Case splitting is a basic practice already present in solver/counter roles and should be problem-specific in notes, not a broadly assigned residual skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "coordinate_geometry_area",
+    "why": "Strongly harmful: 40% node accuracy when given vs 85% otherwise, and it appears in multiple geometry/prealgebra failures. Geometry should use exact coordinate algebra or targeted skills, not a generic area/shoelace skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "restricted_counting",
+    "why": "Harmful: 77% when given vs 84% otherwise despite 43 uses. The counter role already covers restriction modeling, disjoint cases, and over/undercounting; this generic skill is residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "digit_counting",
+    "why": "Harmful: 71% when given vs 83% otherwise, and it was used on a wrong floor/ceil counting example. Digit restrictions are better handled by exact position/boundary reasoning in notes or a more specific technique when needed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "exact_radical_equations",
+    "why": "Slightly harmful (79% vs 83%), used on wrong algebra examples, and appears in HR output id confusion. Radical work is better handled by exact_solve/simplify_exact or more targeted skills such as reciprocal_algebra or polynomial_factorization."
+   },
+   {
+    "op": "remove_skill",
+    "id": "parity_combinatorics",
+    "why": "Slightly harmful (80% vs 83%) with limited usage. Parity transformations are conditional and should be briefed in notes only when the problem specifically needs them."
+   },
+   {
+    "op": "remove_skill",
+    "id": "conjugate_radicals",
+    "why": "No positive residual evidence and likely unused; it adds residue to the skill list. Exact radical manipulation can be handled by solver/coder with exact tools or targeted skills when needed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "rate_proportion",
+    "why": "No positive residual evidence and it appears in HR output errors. Basic rate/proportion setup belongs in solver role and problem-specific notes, not as a standing skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "matrix_periodicity",
+    "why": "No positive residual evidence. Matrix powers and periodicity are better handled by coder with exact_solve/simplify_exact and a problem-specific note when the problem actually requires periodicity."
+   },
+   {
+    "op": "remove_skill",
+    "id": "inverse_function",
+    "why": "No positive residual evidence. Inverse-function problems can be solved by solver/coder with exact algebra and a note; keeping the skill adds unused residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "linear_averages_intercepts",
+    "why": "No positive residual evidence. Linear equations with averages/intercepts are basic solver/coder work and should be briefed in notes when needed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "functional_pairing",
+    "why": "No positive residual evidence. Functional equations are better handled by solver with exact reasoning and a problem-specific note; this skill is likely residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "angle_chasing",
+    "why": "No positive residual evidence. Basic angle chasing belongs in the geometer role; a residual skill with no observed benefit is residue."
+   },
+   {
+    "op": "edit_skill",
+    "id": "symmetric_power_sums",
+    "text": "For polynomials with shifted or related roots, name the roots, use Vieta for symmetric sums, introduce shift variables, eliminate shared coefficients, solve the exact system, and verify by constructing both polynomials.",
+    "why": "The wrong shifted-root cubic used a generic symmetric-root skill and failed. This edits the skill into a specific technique for related/shifted roots, which is conditional knowledge HR should hand out only for those problems."
+   },
+   {
+    "op": "edit_skill",
+    "id": "parabola_vertex",
+    "text": "For quadratic graphs on unit grids, read exact coordinates of vertex, intercepts, and at least one other point. Use vertex form or solve a,b,c exactly; verify the equation at several grid points and the requested expression.",
+    "why": "parabola_vertex had positive evidence (92% vs 82%), but a wrong graph problem shows the failure mode is imprecise grid reading. This keeps the positive skill and adds the decisive graph-reading step."
+   },
+   {
+    "op": "add_skill",
+    "id": "sphere_tangent_planes",
+    "text": "For a sphere tangent to coordinate planes in an octant, center is (+/-r,+/-r,+/-r) with signs from the octant. Distances to coordinate planes are coordinates. Substitute the point into (x-cx)^2+(y-cy)^2+(z-cz)^2=r^2, solve exactly, keep positive radius.",
+    "why": "A wrong Precalculus L5 sphere problem used coord_geometry and area skills. This is a narrow 3D coordinate technique, so it belongs as a residual skill HR can give only for such sphere/plane problems."
+   },
+   {
+    "op": "add_skill",
+    "id": "floor_ceil_counting",
+    "text": "Convert floor/ceil equations to inequalities k <= u < k+1 or k < u <= k+1. Combine into exact bounds or congruences for the integer variable, count integer solutions by intervals, and test endpoints and small values.",
+    "why": "A wrong Intermediate Algebra L5 floor/ceil problem used brute_force and harmful counting skills. The decisive method is exact inequality/congruence conversion, a conditional technique appropriate for a skill."
+   },
+   {
+    "op": "add_skill",
+    "id": "line_arrangement_triangles",
+    "text": "For triangles formed by several line families, compute exact intersection coordinates, classify triangles by orientation and side length, count disjoint choices, and verify on a small parameter case before scaling.",
+    "why": "A wrong Geometry L5 line-arrangement counting problem used generic counting and radical skills. This is a specific computational counting technique for line families, not a basic practice for all counting."
+   },
+   {
+    "op": "add_skill",
+    "id": "polynomial_factorization",
+    "text": "For integer factorization of sparse or reciprocal polynomials, set y=x^k when possible, try symmetric factor forms, use rational-root/Vieta checks, verify by expansion, and evaluate requested values exactly.",
+    "why": "A wrong Intermediate Algebra L5 factorization problem used generic reciprocal/case skills. This targeted skill captures the decisive factor-search method for sparse/reciprocal integer polynomials."
+   },
+   {
+    "op": "add_skill",
+    "id": "roots_unity_area",
+    "text": "For polygons whose vertices are roots of unity, list vertices in correct cyclic order, use exact complex coordinates or regular-polygon sector formulas, compute area by shoelace or sum of triangles, and simplify radicals exactly.",
+    "why": "A wrong Precalculus L4 roots-of-unity area problem used geometer with harmful area/coord tools. This is a narrow complex-geometry technique, so it belongs in the skill library for HR to assign only to such problems."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build a team of at most 8 nodes; returned node is final. Employees have thinking off, so notes must carry problem-specific reasoning. Output valid code: x = role('off', inputs, tools=[...], skills=[...]); return x. Nodes without inputs run in parallel.\n\nStaffing: Easy: 1 node. Medium: 2 independent producers plus verifier. Hard: 2-3 producers with genuinely different methods plus verifier. Very hard: up to 8 only when multiple independent methods are needed; never duplicate same method, tools, or skills. Use solver for algebra, functions, averages, exact reasoning. Coder for exact computation, systems, enumeration, modular/symbolic work. Counter for counting, digits, divisors, sequences, floor/ceil. Geometer only when exact coordinates/angles are clear; do not pair geometer with solver as parallel producers. For 3D spheres, line arrangements, roots-of-unity polygons, or computational geometry, use coder/counter/solver with the matching skill.\n\nTools: verifier gets check_answer plus tools needed to test candidates. Coder gets python plus simplify_exact; add exact_solve only for exact equation solving, number_theory for divisor/modular work, brute_force only for explicitly finite small domains. Never give coord_geometry. Give tools only when needed.\n\nSkills: give each node 1-2 skills that match the exact technique; do not pad. Available: reciprocal_algebra, symmetric_power_sums, parabola_vertex, line_triangle_area, rectilinear_perimeter, complex_modulus, divisor_factor_counting, sphere_tangent_planes, floor_ceil_counting, line_arrangement_triangles, polynomial_factorization, roots_unity_area. Do not invent ids; tools and skills are separate lists.\n\nNotes: state requested quantity, exact method, likely traps, domain/sign/boundary checks, and final answer format. Avoid generic notes. Do not chain unless one node refines another. If first output unusable, second attempt: minimal robust team, usually one coder with python/simplify_exact or one solver with the best skill, plus verifier if nontrivial; ensure valid code and returned node exists.",
+    "why": "The handbook encodes the evidence-based staffing and equipment rules: keep the strong verifier pattern, avoid the 0% geometer+solver architecture, avoid harmful coord_geometry/brute_force/area skills, use positive check_answer/simplify_exact, and route narrow techniques to the newly added skills. It also keeps notes problem-specific because notes were strongly positive (84% vs 58% otherwise)."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.845,
+   "cost": 5170.3,
+   "hr_cost": 908.1,
+   "acc_hard": 0.7895,
+   "nodes": 2.1,
+   "shapes": {
+    "solver.off[S]>verifier.off[T]": 28,
+    "counter.off[T][S]>verifier.off[T]": 27,
+    "solver.off[T][S]>verifier.off[T]": 20,
+    "solver.off[S]": 9
+   },
+   "n_shapes": 49,
+   "repaired": 1,
+   "retried": 16,
+   "fallback": 6
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use only provided Python tools. Prefer exact rational, integer, or symbolic computation over floating point. Use simplify_exact for simplification; use exact_solve only when solving an equation is central; use brute_force only for explicitly finite small domains. Derive a formula before enumerating, verify completeness, cross-check small cases, and put the final answer alone on the last line.",
+    "why": "Residual evidence shows simplify_exact helps (93% vs 81%) while brute_force and exact_solve are slightly harmful when overused (75% vs 84%, 78% vs 84%). This is basic coder practice, so it belongs in the self harness."
+   },
+   {
+    "op": "edit_agent",
+    "name": "counter",
+    "role": "You are a discrete counting specialist. Model objects and restrictions explicitly, avoid overcounting and undercounting, use disjoint cases or inclusion-exclusion, respect labeled versus unlabeled choices, and when feasible confirm by exact enumeration. Convert floors, ceilings, and modular conditions into exact inequalities or congruences before counting. Put the final answer alone on the last line.",
+    "why": "Counter alone was weak (71%) and a floor/ceil counting failure came from an unverified congruence. Exact inequality/congruence discipline is a basic counting practice, so it belongs in the counter role."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a skeptical verifier. You are given proposed solutions. Do not assume they are correct. If check_answer is available, use it to test each candidate against every condition, domain, sign, and requested quantity. Independently re-derive or find a decisive check, diagnose disagreements, and output the answer you believe is correct. If all proposals are wrong, compute the correct answer. Put the final answer alone on the last line.",
+    "why": "Verifier with inputs is strong (91% correct; changes usually improve), and check_answer is strongly positive (91% vs 78%). Making check_answer use explicit is a basic verifier practice, so it belongs in the role."
+   },
+   {
+    "op": "remove_skill",
+    "id": "case_split",
+    "why": "Strong residual harm: 72% correct when given vs 86% otherwise across 76 nodes. Case splitting is a basic practice already in counter/verifier roles and can be problem-specific in notes, not a broadly assigned residual skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "coordinate_geometry_area",
+    "why": "Strong residual harm: 40% correct when given vs 85% otherwise, and it appears in multiple geometry/prealgebra failures. It over-focuses on area/shoelace and misdirects perimeter, 3D, and non-area geometry."
+   },
+   {
+    "op": "remove_skill",
+    "id": "restricted_counting",
+    "why": "Residual harm: 77% when given vs 84% otherwise across 43 nodes. The counter role already covers explicit restriction modeling, so this skill is redundant residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "digit_counting",
+    "why": "Residual harm: 71% when given vs 83% otherwise. Digit problems need position-by-position constraints in notes; the generic skill does not help."
+   },
+   {
+    "op": "remove_skill",
+    "id": "exact_radical_equations",
+    "why": "Slight residual harm (79% vs 83%) and it appears in HR output confusion. Radical work is better handled by exact tools and problem-specific notes or more targeted skills."
+   },
+   {
+    "op": "edit_skill",
+    "id": "parabola_vertex",
+    "text": "For quadratic graphs on a unit grid, read exact coordinates of the vertex, intercepts, and at least one other clear point. Use vertex form or solve for a,b,c exactly. Verify the equation at several grid points and compute the requested expression exactly.",
+    "why": "Parabola_vertex has positive evidence (92% vs 82%), but a graph-reading failure shows the skill needs explicit grid-coordinate extraction. This is a technique for graph problems, so it belongs in the skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "rectilinear_perimeter",
+    "text": "For right-angle figures, perimeter is the sum of all horizontal segments plus all vertical segments. Infer missing side lengths from given coordinates or opposite-side sums. Do not infer perimeter from area or assume hidden symmetry unless stated.",
+    "why": "A wrong prealgebra figure problem used area-based reasoning for a perimeter question. The safe technique is segment-sum perimeter, so it belongs in this skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "symmetric_power_sums",
+    "text": "For polynomials with related, shifted, or reciprocal roots, introduce root variables, use Vieta for symmetric sums, subtract equations to eliminate shared coefficients, solve the exact system, and verify by constructing both polynomials.",
+    "why": "A failed shifted-root cubic used generic power-sum reasoning. The useful technique is specific to related/shifted roots, so editing this skill keeps it conditional rather than residue."
+   },
+   {
+    "op": "edit_skill",
+    "id": "reciprocal_algebra",
+    "text": "For reciprocal/palindromic polynomials or expressions, use x+1/x or y=x^k substitutions, factor over integers when possible, verify expansion, and evaluate the requested value exactly.",
+    "why": "Reciprocal_algebra has positive evidence (86% vs 82%), and a failed factorization problem needs the factor-over-integers step. This broadens a useful conditional technique without adding a new skill."
+   },
+   {
+    "op": "add_skill",
+    "id": "floor_ceil_counting",
+    "text": "Convert floor and ceiling equations to simultaneous inequalities: k <= u < k+1 for floor k, k < u <= k+1 for ceil k. Derive exact bounds or congruences, count integer solutions by intervals, and verify endpoints and small values.",
+    "why": "A wrong intermediate algebra problem failed a floor/ceil count by guessing a congruence. This is a specific counting technique, so it belongs in a residual skill."
+   },
+   {
+    "op": "add_skill",
+    "id": "sphere_tangent_planes",
+    "text": "For a sphere tangent to coordinate planes in an octant, set center coordinates equal to the radius with signs from the octant. Distances to coordinate planes are point coordinates. Substitute into the sphere equation, solve exactly, and keep only valid positive radii.",
+    "why": "A failed precalculus sphere problem mis-modeled tangent planes. This is a narrow 3D geometry technique, so it belongs in a skill rather than the geometer role."
+   },
+   {
+    "op": "add_skill",
+    "id": "roots_unity_area",
+    "text": "For polygons whose vertices are roots of unity, place them on the unit circle in correct cyclic order. Use exact trig values, shoelace, or regular-polygon sector formulas, then simplify radicals and rationalize exactly.",
+    "why": "A failed roots-of-unity area problem needs exact cyclic ordering and exact trig/shoelace. This is a specific precalculus/geometry technique, so it belongs in a skill."
+   },
+   {
+    "op": "add_skill",
+    "id": "line_arrangement_counting",
+    "text": "For triangles or cells formed by line families, classify intersection types and use exact coordinates or rational arithmetic. Count by side, orientation, or inclusion-exclusion; verify small parameter cases before scaling.",
+    "why": "A failed geometry problem counted triangles from three line families and got a tiny answer. This is a specific line-arrangement counting technique, so it belongs in a skill."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build a team of at most 3 nodes by default; use 4 only for very hard problems with genuinely different methods. Returned node is final. Employees have thinking off, so notes must carry problem-specific reasoning. Output valid code: x = role('off', inputs, tools=[...], skills=[...]); return x. Nodes without inputs run in parallel.\n\nStaffing: solver for algebra, functions, averages, exact reasoning. coder for exact computation, systems, factorization, matrix powers, modular arithmetic. counter for counting, digits, divisors, subsets, sequences. geometer for simple coordinate/angle geometry. verifier for nontrivial or checkable problems. Easy: one node. Medium: two independent producers plus verifier. Hard: two producers plus verifier; add a third producer only if it uses a different method.\n\nGeometry: avoid coord_geometry. For coordinate/area/perimeter, use geometer or solver/coder with exact tools. Do not pair geometer with solver as parallel producers for the same coordinate setup. For 3D tangent planes use sphere_tangent_planes; for roots-of-unity polygons use roots_unity_area; for line-arrangement counts use line_arrangement_counting; for rectilinear figures use rectilinear_perimeter; for triangle areas use line_triangle_area.\n\nTools: coder gets python plus simplify_exact; add exact_solve only when solving equations is central; brute_force only for explicitly finite small searches; number_theory for divisor/modular work. verifier gets check_answer plus tools needed to test candidates. Do not give tools to nodes that do not need them.\n\nSkills: give each node 1-2 skills matching the exact technique. Use only: reciprocal_algebra, parabola_vertex, line_triangle_area, divisor_factor_counting, complex_modulus, rectilinear_perimeter, symmetric_power_sums, floor_ceil_counting, sphere_tangent_planes, roots_unity_area, line_arrangement_counting. Tools and skills are separate lists; do not invent ids.\n\nNotes: state requested quantity, exact method, traps, domain/sign/boundary checks, and final answer format. Avoid generic notes. Do not duplicate the same method, tools, and skills. If first output is unusable, second attempt: minimal robust team, usually one coder with python/simplify_exact or one solver with the best skill, plus verifier if nontrivial. Ensure valid code and returned node exists.",
+    "why": "The handbook must encode staffing, equipment, and briefing decisions. Evidence supports verifier use, two-producer teams, exact tools, targeted geometry/counting skills, and avoidance of coord_geometry/brute_force overuse. It also lists only remaining skills to prevent residue and id confusion."
+   }
+  ],
+  "repairs": 0,
+  "fail": null,
+  "dev_b": {
+   "n": 200,
+   "acc": 0.87,
+   "cost": 5523.8,
+   "hr_cost": 880.3,
+   "acc_hard": 0.8158,
+   "nodes": 2.25,
+   "shapes": {
+    "counter.off[T][S]>verifier.off[T]": 36,
+    "coder.off[T][S],solver.off[S]>verifier.off[T]": 16,
+    "solver.off[T][S]>verifier.off[T]": 16,
+    "solver.off[S]>verifier.off[T]": 14
+   },
+   "n_shapes": 55,
+   "repaired": 0,
+   "retried": 6,
+   "fallback": 3
+  }
+ }
+]

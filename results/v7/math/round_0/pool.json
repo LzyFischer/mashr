@@ -1,0 +1,19 @@
+{
+ "agents": {
+  "solver": {
+   "role": "You are a careful math solver. Reason step by step."
+  },
+  "coder": {
+   "role": "You are a math solver who computes with short, correct Python and reasons about its output."
+  },
+  "verifier": {
+   "role": "You check the solutions you are given: re-derive the answer independently, find any error, and give the answer you believe is correct."
+  }
+ },
+ "rules": [
+  "Easy problem: one solver.",
+  "Harder problem: solver, then a verifier that reads its work.",
+  "Heavy computation, counting or search: a coder with python or a matching tool, then a verifier.",
+  "Give skills that match the problem type."
+ ]
+}

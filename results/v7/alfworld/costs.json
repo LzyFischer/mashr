@@ -1,0 +1,249 @@
+{
+ "stages": [
+  {
+   "stage": "round 0 / dev-B eval",
+   "seconds": 184.5,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 925,
+     "cached": 925,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 1 / dev-A eval",
+   "seconds": 617.5,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2881,
+     "cached": 2881,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 1 / evolver proposals (27B)",
+   "seconds": 0.0,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 3,
+     "cached": 3,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 1 / dev-B gate (3 candidates)",
+   "seconds": 477.4,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 3168,
+     "cached": 3168,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 2 / dev-A eval",
+   "seconds": 525.6,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2863,
+     "cached": 2380,
+     "prompt": 1169605,
+     "gen": 37256,
+     "billed_prompt": 1169605,
+     "billed_gen": 37256
+    }
+   }
+  },
+  {
+   "stage": "round 2 / evolver proposals (27B)",
+   "seconds": 141.1,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 4,
+     "cached": 0,
+     "prompt": 22087,
+     "gen": 31675,
+     "billed_prompt": 68614,
+     "billed_gen": 31675
+    }
+   }
+  },
+  {
+   "stage": "round 2 / dev-B gate (2 candidates)",
+   "seconds": 456.5,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2156,
+     "cached": 629,
+     "prompt": 2959183,
+     "gen": 261021,
+     "billed_prompt": 3124083,
+     "billed_gen": 261021
+    }
+   }
+  },
+  {
+   "stage": "round 3 / dev-A eval",
+   "seconds": 454.0,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2863,
+     "cached": 2863,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 3 / evolver proposals (27B)",
+   "seconds": 98.9,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 3,
+     "cached": 0,
+     "prompt": 17481,
+     "gen": 30955,
+     "billed_prompt": 65259,
+     "billed_gen": 30955
+    }
+   }
+  },
+  {
+   "stage": "round 3 / dev-B gate (3 candidates)",
+   "seconds": 571.2,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2881,
+     "cached": 869,
+     "prompt": 3722841,
+     "gen": 447626,
+     "billed_prompt": 4069606,
+     "billed_gen": 447626
+    }
+   }
+  },
+  {
+   "stage": "round 4 / dev-A eval",
+   "seconds": 469.4,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2863,
+     "cached": 2863,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 4 / evolver proposals (27B)",
+   "seconds": 104.0,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 3,
+     "cached": 0,
+     "prompt": 18927,
+     "gen": 30696,
+     "billed_prompt": 68151,
+     "billed_gen": 30696
+    }
+   }
+  },
+  {
+   "stage": "round 4 / dev-B gate (3 candidates)",
+   "seconds": 577.9,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2900,
+     "cached": 1611,
+     "prompt": 2562186,
+     "gen": 401836,
+     "billed_prompt": 2895891,
+     "billed_gen": 401836
+    }
+   }
+  },
+  {
+   "stage": "round 5 / dev-A eval",
+   "seconds": 460.2,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2863,
+     "cached": 2863,
+     "prompt": 0,
+     "gen": 0,
+     "billed_prompt": 0,
+     "billed_gen": 0
+    }
+   }
+  },
+  {
+   "stage": "round 5 / evolver proposals (27B)",
+   "seconds": 120.8,
+   "models": {
+    "Qwen/Qwen3.8-27B": {
+     "calls": 3,
+     "cached": 0,
+     "prompt": 20019,
+     "gen": 30110,
+     "billed_prompt": 53562,
+     "billed_gen": 30110
+    }
+   }
+  },
+  {
+   "stage": "round 5 / dev-B gate (3 candidates)",
+   "seconds": 595.7,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 2982,
+     "cached": 551,
+     "prompt": 5040434,
+     "gen": 449403,
+     "billed_prompt": 5324339,
+     "billed_gen": 449403
+    }
+   }
+  }
+ ],
+ "total": {
+  "seconds": 5854.8,
+  "models": {
+   "Qwen/Qwen3.8-27B": {
+    "calls": 16,
+    "cached": 3,
+    "prompt": 78514,
+    "gen": 123436,
+    "billed_prompt": 255586,
+    "billed_gen": 123436
+   },
+   "Qwen/Qwen3.5-9B": {
+    "calls": 29345,
+    "cached": 21603,
+    "prompt": 15454249,
+    "gen": 1597142,
+    "billed_prompt": 16583524,
+    "billed_gen": 1597142
+   }
+  }
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "agents": {
+  "writer": {
+   "role": "Write the simplest SQLite query that answers the exact question. Follow evidence formulas literally. Select only asked values: join only to get an asked column from another table; if asked whether/what status, return a computed CASE/IIF label, not helper columns. For highest/lowest/top N use ORDER BY and LIMIT N; all ties only if explicitly asked. Avoid GROUP BY, DISTINCT, window functions, extra joins, and re-aggregating columns that are already averages/rates. For dates use stored format; 'starting from year X' means year >= X; 'latest' means MAX(date). Use find_values only for named values."
+  },
+  "checker": {
+   "role": "Check the input query against the question and evidence. Verify each condition, exact output columns/values, and no unnecessary GROUP BY, DISTINCT, LIMIT, tie logic, window function, or extra join. If asked for a computed label, ensure the query returns it. If the asked column is in another table, ensure the join selects it. Keep evidence formulas literal. Check date phrases: 'starting from year X' means year >= X; 'latest' means MAX(date). Run the query; if empty or implausible, check value spelling and filters. Fix only specific error; do not rewrite a correct simple query. Return final SQL."
+  }
+ },
+ "rules": [
+  "Simple question: one writer with run_sql.",
+  "Joins, aggregates, ratios or specific values: a writer with run_sql and find_values, then a checker with run_sql.",
+  "Give skills that match the question."
+ ]
+}

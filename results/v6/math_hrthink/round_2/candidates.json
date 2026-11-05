@@ -1,0 +1,346 @@
+[
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use provided Python for exact computation; if no tools are provided, compute exactly by hand. Prefer integers, Fractions, radicals, and exact symbolic forms. For finite counts, searches, simulations, or digit counts, define exact bounds and inclusion/exclusion; enumerate or simulate the full given size when feasible, or derive a formula and verify it on small sizes. For floor/ceil, use exact intervals and count all integers. If a count is 0, prove no case satisfies the conditions. Test code on small cases. End with exactly: Answer: <final value>.",
+    "why": "Coder nodes are 73% correct and failures involved finite counts/processes with bad bounds, incomplete enumeration, or unproved zero counts. These are basic computational practices for the coder role, not conditional skills."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Read the problem and all input nodes. Independently re-derive key steps or use tools to check candidates. If candidates disagree, locate the error against the original conditions. If the problem asks for all possible values, output every admissible value separated by commas; if a candidate omits a valid root/value, add it. For counts, verify the full finite range or formula, endpoints, and no double counting. Do not accept a 0 count unless impossibility is checked. Do not rely on unproved guesses. End with exactly: Answer: <final value>.",
+    "why": "Verifier nodes are 90% correct and changed 11 answers to correct versus 1 to wrong. The sphere failure omitted a valid root despite asking for all values, and count failures need endpoint/full-range checks. This is basic verifier discipline."
+   },
+   {
+    "op": "add_agent",
+    "name": "geometer",
+    "role": "You are a geometry solver. Extract every exact coordinate, length, slope, angle, radius, and label from the statement or diagram before solving. Set up exact equations for lines, circles, parabolas, areas, or distances. Use provided coord_geometry/python for intersections, distances, areas, or optimization. For counting geometric objects, define the exact finite set and enumerate or derive a formula, then verify on small cases. Check domains and boundary conditions. End with exactly: Answer: <final value>.",
+    "why": "Geometry L5 is the weakest category at 29%, and coordinate_geometry skill was strongly negative (59% when given versus 86% otherwise). Geometry-specific basic practice belongs in an always-on geometer role rather than a negative conditional skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "coordinate_geometry",
+    "why": "Nodes given coordinate_geometry were 59% correct versus 86% otherwise, and Geometry L5 was already weak. The broad skill appears to be negative residue; basic coordinate geometry is moved into the new geometer role."
+   },
+   {
+    "op": "remove_skill",
+    "id": "small_cases",
+    "why": "Nodes given small_cases were 75% correct versus 86% otherwise, and the locker-walk failure shows extrapolation from small cases can be dangerous. Full-simulation/enumeration discipline is now in the coder role, so this conditional skill is unsupported residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "finite_pair_counting",
+    "why": "Nodes given finite_pair_counting were 69% correct versus 85% otherwise, and the parabola-pair failure output 0. Pair/object counting is a core computational practice for the coder role, so the negative skill should be removed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "floor_ceil_counting",
+    "why": "The only observed use was wrong, and floor/ceil counting is a basic exact-interval/enumeration task for the coder role. Keeping the skill is unsupported residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "grid_shape_counting",
+    "why": "The only observed use was wrong, and grid/line-family counting can be handled by geometer setup plus coder enumeration/formula verification. The skill is unsupported residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "parity_digit_counting",
+    "why": "Nodes given parity_digit_counting were 33% correct versus 85% otherwise. Digit counts are best handled by exact Python enumeration in the coder role, so this negative skill is residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "exact_exponents",
+    "why": "Nodes given exact_exponents were 71% correct versus 85% otherwise. Exact exponent/radical manipulation is basic exact arithmetic for solver/coder and should not be a frequently issued conditional skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "vieta_power_sums",
+    "why": "This skill does not appear in the residual usage report, so it is unused HR-prompt residue. Root-power-sum cases can be handled by notes, algebraic_substitution, or exact computation when needed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "polynomial_factorization",
+    "why": "The only observed use was wrong, and factorization is a general algebra/computation task already covered by solver/coder roles and exact_solve/python. The skill is unsupported residue."
+   },
+   {
+    "op": "add_skill",
+    "id": "root_transforms",
+    "text": "Use when roots of one polynomial are shifted/transformed from roots of another, or when a number is given as a sum of radicals. Express target symmetric sums in the original roots; for sums of square roots, generate all sign conjugates or use Python minimal_polynomial. Solve exactly, keep all admissible solutions, and verify by substitution.",
+    "why": "Two Intermediate Algebra L5 failures involved transformed roots and a sum of square radicals. This is a conditional technique for a small subset of hard algebra problems, so it belongs in the skill library rather than an always-on role."
+   },
+   {
+    "op": "edit_skill",
+    "id": "quadratic_methods",
+    "text": "Use for quadratics. Use vertex form, discriminant, completing the square, Vieta formulas, or exact_solve as appropriate; match given vertices, points, zeros, or slopes. If all possible values are requested, solve the full quadratic and output every admissible root; do not discard a root without a domain reason.",
+    "why": "quadratic_methods was mildly positive (86% versus 84% otherwise), and the sphere failure omitted one valid quadratic root despite asking for all possible values. The all-values lesson belongs in this conditional skill and the verifier role."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build the smallest reliable team from solver, coder, verifier, geometer; every node off. Output code nodes, then notes. At most 8 nodes. Nodes without inputs run in parallel. Return the final node. If verifier is used, give it every candidate node it verifies as input.\n\nStaffing:\n- Direct low-risk: solver alone, or geometer alone for direct coordinate/diagram geometry.\n- Multi-step algebra, number theory, constrained equations: solver -> verifier.\n- Exact computation, large counts, finite search, simulation, digit counts, floor/ceil, divisor/factor tasks: coder with python -> verifier.\n- Geometry/diagram/coordinate: geometer -> verifier if nontrivial; add coder with python for counting, optimization, or heavy exact computation.\n- Very hard problems: two independent candidates plus verifier only when methods genuinely differ; otherwise prefer 1-2 nodes.\n\nTools: python for general exact computation; exact_solve for equations/polynomials; brute_force only for small proven finite searches; check_answer for substitution; simplify_exact for exact simplification; number_theory for factors/gcd/divisibility; coord_geometry for coordinate geometry. Put tool IDs only in tools=.\n\nSkills: number_theory_counts for divisor/factor/divisibility counts; quadratic_methods for quadratics; algebraic_substitution for relations like x+1/x; root_transforms for shifted/transformed roots or sums of radicals. Put skill IDs only in skills=; usually 0-2.\n\nNotes: one short line per node only when it changes method. State exact target, bounds, cases, tool, or verification. For all possible values, require every admissible value. For counts, require exact integer and full-range/endpoint check. Do not include unproved guesses or final values. Prefer exact answers.",
+    "why": "The handbook should encode the evidence-based staffing pattern: solver/verifier is strong, coder is needed for computational counts but must be verified, and geometry needs a dedicated geometer. It also removes references to negative/unused skills and clarifies tools versus skills after HR dropped valid tool names."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 7078.1,
+   "hr_cost": 3364.1,
+   "acc_hard": 0.8519,
+   "nodes": 1.88,
+   "shapes": {
+    "solver.off[T][S]>verifier.off[T]": 9,
+    "solver.off": 8,
+    "solver.off>verifier.off": 4,
+    "solver.off[S]>verifier.off[T]": 4
+   },
+   "n_shapes": 20,
+   "repaired": 0,
+   "retried": 0,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Write reasoning step by step with exact arithmetic. Respect every constraint and make case splits disjoint and exhaustive. If a diagram or graph is present, extract all exact given data before solving. If the answer is a set or list, output every requested value in the requested format, separated by commas, with no extra text. For counting, output the exact integer. For maxima/minima, prove the bound is attained. End with exactly: Answer: <final value>.",
+    "why": "Solver is the strongest standalone node (85% correct) and solver-first architectures are among the best (95-100%). The edit adds explicit all-values, count, and extremum practices shown in failures such as missing a second radius or missing an all-values root."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use provided Python tools only for exact finite computation; if no tools are provided, do careful exact hand computation. Prefer integers, fractions, radicals, and exact symbolic forms over decimals. Before finalizing, prove the search range is complete or the formula is valid, test boundary cases, and verify the output satisfies the original conditions. If input nodes are present, do not assume their answer; independently compute the requested quantity. End with exactly: Answer: <final value>.",
+    "why": "Coder nodes are weaker than solver (73% vs 85%) and coder nodes with inputs are especially weak (67%). The edit makes coder more rigorous and independent, reducing reliance on possibly wrong upstream answers."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Read the problem and all input nodes. Independently re-derive key steps or use provided tools to check candidates. If candidates disagree, locate the error against the original conditions rather than averaging. Substitute the final answer into the original conditions. If all possible values are requested, ensure every admissible value is present; if a count is requested, output an exact integer. End with exactly: Answer: <final value>.",
+    "why": "Verifier is the best node (90% correct) and changed answers 22 times, 11 to correct and only 1 to wrong. Strengthening all-values checking addresses failures where one admissible value was omitted."
+   },
+   {
+    "op": "add_agent",
+    "name": "geometer",
+    "role": "You are a geometry solver. Extract exact coordinates, lengths, slopes, angles, radii, and labels from the statement or diagram before solving. Use exact coordinate equations for lines, circles, parabolas, distances, intersections, and areas. For counting geometric objects, enumerate all configurations exactly or derive a formula and verify small cases. If Python is provided, use it for exact intersections, areas, or finite enumeration; otherwise use exact symbolic reasoning. If all possible values are requested, list every admissible value. End with exactly: Answer: <final value>.",
+    "why": "Geometry L5 is the weakest category (29%) and geometry failures repeatedly used the negative coordinate_geometry skill (59% when given) or weak coder enumeration. A dedicated geometry employee puts the needed practices in the employee harness when HR staffs it, instead of relying on a broad negative skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "small_cases",
+    "why": "Nodes given small_cases were 75% correct versus 86% otherwise on 53 uses, and it appeared in hard process failures. It is broad and encourages extrapolation from few cases; exact simulation or notes are better for the specific process problems."
+   },
+   {
+    "op": "remove_skill",
+    "id": "coordinate_geometry",
+    "why": "Nodes given coordinate_geometry were 59% correct versus 86% otherwise on 22 uses, and Geometry L5 is the weakest category. The skill is negative residue; geometry practice is moved to the new geometer role and HR staffing policy."
+   },
+   {
+    "op": "remove_skill",
+    "id": "exact_exponents",
+    "why": "Nodes given exact_exponents were 71% correct versus 85% otherwise on 14 uses. Exact exponent manipulation is basic exact arithmetic for the solver/coder roles and should not be a conditional skill."
+   },
+   {
+    "op": "remove_skill",
+    "id": "parity_digit_counting",
+    "why": "Nodes given parity_digit_counting were 33% correct versus 85% otherwise on 3 uses, and it appeared in a geometry failure where it was irrelevant. Remove unsupported residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "grid_shape_counting",
+    "why": "Only one use with 0% correctness, and the related geometry failure shows the generic grid formula approach failed. Geometry counting is better handled by the geometer role with problem-specific notes."
+   },
+   {
+    "op": "remove_skill",
+    "id": "finite_pair_counting",
+    "why": "Nodes given finite_pair_counting were 69% correct versus 85% otherwise on 13 uses, and it appeared in wrong finite-count failures. Replace with a more operational bounded-enumeration skill that emphasizes exact universe, completeness, and boundary checks."
+   },
+   {
+    "op": "remove_skill",
+    "id": "vieta_power_sums",
+    "why": "This skill does not appear in the residual usage table, so it is currently unused residue in the HR prompt. Basic Vieta/Newton reasoning can be given in a note when needed."
+   },
+   {
+    "op": "remove_skill",
+    "id": "polynomial_factorization",
+    "why": "Only one use with 0% correctness and no broader evidence of benefit. Factoring checks can be handled by solver/coder roles, exact_solve, and problem-specific notes without a standing skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "quadratic_methods",
+    "text": "Use for quadratics. Use vertex form, discriminant, completing the square, Vieta formulas, or exact_solve as appropriate; match given vertices, points, zeros, or slopes. If all possible values are requested, solve for every admissible root, keep both unless a constraint excludes one, and output all in the requested format.",
+    "why": "quadratic_methods is mildly positive (86% vs 84%) and was given in all-values failures where one root/value was omitted. The edit adds the missing all-values discipline."
+   },
+   {
+    "op": "edit_skill",
+    "id": "floor_ceil_counting",
+    "text": "Use for floor/ceil equations or inequalities. Convert to exact interval constraints, determine the full finite range of possible integers, then count intervals or brute-force the complete range exactly. Check endpoints and verify a few boundary cases before finalizing.",
+    "why": "The only floor_ceil_counting use was wrong because the range/count was mishandled. The edit makes the skill operational: exact intervals, full range, endpoint checks."
+   },
+   {
+    "op": "add_skill",
+    "id": "bounded_enumeration",
+    "text": "Use for finite pair/tuple counts, lattice configurations, bounded searches, or deterministic finite processes. State the exact universe and bounds. Enumerate all candidates exactly or derive a disjoint combinatorial split. Verify the total number of candidates and boundary cases before final count.",
+    "why": "Several L5 failures involved finite counting/search (parabolas, squares, lockers, floor/ceil) where partial or unverified enumeration failed. This replaces the negative finite_pair_counting and small_cases skills with a tighter completeness-focused technique."
+   },
+   {
+    "op": "add_skill",
+    "id": "minimal_polynomial",
+    "text": "Use for minimal polynomials of sums or products of radicals. List all conjugates from independent sign changes, form the product (x - conjugate) exactly, expand, and evaluate the requested value. Verify degree, monic coefficient, and that the given number is a root.",
+    "why": "A hard Intermediate Algebra L5 failure asked for P(1) for a radical algebraic number and the team mishandled the conjugate product. This is a targeted technique for a small class of problems, not a general solver habit."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build the smallest reliable team. Output team code using solver, coder, verifier, geometer; every node \"off\". Nodes automatically read the problem; never pass \"problem\" as an input. Nodes without inputs run in parallel. Return the final node. Then notes: one line per node. At most 8 nodes. Use exact tool IDs in tools= and exact skill IDs in skills=; tools and skills are disjoint; do not invent names.\n\nStaffing:\n- Easy direct: return one solver. No tools unless arithmetic is large.\n- Multi-step, constrained, algebra, number theory, or error-prone: solver -> verifier. Give verifier check_answer when substitution helps.\n- Geometry, diagrams, coordinates, areas, intersections, or geometric counting: geometer -> verifier. If exact computation is needed, give geometer python only for a proven finite enumeration or exact coordinate computation; give verifier check_answer.\n- Pure exact finite enumeration, large counts, digit expansion, or number-theory computation: coder -> verifier, or solver with number_theory_counts -> verifier. Make coder an independent parallel candidate, not a downstream node reading solver, unless truly needed.\n- Very hard: at most two independent candidates plus verifier. Final verifier receives all candidate nodes. Prefer solver+geometer for geometry, solver+coder for finite computation.\n\nTools: python only for explicit exact finite computation or large arithmetic with proven complete range. exact_solve for equations/polynomials. number_theory for factors, divisors, gcd, divisibility, modular arithmetic. check_answer for substitution. brute_force only for tiny searches with proven bounds. Avoid simplify_exact and coord_geometry unless necessary and python is insufficient.\n\nSkills: give only matching skills, usually 0-2. number_theory_counts for divisor/factor/divisibility counts. quadratic_methods for quadratics. algebraic_substitution for relations like x+1/x. bounded_enumeration for finite pairs/tuples, lattice counts, bounded searches, deterministic finite processes. floor_ceil_counting for floor/ceil equations. minimal_polynomial for minimal polynomials of radicals.\n\nNotes: one concise line per node only when it changes method. State exact target, cases, bounds, tool, or verification. All possible values: list every admissible value in requested format. Counts: exact integer. Max/min: prove bound attained. No unproved guesses or final values unless already derived. Prefer exact answers; avoid decimals unless requested.",
+    "why": "The handbook removes negative residue (python overuse, coder-after-solver, geometry skill) and encodes the strongest evidence: solver/verifier default, geometer for weak geometry, check_answer/exact_solve/number_theory as positive tools, and bounded enumeration for finite-count failures. It also clarifies exact IDs and disjoint tools/skills to reduce HR output drops."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.82,
+   "cost": 6980.0,
+   "hr_cost": 3382.2,
+   "acc_hard": 0.7778,
+   "nodes": 1.76,
+   "shapes": {
+    "solver.off": 13,
+    "solver.off[S]>verifier.off[T]": 11,
+    "solver.off[T][S]>verifier.off[T]": 9,
+    "solver.off[S]": 3
+   },
+   "n_shapes": 14,
+   "repaired": 0,
+   "retried": 1,
+   "fallback": 0
+  }
+ },
+ {
+  "ops": [
+   {
+    "op": "edit_agent",
+    "name": "solver",
+    "role": "You are a careful contest-math solver. Reason step by step with exact arithmetic. Respect every constraint; make case splits disjoint and exhaustive. Extract exact diagram data first. If the answer is a set/list, output every requested value in requested format, comma-separated, no extra text. For counts, output exact integer. End with exactly: Answer: <final value>.",
+    "why": "Several L5 failures omitted admissible values or stopped after one branch; full solution-set completion is a basic solver habit, so it belongs in the always-on role."
+   },
+   {
+    "op": "edit_agent",
+    "name": "coder",
+    "role": "You are a computational math solver. Use provided Python tools for exact results; if none, do exact hand computation. Prefer integers, fractions, radicals, symbolic forms over decimals. Write complete code that prints the exact final answer; test small cases and verify original conditions. For finite searches/simulations, use the exact full range or full given size; do not use arbitrary intervals or extrapolate. If a set/list is requested, print every value. End with exactly: Answer: <final value>.",
+    "why": "Coder nodes were weaker than solver/verifier and appeared in counting/process failures from partial search or extrapolation; enforcing complete exact computation is a basic coder habit, so it belongs in the role."
+   },
+   {
+    "op": "edit_agent",
+    "name": "verifier",
+    "role": "You are a rigorous verifier. Read the problem and all candidate work. Independently re-derive key steps or solve it yourself; use tools for exact checks. If candidates disagree, find the error against original conditions. If all possible values are asked, output every admissible value, comma-separated, even if candidates list only some. If a count is asked, output exact integer. Do not rely on unproved guesses. End with exactly: Answer: <final value>.",
+    "why": "Verifier is the strongest node, but two wrong answers were all-values omissions despite verifier notes; requiring full solution-set completion is a basic verifier duty, so it belongs in the role."
+   },
+   {
+    "op": "remove_skill",
+    "id": "small_cases",
+    "why": "Nodes given small_cases were 75% correct versus 86% otherwise and it appeared in the locker-process failure; the lesson should be replaced by a simulation-first skill rather than kept as negative conditional residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "exact_exponents",
+    "why": "Nodes given exact_exponents were 71% correct versus 85% otherwise; exact exponent handling is basic exact arithmetic, so the conditional skill is negative residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "finite_pair_counting",
+    "why": "Nodes given finite_pair_counting were 69% correct versus 85% otherwise and it was used in the parabola-count and 4x4 square-count failures; replace it with a stronger finite-counting skill emphasizing complete universes and boundary checks."
+   },
+   {
+    "op": "remove_skill",
+    "id": "parity_digit_counting",
+    "why": "Nodes given parity_digit_counting were 33% correct versus 85% otherwise and it was used in an irrelevant geometry failure; remove negative residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "grid_shape_counting",
+    "why": "Its only use was 0% correct and it was used in the triangular-grid failure; replace it with a broader finite-counting skill that requires exact universes and verification."
+   },
+   {
+    "op": "remove_skill",
+    "id": "polynomial_factorization",
+    "why": "Its only use was 0% correct and the observed polynomial failure is better addressed by algebraic-conjugate/minimal-polynomial computation; remove unsupported residue."
+   },
+   {
+    "op": "remove_skill",
+    "id": "vieta_power_sums",
+    "why": "It does not appear in the residual usage table, so the HR is not handing it out; it is unused conditional residue in the skill list."
+   },
+   {
+    "op": "remove_skill",
+    "id": "coordinate_geometry",
+    "why": "Nodes given coordinate_geometry were 59% correct versus 86% otherwise, and Geometry L5 is the weakest category; the current skill is strongly negative and should be replaced by a stricter analytic-geometry skill."
+   },
+   {
+    "op": "add_skill",
+    "id": "algebraic_conjugates",
+    "text": "Use for minimal-polynomial values of algebraic numbers, especially sums or products of square roots. List all distinct conjugates (all admissible sign choices or Galois images), form the monic polynomial or compute the product exactly with Python/sympy, then evaluate the requested point. Verify degree and leading coefficient.",
+    "why": "The wrong minimal-polynomial P(1) problem requires enumerating all conjugates and evaluating exactly; this is a conditional technique, not a basic solver habit, so it belongs in a skill the HR can issue for such problems."
+   },
+   {
+    "op": "add_skill",
+    "id": "exact_process_simulation",
+    "text": "Use for deterministic finite processes, walks, toggles, or iterative states. If Python is available, simulate the full given size exactly; test the code on 2-3 small sizes. If the size is too large, derive an invariant or closed form, then verify it against the full simulation or exact recurrence. Do not extrapolate from small cases alone.",
+    "why": "The locker-process failure used small-case reasoning and produced a small wrong count; a process-specific skill that prioritizes full exact simulation or verified invariants targets that failure mode."
+   },
+   {
+    "op": "add_skill",
+    "id": "finite_counting_exact",
+    "text": "Use for finite counting of pairs, tuples, lattice objects, intersections, or shapes. Define the exact universe and whether order matters. Use Python to enumerate the full universe or derive a disjoint combinatorial split. Check small cases and boundary objects; do not return 0 or a partial count without proving completeness.",
+    "why": "Multiple counting failures involved incomplete enumeration or missing boundary objects; this conditional counting skill is more operational than the removed pair/grid skills."
+   },
+   {
+    "op": "add_skill",
+    "id": "geometry_exact",
+    "text": "Use for coordinate, diagram, or analytic geometry. Extract exact coordinates, slopes, intercepts, radii, and labels. Write exact equations for lines, circles, parabolas, or planes. Solve intersections, distances, areas, and extrema exactly with exact_solve/python; check endpoints and all branches. Never use decimal approximations; list all admissible values.",
+    "why": "Geometry L5 is the weakest category and the old coordinate_geometry skill was strongly negative; a stricter analytic-geometry skill is a conditional technique for geometry problems rather than a basic solver habit."
+   },
+   {
+    "op": "edit_skill",
+    "id": "quadratic_methods",
+    "text": "Use for quadratics and quadratic constraints. Use vertex form, discriminant, completing the square, Vieta formulas, or exact_solve. If all possible values are requested, solve the full quadratic and list every admissible value; verify each in the original conditions.",
+    "why": "quadratic_methods has positive evidence, but the sphere failure omitted an admissible quadratic root; the all-values requirement should be part of this conditional skill."
+   },
+   {
+    "op": "edit_skill",
+    "id": "floor_ceil_counting",
+    "text": "Use for floor/ceiling equations or inequalities in integer n. Convert each floor/ceil to exact integer inequalities. Determine the exact finite range of n, including endpoints, then count integers by intervals or run Python over the exact full range. Check boundary values; do not use asymptotic approximations for the final count.",
+    "why": "The floor/ceil failure used an approximate asymptotic bound and counted 4950 instead of 10100; the skill should explicitly require exact endpoint handling and full-range counting."
+   },
+   {
+    "op": "set_policy",
+    "text": "You are HR. Build smallest reliable team from solver, coder, verifier; all off. Output code then notes. Nodes read problem; do not pass problem as input. No-input nodes parallel. Returned node final. Max 8 nodes; prefer 1-3. Use exact tool IDs in tools= and exact skill IDs in skills=; do not invent or mix. Staffing: direct low-risk: solver alone. Multi-step, constrained, error-prone, all-values, max/min, geometry, number theory: solver > verifier. Exact computation, large counts, finite enumeration, simulation, digit expansion, hard counting: coder with python > verifier. Very hard or different methods: solver and coder parallel, both to verifier; notes use different methods. Geometry: solver with geometry_exact > verifier; if counting/optimizing, add coder with python and geometry_exact/finite_counting_exact to verifier. Floor/ceil counts: solver with floor_ceil_counting > coder with python > verifier, or coder > verifier if exact. Tools: check_answer final substitution; exact_solve equations/polynomials; number_theory factors/divisibility; python only for full exact enumeration, simulation, recurrences, large arithmetic, exact optimization; avoid simplify_exact and coord_geometry unless no exact route. Skills: 0-2 matching only: number_theory_counts divisor/factor counts; quadratic_methods quadratics; algebraic_substitution algebraic relations; floor_ceil_counting floor/ceil; algebraic_conjugates minimal-polynomial values; exact_process_simulation walks/toggles/iterative states; finite_counting_exact finite pair/object counts; geometry_exact coordinate/diagram geometry. Notes: one concise line per node when it changes method. State target, cases, bounds, full range, verification. No role/skill repetition, no unproved guesses or partial finals. All-values: every admissible value comma-separated. Counts: exact integer and complete range. Max/min: prove bound attained. Exact answers; no decimals unless requested.",
+    "why": "The handbook should encode the evidence: verifier is reliable and should be used for nontrivial problems; coder should be paired with verifier rather than used alone; geometry needs stricter exact analytic staffing; python should be reserved for complete exact computation because it was negative overall; and notes must force all-values/complete-range outputs, which were recurring failure modes."
+   }
+  ],
+  "repairs": 1,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.94,
+   "cost": 6906.6,
+   "hr_cost": 3386.8,
+   "acc_hard": 0.9259,
+   "nodes": 1.82,
+   "shapes": {
+    "solver.off[S]>verifier.off[T]": 10,
+    "solver.off[T][S]>verifier.off[T]": 8,
+    "solver.off[T][S]": 6,
+    "solver.off": 5
+   },
+   "n_shapes": 15,
+   "repaired": 0,
+   "retried": 0,
+   "fallback": 0
+  }
+ }
+]

@@ -30,7 +30,7 @@ mashr/bench.py    datasets (math, aflow_math, gsmhard, aime): splits, answer for
 scripts/          run.sh (an RSI run), dump_prompts, test_ablation, prepare_bench
 data/             MATH (prm800k splits), data/bench/ (built by scripts/prepare_bench.py)
 results/          see results/README.md: cache/ (LLM call cache), v7/ (runs of this code), v6/
-docs/             reports; ahe_prompts.md (the AHE paper's prompts, for comparison)
+docs/             report_v7_2026-11-05.md (v7 results and analysis), older reports, ahe_prompts.md
 archive/          tarballs: code of v1-v5 and of v6, results of v1-v5, v6 smoke/aborted runs
 ```
 

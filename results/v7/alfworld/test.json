@@ -1,0 +1,71 @@
+{
+ "org_round0": {
+  "n": 134,
+  "acc": 0.8284,
+  "cost": 10561.7,
+  "meta_cost": 1962.8,
+  "acc_hard": 0.7935,
+  "nodes": 1.9,
+  "shapes": {
+   "planner[S]>actor[T][S]": 102,
+   "actor[T][S]": 13,
+   "planner[T][S]>actor[T][S]": 13,
+   "actor[T][S],planner[S]": 6
+  },
+  "n_shapes": 4,
+  "fallback": 0
+ },
+ "org_final": {
+  "n": 134,
+  "acc": 0.8582,
+  "cost": 11591.7,
+  "meta_cost": 2007.8,
+  "acc_hard": 0.8152,
+  "nodes": 2.0,
+  "shapes": {
+   "planner[S]>actor[T][S]": 106,
+   "actor[T][S],planner[S]": 28
+  },
+  "n_shapes": 2,
+  "fallback": 0
+ },
+ "react": {
+  "n": 134,
+  "acc": 0.4851,
+  "cost": 13625.4,
+  "meta_cost": 0.0,
+  "acc_hard": 0.2717,
+  "nodes": 1.0,
+  "shapes": {
+   "actor[T]": 134
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "react_no_tools": {
+  "n": 134,
+  "acc": 0.0,
+  "cost": 16613.6,
+  "meta_cost": 0.0,
+  "acc_hard": 0.0,
+  "nodes": 1.0,
+  "shapes": {
+   "actor": 134
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "plan_act": {
+  "n": 134,
+  "acc": 0.4254,
+  "cost": 16764.0,
+  "meta_cost": 0.0,
+  "acc_hard": 0.2065,
+  "nodes": 2.0,
+  "shapes": {
+   "planner>actor[T]": 134
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ }
+}

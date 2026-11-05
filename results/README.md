@@ -6,14 +6,28 @@ Qwen3.8-27B on Tinker.
 
 ```
 cache/cache.sqlite   shared LLM call cache (mashr/llm.py; MASHR_CACHE overrides)
-v6/<run>/            one RSI run (scripts/run.sh): log.txt, console.out, round_N/ (pool.json,
+v7/<run>/            one v7 RSI run (scripts/run.sh <task> <run>); v6/<run>/ the same for v6: (scripts/run.sh): log.txt, console.out, round_N/ (pool.json,
                      report.md, candidates.json), trace.json, final_pool.json, test.json, costs.json
 v6/ablations/        test ablations of final organizations (scripts/test_ablation.py)
 ```
 
 Earlier versions (v1-v5) and their results, and v6 smoke/aborted runs, are tarballs in `../archive/`.
 
-## Runs
+## v7 (current code): meta-agent + residual harness, seed 0, dev-B 50, task agents without thinking
+
+| task (test) | run | seed org | final org (5 RSI rounds) | best fixed baseline |
+|---|---|---|---|---|
+| MATH (156) | `v7/math` (prompts still asked to save cost) | 91.7% | **96.2%** | 91.7% (single, solve_verify) |
+| BIRD dev (300) | `v7/bird` | **63.0%** | 61.0% | 58.7% (write_check) |
+| ALFWorld valid_unseen (134) | `v7/alfworld` | 82.8% | **85.8%** | 48.5% (react with valid_actions) |
+
+Aborted or crashed runs keep their partial output: `v7/math_direct_answer_aborted` (meta-agent was
+allowed to answer itself), `v7/{bird,alfworld}_with_cost_prompt_aborted`, `v7/alfworld_crashed_disk_full{,_2}`
+(fast-downward library copies filled the disk; fixed).
+
+## v6
+
+### Runs
 
 | run | setting | round-0 org | final org | fixed baselines |
 |---|---|---|---|---|
@@ -24,7 +38,7 @@ Earlier versions (v1-v5) and their results, and v6 smoke/aborted runs, are tarba
 `math_hrthink/prompts_and_examples.md`: every prompt and four full example runs
 (`scripts/run_dump_prompts.sh <run>`).
 
-## Ablations (same HR plans, one residual part removed from every node)
+### Ablations (same HR plans, one residual part removed from every node)
 
 | file | organizations | full | no notes | no skills | no tools | structure only |
 |---|---|---|---|---|---|---|

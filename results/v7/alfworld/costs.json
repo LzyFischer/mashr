@@ -223,10 +223,24 @@
      "billed_gen": 449403
     }
    }
+  },
+  {
+   "stage": "test (5 systems)",
+   "seconds": 4862.2,
+   "models": {
+    "Qwen/Qwen3.5-9B": {
+     "calls": 18411,
+     "cached": 1531,
+     "prompt": 35866672,
+     "gen": 1453617,
+     "billed_prompt": 36131536,
+     "billed_gen": 1453617
+    }
+   }
   }
  ],
  "total": {
-  "seconds": 5854.8,
+  "seconds": 10717.0,
   "models": {
    "Qwen/Qwen3.8-27B": {
     "calls": 16,
@@ -237,12 +251,12 @@
     "billed_gen": 123436
    },
    "Qwen/Qwen3.5-9B": {
-    "calls": 29345,
-    "cached": 21603,
-    "prompt": 15454249,
-    "gen": 1597142,
-    "billed_prompt": 16583524,
-    "billed_gen": 1597142
+    "calls": 47756,
+    "cached": 23134,
+    "prompt": 51320921,
+    "gen": 3050759,
+    "billed_prompt": 52715060,
+    "billed_gen": 3050759
    }
   }
  }

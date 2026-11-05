@@ -1,14 +1,16 @@
 # Results index
 
-MATH test (156 questions, level 4-5, integer answers); cost = generated + 0.2 x prompt tokens per
-question. Employees thinking off (`MASHR_MAX_THINK=off`), employees + HR on local Qwen3.5-9B, designer
-Qwen3.8-27B on Tinker.
+Accuracy on each task's test split; cost = generated + 0.2 x prompt tokens per problem. Task agents
+and the meta-agent run on local Qwen3.5-9B (task agents without thinking), the evolver on Qwen3.8-27B
+(Tinker).
 
 ```
 cache/cache.sqlite   shared LLM call cache (mashr/llm.py; MASHR_CACHE overrides)
-v7/<run>/            one v7 RSI run (scripts/run.sh <task> <run>); v6/<run>/ the same for v6: (scripts/run.sh): log.txt, console.out, round_N/ (pool.json,
-                     report.md, candidates.json), trace.json, final_pool.json, test.json, costs.json
-v6/ablations/        test ablations of final organizations (scripts/test_ablation.py)
+v7/<run>/            one v7 RSI run (scripts/run.sh <task> <run>): log.txt, console.out, round_N/
+                     (pool.json, report.md, candidates.json), trace.json, final_pool.json, test.json,
+                     costs.json
+v6/<run>/            v6 runs (MATH only, older code in ../archive/code_v6_2026-11-04.tar.gz)
+v6/ablations/        test ablations of v6 final organizations
 ```
 
 Earlier versions (v1-v5) and their results, and v6 smoke/aborted runs, are tarballs in `../archive/`.

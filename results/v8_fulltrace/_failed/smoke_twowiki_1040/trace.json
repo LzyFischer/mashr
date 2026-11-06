@@ -1,0 +1,40 @@
+[
+ {
+  "round": 0,
+  "accepted": true,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.5,
+   "cost": 4209.7,
+   "meta_cost": 3148.4,
+   "acc_hard": 0.5,
+   "nodes": 1.75,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 5,
+    "reader[T][S]": 2,
+    "checker[T][S],decomposer[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 1,
+  "accepted": true,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.625,
+   "cost": 4252.2,
+   "meta_cost": 3204.9,
+   "acc_hard": 0.5,
+   "nodes": 2.12,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 1,
+    "checker[T][S],decomposer[T][S],reader[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  }
+ }
+]

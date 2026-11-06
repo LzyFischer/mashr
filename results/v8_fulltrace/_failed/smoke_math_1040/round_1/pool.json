@@ -1,0 +1,129 @@
+{
+ "agents": {
+  "solver": {
+   "role": "You are a careful math solver. Reason step by step."
+  },
+  "coder": {
+   "role": "You are a math solver who computes with short, correct Python and reasons about its output."
+  },
+  "verifier": {
+   "role": "You check the solutions you are given: re-derive the answer independently, find any error, and give the answer you believe is correct."
+  }
+ },
+ "rules": [
+  "Easy problem: one solver.",
+  "Harder problem: solver, then a verifier that reads its work.",
+  "Heavy computation, counting or search: a coder with python or a matching tool, then a verifier.",
+  "Give skills that match the problem type."
+ ],
+ "skills": {
+  "counting_setup": {
+   "when": "any counting problem (arrangements, selections, paths, distributions)",
+   "text": "1. Decide what one object is and when two objects count as the same: are the items distinguishable, does order matter, are rotations/reflections identified, may boxes be empty? Write these answers down first. 2. Choose one method: direct product rule, combinations, stars and bars (k identical into n distinct: C(k+n-1, n-1)), or casework. 3. Pitfalls: counting ordered pairs when unordered are asked (divide by symmetry only if every object has the same number of copies), forgetting the empty/zero case, double counting when cases overlap. 4. Check: recount a smaller version of the problem by listing all objects (or with python/brute_force) and compare."
+  },
+  "complement_and_pie": {
+   "when": "'at least one', 'not all', 'no two adjacent', or overlapping conditions",
+   "text": "1. Complement: count everything, subtract what violates the condition; both counts must use the same notion of distinct. 2. Inclusion-exclusion for sets A1..Ak: sum |Ai| - sum |Ai and Aj| + sum |Ai and Aj and Al| - ...; write each intersection size as a formula. 3. For 'no two adjacent' among n in a row choose k: C(n-k+1, k); in a circle use cases on whether the first item is chosen. 4. Check with a small n by enumeration."
+  },
+  "probability": {
+   "when": "probability or expected value",
+   "text": "1. Fix the sample space and make sure its outcomes are equally likely (use ordered outcomes for dice/cards drawn in sequence). 2. P = favorable / total with both counted in the same space; or multiply conditional probabilities along a sequence. 3. Expected value: use linearity, E[sum] = sum of E[indicator]; no independence needed. 4. Geometric probability: ratio of lengths/areas of the valid region. 5. Pitfalls: with/without replacement, 'at least' vs 'exactly', unreduced fractions. Give m/n in lowest terms if asked for m+n."
+  },
+  "modular": {
+   "when": "remainders, last digits, divisibility, units digit of powers",
+   "text": "1. Reduce every number mod m at each step. 2. Powers: find the cycle of a^k mod m by listing a^1, a^2, ... until it repeats; then reduce the exponent mod the cycle length (careful when the remainder is 0: use the cycle length itself). Euler: a^phi(m) = 1 mod m if gcd(a, m) = 1. 3. Several moduli: solve each, combine with the Chinese remainder theorem (tool: number_theory crt). 4. Division mod m needs an inverse; it exists only if gcd = 1. 5. Check: verify the final residue with python pow(a, k, m)."
+  },
+  "divisors_primes": {
+   "when": "number or sum of divisors, gcd/lcm, prime factorization, perfect squares/cubes",
+   "text": "1. Factor n = p1^a1 ... pk^ak first (tool: number_theory factorint). 2. Number of divisors (a1+1)...(ak+1); sum of divisors prod (p^(a+1)-1)/(p-1); n is a perfect square iff all exponents are even. 3. gcd takes the minimum exponents, lcm the maximum; gcd * lcm = a * b. 4. Pitfalls: 1 and n are divisors; 'proper' divisors exclude n; 'positive' vs all integer divisors (x2). 5. Check small cases by listing divisors."
+  },
+  "integer_equations": {
+   "when": "equations or conditions in integers (Diophantine, digits, bases, floor)",
+   "text": "1. Bound the variables first (sizes, signs, digit ranges 0-9, leading digit not 0). 2. Factor: rewrite as (ax+b)(cy+d) = N (Simon's trick) and run over divisor pairs of N, including negative pairs if negatives are allowed. 3. Use parity or a modulus to cut cases. 4. Base b: digits are 0..b-1, value = sum d_i b^i. Floor: write x = n + f with 0 <= f < 1. 5. Check every candidate in the original equation; once bounded, an exhaustive search with python/brute_force settles it."
+  },
+  "polynomials_vieta": {
+   "when": "roots and coefficients of polynomials, symmetric expressions of roots, remainders",
+   "text": "1. Do not solve for the roots if a symmetric expression is asked: for a x^n + b x^(n-1) + c x^(n-2) + ...: sum of roots -b/a, sum of pairwise products c/a, product (-1)^n * constant/a. 2. Power sums: r1^2 + r2^2 = (sum)^2 - 2 (pairwise). 3. Remainder of P(x) divided by (x - a) is P(a); for a quadratic divisor, evaluate at both roots. 4. Rational roots are p/q with p | constant, q | leading coefficient. 5. Pitfalls: multiplicity, complex roots, the sign of (-1)^n. Check with tool polynomial (poly_roots, vieta)."
+  },
+  "algebra_manipulation": {
+   "when": "simplifying expressions, systems of equations, substitutions, x + 1/x type identities",
+   "text": "1. Name the target expression and look for a substitution that produces it (e.g. t = x + 1/x gives x^2 + 1/x^2 = t^2 - 2, x^3 + 1/x^3 = t^3 - 3t). 2. Systems: add/subtract equations to get symmetric sums; for xyz-type products multiply all equations. 3. Rationalize denominators with conjugates. 4. Pitfalls: dividing by an expression that can be 0, squaring both sides (creates extraneous roots), domain of sqrt and log. 5. Check: substitute the result back into every original equation (tool: check_answer)."
+  },
+  "functions_sequences": {
+   "when": "functional equations, function iteration or inverses, arithmetic/geometric sequences, recursions",
+   "text": "1. Functional equations: plug in special values (0, 1, -1, x = y) and solve for f at the needed points. 2. Iteration f(f(x)): compute the first values and look for a cycle. 3. Sequences: arithmetic a_n = a_1 + (n-1)d, sum n(a_1 + a_n)/2; geometric a_1 r^(n-1), sum a_1 (1 - r^n)/(1 - r). 4. Recursions: list the first 10-15 terms (tool: sequence), find the period or closed form, then prove or recheck it. 5. Pitfalls: off-by-one in the index, whether the sum starts at n = 0 or 1."
+  },
+  "inequalities_extrema": {
+   "when": "maximum or minimum, inequalities, optimization",
+   "text": "1. Find the candidate extremum: AM-GM (equality when the terms are equal), completing the square, Cauchy-Schwarz, or calculus (derivative 0, plus endpoints). 2. Show it is attained: give the values of the variables where equality holds and check they satisfy all constraints (integer, positive, distinct...). 3. For integer variables test the integers next to the real optimum. 4. Pitfall: a bound that cannot be attained is not the answer. 5. Check numerically by evaluating many points (python)."
+  },
+  "geometry_coordinates": {
+   "when": "geometry with a diagram (Asymptote code), lengths, areas, intersections",
+   "text": "1. If Asymptote code is given, read the exact coordinates of every labeled point from it; they define the figure. 2. Otherwise place the figure: a vertex at the origin, a side on the x-axis, use symmetry. 3. Compute exactly: lengths by distance, areas by the shoelace formula, intersections by solving line equations (tool: coord_geometry). 4. Identify exactly which region or segment is asked (shaded part, quadrilateral DBEF...). 5. Pitfalls: unit vs scaled diagram, degrees vs radians, an area that must be subtracted. Check one known length or area from the problem against your coordinates."
+  },
+  "geometry_synthetic": {
+   "when": "triangles, circles, similar figures, angle chasing, area ratios",
+   "text": "1. Mark all given equal lengths and angles; angle chase with the triangle sum, parallel lines, inscribed angle = half the central angle. 2. Similar triangles give length ratios; areas scale with the square. Triangles with the same height: area ratio = base ratio. 3. Useful facts: Pythagoras and common triples, angle bisector theorem, power of a point, tangent lengths from a point are equal, Heron's formula, area = (1/2)ab sin C. 4. Pitfalls: assuming a figure is to scale; a ratio of the wrong pieces. 5. Check with coordinates when the configuration is simple."
+  },
+  "trig_complex": {
+   "when": "trigonometry, complex numbers, vectors, matrices (precalculus)",
+   "text": "1. Trig: reduce angles to [0, 360) degrees and use the quadrant for the sign; identities sin^2 + cos^2 = 1, double angle, sum-to-product; exact values of 30/45/60 multiples. 2. Complex: polar form r(cos t + i sin t), De Moivre for powers, roots of unity sum to 0. 3. Vectors: dot product for angles and projections, cross product/determinant for areas. 4. Matrices: determinant, inverse, powers via a pattern or eigenvalues. 5. Pitfalls: degrees vs radians, all solutions in a given interval. Check numerically with python."
+  },
+  "check_answer_form": {
+   "when": "before the final answer of any problem",
+   "text": "1. Re-read the question: which quantity is asked (sum of all solutions, the number of solutions, the largest value, m+n of a fraction m/n, the remainder...)? 2. Make sure every condition is used and every candidate satisfies all of them; discard extraneous roots. 3. Units and rates: chain the given ratios so the units cancel and end in the unit asked. 4. Give the answer as the integer the problem asks for. 5. If a quick independent check is possible (plug in, small case, python), do it."
+  }
+ },
+ "tools": {
+  "python": {
+   "doc": "Run Python (numpy, sympy available) to compute or check anything.",
+   "code": "",
+   "test": "assert 2 + 2 == 4"
+  },
+  "exact_solve": {
+   "doc": "exact_solve(equations, unknowns) -> list of exact solutions. Equations are strings like 'x + 2*y = 7'; unknowns a string like 'x y'.",
+   "code": "\ndef exact_solve(equations, unknowns):\n    import sympy as sp\n    syms = sp.symbols(unknowns)\n    syms = list(syms) if isinstance(syms, (tuple, list)) else [syms]\n    loc = {str(s): s for s in syms}\n    eqs = []\n    for e in ([equations] if isinstance(equations, str) else equations):\n        if \"=\" in e and \"==\" not in e:\n            l, r = e.split(\"=\", 1)\n            eqs.append(sp.Eq(sp.sympify(l, locals=loc), sp.sympify(r, locals=loc)))\n        else:\n            eqs.append(sp.sympify(e.replace(\"==\", \"-(\") + (\")\" if \"==\" in e else \"\"), locals=loc))\n    return sp.solve(eqs, syms, dict=True)\n",
+   "test": "s = exact_solve(['x + y = 5', 'x - y = 1'], 'x y'); assert s == [{__import__('sympy').Symbol('x'): 3, __import__('sympy').Symbol('y'): 2}], s"
+  },
+  "brute_force": {
+   "doc": "brute_force(predicate, *ranges) -> count of tuples in the product of the ranges for which predicate(*t) is true; brute_list(...) returns them (first 50).",
+   "code": "\ndef brute_force(predicate, *ranges):\n    import itertools\n    return sum(1 for t in itertools.product(*ranges) if predicate(*t))\n\ndef brute_list(predicate, *ranges, limit=50):\n    import itertools\n    out = []\n    for t in itertools.product(*ranges):\n        if predicate(*t):\n            out.append(t)\n            if len(out) >= limit:\n                break\n    return out\n",
+   "test": "assert brute_force(lambda a, b: a + b == 4, range(5), range(5)) == 5; assert brute_list(lambda a: a % 2 == 0, range(5)) == [(0,), (2,), (4,)]"
+  },
+  "check_answer": {
+   "doc": "check_answer(conditions, **values) -> {condition: True/False}. Conditions are strings such as 'a + b == 10', 'a > 0', 'a**2 - 3*a + 2 == 0' evaluated exactly at the values.",
+   "code": "\ndef check_answer(conditions, **values):\n    import sympy as sp\n    loc = {k: sp.nsimplify(v) if isinstance(v, float) else sp.sympify(v) for k, v in values.items()}\n    out = {}\n    for c in ([conditions] if isinstance(conditions, str) else conditions):\n        try:\n            for op in (\"==\", \">=\", \"<=\", \"!=\", \">\", \"<\"):\n                if op in c:\n                    l, r = c.split(op, 1)\n                    lv = sp.simplify(sp.sympify(l, locals=loc))\n                    rv = sp.simplify(sp.sympify(r, locals=loc))\n                    out[c] = bool({\"==\": sp.simplify(lv - rv) == 0, \">=\": lv >= rv,\n                                   \"<=\": lv <= rv, \"!=\": sp.simplify(lv - rv) != 0,\n                                   \">\": lv > rv, \"<\": lv < rv}[op])\n                    break\n            else:\n                out[c] = bool(sp.sympify(c, locals=loc))\n        except Exception as e:\n            out[c] = f\"error: {e}\"\n    return out\n",
+   "test": "r = check_answer(['a + b == 10', 'a > b', 'a*b == 21'], a=7, b=3); assert r == {'a + b == 10': True, 'a > b': True, 'a*b == 21': True}, r"
+  },
+  "simplify_exact": {
+   "doc": "simplify_exact(expr) -> (simplest exact form as a string, LaTeX, float value). Use it to put a final answer in exact simplest form.",
+   "code": "\ndef simplify_exact(expr):\n    import sympy as sp\n    e = sp.nsimplify(sp.sympify(expr), [sp.pi, sp.E], rational=False) if isinstance(expr, (int, float)) \\\n        else sp.simplify(sp.sympify(expr))\n    return str(e), sp.latex(e), float(sp.N(e))\n",
+   "test": "s, l, v = simplify_exact('sqrt(8) + 2/4'); assert s in ('1/2 + 2*sqrt(2)', '2*sqrt(2) + 1/2'), s; assert abs(v - 3.3284) < 1e-3"
+  },
+  "number_theory": {
+   "doc": "factorint(n), divisors(n), totient(n), isprime(n), mod_inverse(a, m), crt(moduli, residues) -> (x, M), digit_sum(n, base=10): exact number-theory helpers (sympy).",
+   "code": "\nfrom sympy import factorint, divisors, totient, isprime, mod_inverse\nfrom sympy.ntheory.modular import crt\n\ndef digit_sum(n, base=10):\n    n, s = abs(int(n)), 0\n    while n:\n        s, n = s + n % base, n // base\n    return s\n",
+   "test": "assert factorint(360) == {2: 3, 3: 2, 5: 1}; assert len(divisors(36)) == 9; assert crt([3, 5], [2, 3])[0] == 8; assert digit_sum(1234) == 10; assert mod_inverse(3, 7) == 5"
+  },
+  "coord_geometry": {
+   "doc": "dist(p, q), shoelace_area(points), line_intersection(p1, p2, q1, q2), angle_deg(a, b, c) (angle at b): exact coordinate-geometry helpers (sympy).",
+   "code": "\ndef dist(p, q):\n    import sympy as sp\n    return sp.sqrt(sum((sp.nsimplify(a) - sp.nsimplify(b)) ** 2 for a, b in zip(p, q)))\n\ndef shoelace_area(points):\n    import sympy as sp\n    pts = [(sp.nsimplify(x), sp.nsimplify(y)) for x, y in points]\n    s = sum(pts[i][0] * pts[(i + 1) % len(pts)][1] - pts[(i + 1) % len(pts)][0] * pts[i][1]\n            for i in range(len(pts)))\n    return sp.Abs(s) / 2\n\ndef line_intersection(p1, p2, q1, q2):\n    import sympy as sp\n    return sp.Line(sp.Point(*p1), sp.Point(*p2)).intersection(sp.Line(sp.Point(*q1), sp.Point(*q2)))\n\ndef angle_deg(a, b, c):\n    import sympy as sp\n    v1 = sp.Matrix([sp.nsimplify(a[0]) - b[0], sp.nsimplify(a[1]) - b[1]])\n    v2 = sp.Matrix([sp.nsimplify(c[0]) - b[0], sp.nsimplify(c[1]) - b[1]])\n    return sp.simplify(sp.acos(v1.dot(v2) / (v1.norm() * v2.norm())) * 180 / sp.pi)\n",
+   "test": "assert dist((0, 0), (3, 4)) == 5; assert shoelace_area([(0, 0), (4, 0), (0, 3)]) == 6; assert angle_deg((1, 0), (0, 0), (0, 1)) == 90"
+  },
+  "counting": {
+   "doc": "comb(n, k), perm(n, k), multinomial(*ks), count_if(predicate, iterable), inclusion_exclusion(sizes_by_level) -> exact counts (sizes_by_level[i] = sum of the sizes of all (i+1)-wise intersections).",
+   "code": "\nfrom math import comb, perm, factorial\n\ndef multinomial(*ks):\n    out = factorial(sum(ks))\n    for k in ks:\n        out //= factorial(k)\n    return out\n\ndef count_if(predicate, iterable):\n    return sum(1 for x in iterable if predicate(x))\n\ndef inclusion_exclusion(sizes_by_level):\n    return sum((-1) ** i * s for i, s in enumerate(sizes_by_level))\n",
+   "test": "assert comb(5, 2) == 10 and perm(5, 2) == 20 and multinomial(2, 1, 1) == 12; assert count_if(lambda x: x % 3 == 0, range(1, 31)) == 10; assert inclusion_exclusion([50 + 33, 16]) == 67"
+  },
+  "polynomial": {
+   "doc": "poly_roots(expr, x='x') -> exact roots with multiplicity, vieta(expr, x='x') -> elementary symmetric sums of the roots, expand(expr), factor(expr) (strings in, sympy out).",
+   "code": "\ndef poly_roots(expr, x=\"x\"):\n    import sympy as sp\n    return sp.roots(sp.Poly(sp.sympify(expr), sp.Symbol(x)))\n\ndef vieta(expr, x=\"x\"):\n    import sympy as sp\n    c = sp.Poly(sp.sympify(expr), sp.Symbol(x)).all_coeffs()\n    return [sp.Rational((-1) ** (i + 1)) * c[i + 1] / c[0] for i in range(len(c) - 1)]\n\ndef expand(expr):\n    import sympy as sp\n    return sp.expand(sp.sympify(expr))\n\ndef factor(expr):\n    import sympy as sp\n    return sp.factor(sp.sympify(expr))\n",
+   "test": "r = poly_roots('x**2 - 5*x + 6'); assert r == {2: 1, 3: 1}, r; assert vieta('2*x**2 - 6*x + 4') == [3, 2]; assert str(factor('x**2 - 1')) == '(x - 1)*(x + 1)'"
+  },
+  "sequence": {
+   "doc": "terms(f, n, start=1) -> [f(start), ..., ] (n terms), recurrence(rule, init, n) -> first n terms where rule(prev_terms_list) gives the next, partial_sums(xs).",
+   "code": "\ndef terms(f, n, start=1):\n    return [f(i) for i in range(start, start + n)]\n\ndef recurrence(rule, init, n):\n    xs = list(init)\n    while len(xs) < n:\n        xs.append(rule(xs))\n    return xs[:n]\n\ndef partial_sums(xs):\n    out, s = [], 0\n    for x in xs:\n        s += x\n        out.append(s)\n    return out\n",
+   "test": "assert terms(lambda i: i * i, 3) == [1, 4, 9]; assert recurrence(lambda xs: xs[-1] + xs[-2], [1, 1], 6) == [1, 1, 2, 3, 5, 8]; assert partial_sums([1, 2, 3]) == [1, 3, 6]"
+  }
+ }
+}

@@ -16,6 +16,12 @@ MAX_STEPS = 40
 MAX_TOKENS = 300          # per acting step
 VOTE_ON_MISSING = False
 FALLBACK_TOOLS = ("valid_actions",)
+TOOLS_ARE_CODE = False   # tools are built-in aids: the evolver may only remove them
+TOOL_ENV = ""
+
+
+def tool_prelude():
+    return ""
 SPLITS = {"dev_a": 150, "dev_b": 50, "test": 134}
 META = {"team": "complete household tasks in a text environment", "item": "task",
         "node": "the agent reads the task, its skills and the full work of its inputs. Only the returned "
@@ -267,7 +273,8 @@ def _aids(tools, info, memory, goal, step):
 def _system(pool, node):
     system = pool["agents"][node["agent"]]["role"]
     if node["skills"]:
-        system += "\n\nSkills to apply:\n" + "\n".join(f"- {k}: {SKILLS[k]['text']}" for k in node["skills"])
+        S = pool.get("skills", SKILLS)
+        system += "\n\nSkills to apply:\n" + "\n".join(f"- {k}: {S[k]['text']}" for k in node["skills"])
     return system
 
 

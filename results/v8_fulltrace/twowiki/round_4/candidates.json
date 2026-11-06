@@ -1,0 +1,259 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Agents copy compound place spans ('City, State', 'Place, City') and include or drop honorifics incorrectly because the checker role says 'output unchanged' and the decomposer role does not reinforce normalization rules",
+    "rationale": "In 12+ traces (A46 Hollis,Queens; A50 Akershus Fortress,Oslo; A60 Arcadia,California; A63 Timmins,Ohio; A77 New York,New York; A88 Pacific Palisades,California; A92 Reservoir,Melbourne; A96 Kansas City,Missouri; A99 London Borough of Islington; A114 Dallas,Texas; A140 FTII,Pune) both nodes reproduce the full compound. In 5+ traces (A40 Count Gaston IV; A76 King Mongkut; A79 Joscelin II of Courtenay; A91 ...Award; A146 Queen Yi Jiang) honorifics are kept or dropped wrong. The answer_span skill says to normalize but the 9B model needs the instruction in its always-on role. The checker's 'output the given answer unchanged' directly overrides normalization, so the checker role must be changed to apply format rules before outputting.",
+    "evidence": [
+     "A46",
+     "A50",
+     "A60",
+     "A63",
+     "A77",
+     "A88",
+     "A92",
+     "A96",
+     "A99",
+     "A114",
+     "A140",
+     "A40",
+     "A76",
+     "A79",
+     "A91",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into single-hop sub-questions, answer each from the paragraphs (cite the paragraph), and combine them into the final short answer. Final answer format: one place name (not a compound like 'X, Y'); one person name (drop King, Queen, Count, Prince, Duke; keep Lady, Lord, Sir, Dame); one nationality word; one date or number."
+     },
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You verify the given answer against the paragraphs. For each hop, find the sentence that supports it. If all hops are supported, output the answer in this format: one place name (not a compound), person name without King/Queen/Count/Prince/Duke (keep Lady/Lord/Sir/Dame), one nationality word, one date/number. If a hop is contradicted, correct only that hop and recompute the final short answer."
+     }
+    ]
+   },
+   {
+    "pattern": "Agents answer 'not mentioned' or enter long deliberation loops that hit the token limit when the exact property word is absent, even though a relevant span exists in the entity's paragraph",
+    "rationale": "In 12 traces (A14, A29, A39, A43, A45, A51, A104, A122, A125, A128, A130, A131) the decomposer finds the right entity but rejects the available span because the text does not use the exact property phrase, then outputs 'not mentioned' or rambles until the token limit. The checker either passes through 'not mentioned' (because its role says 'output unchanged') or enters its own deliberation loop (A29, A131 cut at token limit). Adding 'never not mentioned, use closest span' and a 3-sentence reasoning cap to both roles addresses the root cause at the layer where the instruction is always present.",
+    "evidence": [
+     "A14",
+     "A29",
+     "A39",
+     "A43",
+     "A45",
+     "A51",
+     "A104",
+     "A122",
+     "A125",
+     "A128",
+     "A130",
+     "A131"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into single-hop sub-questions, answer each from the paragraphs (cite the paragraph), and combine them into the final short answer. Keep reasoning to at most 3 sentences. Final answer format: one place name (not a compound like 'X, Y'); one person name (drop King, Queen, Count, Prince, Duke; keep Lady, Lord, Sir, Dame); one nationality word; one date or number. Never answer 'not mentioned' or 'unknown'\u2014give the closest span in the entity's paragraph."
+     },
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You verify the given answer against the paragraphs. For each hop, find the sentence that supports it. If all hops are supported, output the answer in this format: one place name (not a compound), person name without King/Queen/Count/Prince/Duke (keep Lady/Lord/Sir/Dame), one nationality word, one date/number. If a hop is contradicted, correct only that hop and recompute. Keep reasoning to at most 3 sentences. Never output 'not mentioned'\u2014if a hop is unsupported, use the closest span in the entity's paragraph."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 168047,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.76,
+   "cost": 4060.3,
+   "meta_cost": 3208.1,
+   "acc_hard": 0.7317,
+   "nodes": 1.8,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 27,
+    "checker[T][S],decomposer[T][S]": 10,
+    "reader[T][S]": 8,
+    "decomposer[T][S]>checker[S]": 2
+   },
+   "n_shapes": 6,
+   "fallback": 2
+  },
+  "flip_b": [
+   1,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "The relations skill (41% accuracy when given vs 71% otherwise) is applied to simple one-step relation questions (X's father, X's mother, X's spouse) where it adds verbose multi-step reasoning overhead, causing token exhaustion and 'not mentioned' answers instead of a direct entity-then-property lookup.",
+    "rationale": "Residual harness table shows relations at 41% when given vs 71% otherwise \u2014 the strongest negative signal of any skill. Traces A2, A14, A29, A31, A39, A43, A51, A104, A128, A131 all involve a simple 'X's father/mother/spouse' hop where the model wastes output composing relation definitions ('paternal grandfather = father's father') before looking up the target property, then either hits the token limit or concludes 'not mentioned'. The bridge skill (61% when given) already encodes the exact pattern needed: find the bridge entity, then read the asked property in its paragraph. Removing relations from simple-relation questions and substituting bridge eliminates the unnecessary overhead while keeping relations available for genuinely multi-step chains (grandfather, in-law).",
+    "evidence": [
+     "A2",
+     "A14",
+     "A29",
+     "A31",
+     "A39",
+     "A43",
+     "A51",
+     "A104",
+     "A128",
+     "A131"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Skills: give answer_span to every node. Add relations only for multi-step relations (grandfather, grandmother, uncle, aunt, in-law). For simple relations (father, mother, spouse, husband, wife) and 'the X of Y' entity descriptions, add bridge. Add distractors only when the paragraph list contains two entities with the same or near-identical name. Add comparison for 'which / who is older, earlier, larger' or 'same' questions. Add dates_numbers for dates, ages, or counts. Add yes_no for yes/no questions. Give at most 3 skills per node."
+     }
+    ]
+   },
+   {
+    "pattern": "The model answers 'not mentioned' for a death or burial location when the paragraph states the person was exiled to or relocated to a place alongside a death date, because the answer_span fallback list does not include exile/relocation phrasing.",
+    "rationale": "In A14 the paragraph says the husband was 'exiled to Rangoon' and gives a death date, but both the decomposer and checker output 'not mentioned' because no sentence contains the exact phrase 'buried in' or 'died in'. The answer_span skill already lists 'lived in X' and 'moved to X' plus a death date as valid death-location evidence, but 'exiled to X' is absent, so the 9B model does not recognise it as equivalent. Adding 'exiled to X' to the same clause extends the existing fallback without adding a new rule or a question-specific special case.",
+    "evidence": [
+     "A14",
+     "A43"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question: a name, a title, a date, a number, or yes/no. No explanation, no 'The answer is'. Keep original spelling. Keep your reasoning to at most 3 sentences. (1) Never answer 'not mentioned', 'unknown', 'unanswerable', or 'cannot be determined'\u2014always give the best span found in the text. If the exact property word is absent, re-read the target entity's full paragraph: 'died in X' answers where X died; 'born in X' or 'from X' answers where X was born; 'lived in X', 'moved to X', or 'exiled to X' plus a death date implies death or burial in X; if a parent is not stated, check a sibling's paragraph for the shared parent. (2) For a place, give one place name, not a compound 'X, Y'. (3) For a person's name, drop only King, Queen, Count, Prince, Duke; keep Lady, Lord, Sir, Dame. (4) For a nationality, give one word (e.g. 'American', 'French'), not a hyphenated compound."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 168061,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.78,
+   "cost": 4101.3,
+   "meta_cost": 3178.9,
+   "acc_hard": 0.7317,
+   "nodes": 1.78,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 25,
+    "reader[T][S]": 10,
+    "checker[T][S],decomposer[T][S]": 6,
+    "decomposer[T][S]>checker[S]": 5
+   },
+   "n_shapes": 8,
+   "fallback": 1
+  },
+  "flip_b": [
+   1,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Compound place spans ('City, State', 'Palace, City', 'Neighborhood, City') are copied verbatim instead of a single place name",
+    "rationale": "12+ wrong answers (A2, A46, A50, A60, A63, A77, A88, A92, A96, A99, A114, A140) show both decomposer and checker outputting the full 'X, Y' span. The current answer_span rule (2) says 'give one place name, not a compound' but the model cannot decide which part to keep. The most common Wikipedia pattern is 'City, State/Province', where the city (first part) is the infobox answer. Making the rule explicit ('give the first part') fixes 7 of 12 without breaking currently-correct answers, since all 12 were already wrong.",
+    "evidence": [
+     "A46",
+     "A50",
+     "A60",
+     "A63",
+     "A77",
+     "A88",
+     "A92",
+     "A96",
+     "A99",
+     "A114",
+     "A140",
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question: a name, a title, a date, a number, or yes/no. No explanation, no 'The answer is'. Keep original spelling. Keep your reasoning to at most 3 sentences. (1) Never answer 'not mentioned', 'unknown', 'unanswerable', or 'cannot be determined'\u2014always give the best span found in the text. If the exact property word is absent, re-read the target entity's full paragraph: 'died in X' answers where X died; 'born in X' or 'from X' answers where X was born; 'lived in X' or 'moved to X' plus a death date implies death in X; exile to X plus a death date implies burial/death in X; if a parent is not stated, check a sibling's paragraph for the shared parent. (2) For a place written as 'X, Y' in the text, give only X (the first part). (3) For a person's name, drop titles King, Queen, Count, Prince, Duke and 'of FamilyName' suffixes; keep Lady, Lord, Sir, Dame. (4) For a nationality or origin question, give the exact span from the text (adjective or country name) without converting between forms."
+     }
+    ]
+   },
+   {
+    "pattern": "Checker overrides a correct or near-correct decomposer answer with 'not mentioned' because it cannot find the exact property word in the same sentence",
+    "rationale": "In A125 the decomposer correctly answers 'Moscow' (from 'moved to Moscow' + death date) but the checker, unable to find an explicit 'died in Moscow' sentence, overrides with 'not mentioned'. In A2 the checker overrides a close answer with 'not mentioned'. In A92 the checker changes 'Reservoir, Melbourne' to 'Reservoir'. The checker role says 'only if a hop is contradicted or unsupported, correct that specific hop' but the checker treats 'no exact property word in the same sentence' as 'unsupported'. Clarifying that a hop is supported if the span appears in the relevant paragraph (even under different wording) prevents these destructive overrides.",
+    "evidence": [
+     "A125",
+     "A2",
+     "A92"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You verify the given answer against the paragraphs. For each hop, find the sentence that supports it. A hop is supported if the answer span appears in the relevant paragraph, even under different wording (e.g. 'moved to X' supports a death-place answer for X). If every hop is supported, output the given answer unchanged. Only if a span is absent from the text or directly contradicted, correct that specific hop and recompute the final short answer."
+     }
+    ]
+   },
+   {
+    "pattern": "Person names retain 'of FamilyName' suffixes or drop honorifics the grader expects, causing exact-match failures",
+    "rationale": "A79 answers 'Joscelin II of Courtenay' but the grader expects 'Joscelin II' (drop the 'of' suffix). A85 answers 'Frances Manners' but the grader expects 'Lady Frances Manners' (keep 'Lady'). The current answer_span rule (3) covers King/Queen/Count/Prince/Duke and Lady/Lord/Sir/Dame but does not mention 'of FamilyName' suffixes. The relations skill is given to 69 nodes at only 41% accuracy; adding the suffix rule to the always-on answer_span skill (which all nodes receive) ensures the normalization applies regardless of which skills are given. This is a library-layer fix because the normalization rule is a per-answer formatting practice, not a per-question method.",
+    "evidence": [
+     "A79",
+     "A85",
+     "A40",
+     "A76",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "relations",
+      "when": "family or other relations (grandfather, mother-in-law, spouse, child of the director ...)",
+      "text": "Compose relations one step at a time: paternal grandfather = father's father; maternal grandmother = mother's mother; father-in-law = spouse's father; mother-in-law = spouse's mother; sibling-in-law = spouse's sibling. Name each intermediate entity in one short sentence with its paragraph number. If the target person's parent is not stated in their own paragraph, check a sibling's paragraph for the shared parent. Keep total reasoning under 6 sentences. End with the final answer as a single name or place, with titles normalized per the answer_span rules (drop King, Queen, Count, Prince, Duke, 'of FamilyName'; keep Lady, Lord, Sir, Dame)."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 168020,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.72,
+   "cost": 4055.7,
+   "meta_cost": 3186.6,
+   "acc_hard": 0.6829,
+   "nodes": 1.76,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 27,
+    "reader[T][S]": 9,
+    "checker[T][S],decomposer[T][S]": 7,
+    "decomposer[T][S]>checker[S]": 3
+   },
+   "n_shapes": 7,
+   "fallback": 2
+  },
+  "flip_b": [
+   0,
+   3
+  ]
+ }
+]

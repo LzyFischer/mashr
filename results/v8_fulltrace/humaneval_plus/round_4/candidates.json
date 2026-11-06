@@ -1,0 +1,240 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Tester hand-computes expected values for boundary tests, introducing arithmetic errors (e.g. assuming round-half-up instead of Python's round-half-even) that validate the bug instead of catching it.",
+    "rationale": "In A9 the tester wrote `assert func(1, 4) == \"0b11\"` with the comment 'avg(1,4)=2.5 -> rounds to 3', but Python's round(2.5)=2. The hand-computed expected value was wrong, so the boundary test confirmed the int(x+0.5) bug instead of catching it. Computing expected values in Python (print(round(2.5)) -> 2) would have produced the correct expected value '0b10', the test would have failed, and the tester would have fixed the rounding. This is a general risk: any numeric expected value computed by mental arithmetic can be wrong, especially for rounding, floor-division, or modular arithmetic.",
+    "evidence": [
+     "A9"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "You verify and fix the solution from your teammates. (1) Run run_examples on the function. (2) If all pass, write 1-2 quick tests for a boundary the examples do not cover (a value at or across a threshold, one more or fewer element, a different case); compute expected values in Python (print them), not by mental arithmetic. (3) Fix any bug found. (4) Output the complete function including all imports. Do not re-derive the algorithm. Keep reasoning brief."
+     }
+    ]
+   },
+   {
+    "pattern": "Agent gets stuck deliberating on an ambiguous or contradictory spec, consuming the entire token budget and producing no function output.",
+    "rationale": "In A38 the docstring says 'non-negative integers' but examples include negatives, and the stated sorting rule does not match the example outputs. Both the coder and tester spent all their tokens re-analyzing the contradiction ('Let me try one more interpretation\u2026', 'Wait, let me re-read\u2026') and were cut with None output. The coder role says 'Keep explanations to 2-3 lines' but the 9B model ignored it when confused. An explicit directive to resolve ambiguity by matching the examples and produce code immediately prevents the token-spending loop and ensures at least a function is output for the tester to verify.",
+    "evidence": [
+     "A38"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "You write correct, complete Python functions that meet the specification exactly. Write the function, then run run_examples to verify. Do not trace examples by hand. If the spec is ambiguous or examples seem contradictory, match the examples and write code; do not deliberate beyond 2-3 lines. Keep explanations to 2-3 lines."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 72024,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.9,
+   "cost": 2623.8,
+   "meta_cost": 1010.5,
+   "acc_hard": 0.75,
+   "nodes": 1.53,
+   "shapes": {
+    "coder[T][S]": 14,
+    "coder[T][S]>tester[T][S]": 11,
+    "coder[T][S]>tester[T]": 5
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Coder uses int(x+0.5) for 'round to nearest integer' instead of round(), giving a wrong result when the .5 case rounds to an even number",
+    "rationale": "In A9 the coder used int(avg+0.5) (rounds halves up); the reference uses round() (rounds halves to even). For (964,977) avg=970.5: int(971.0)=971 but round(970.5)=970. The meta-agent gave edge_cases+examples_check but not numeric_rules, which warns about this. Rule 3 says 'e.g. numeric_rules for rounding' but the 9B meta-agent did not follow; making it 'Always give' is a stronger directive. The skill edit makes the int(x+0.5) vs round() distinction explicit so the coder picks the right idiom even if the meta-agent had skipped the skill.",
+    "evidence": [
+     "A9"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "numeric_rules",
+      "text": "1. Return type: int vs float, as in the examples. 2. // and % with negative numbers round towards minus infinity in Python. 3. For 'round to nearest integer', use round(x), not int(x+0.5): round() rounds halves to even, int(x+0.5) rounds halves up. 4. Compare floats with a tolerance. 5. Large numbers: use integers, not floats, to stay exact."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give at most 2 skills per node. Always give numeric_rules when the spec mentions rounding, division, or number format; string_rules for case/character/format problems. Skip a skill if the examples already demonstrate its guidance."
+     }
+    ]
+   },
+   {
+    "pattern": "When problem examples contradict the spec text, the agent spends its entire token budget trying to reconcile them and outputs no function",
+    "rationale": "In A38 the spec says 'sort by number of ones in binary' but the examples show plain value sort. Both the coder and the tester spent 3000+ tokens re-deriving interpretations, and both were cut at the token limit with output None. The read_spec skill says 'examples are part of the specification: your function must reproduce them exactly', which pushes the agent to make the (incorrect) examples pass. Adding point 5 gives a concrete resolution: implement the spec text, note the conflict in one line, move on. This prevents the token drain while still letting the agent produce a function.",
+    "evidence": [
+     "A38"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "read_spec",
+      "text": "1. Restate the input types, the output type and every rule in the specification before coding. 2. The examples are part of the specification: your function must reproduce them exactly, including the output type (list vs tuple, int vs float, True/False). 3. Return the value; do not print and do not read input. 4. Keep the given function name and parameter order. 5. If examples contradict the spec text, implement the spec text; note the conflict in one line and move on."
+     }
+    ]
+   },
+   {
+    "pattern": "Trial-division primality test times out on large inputs because the efficiency skill implies sqrt(n) trial division is acceptable",
+    "rationale": "In A26 the 12th prime Fibonacci is ~10^17; trial division to sqrt(10^17)\u22483\u00d710^8 iterations exceeds the time limit. The efficiency skill says 'avoid trial division beyond sqrt(n)' which the coder read as 'sqrt(n) is fine.' This has been wrong for 4 consecutive rounds. Editing the skill to state explicitly that trial division is too slow for n>10^12 and to use Miller-Rabin removes the ambiguity.",
+    "evidence": [
+     "A26"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "efficiency",
+      "text": "The plus tests use large inputs and a time limit of a few times the reference solution. Avoid exponential recursion (memoize or iterate), quadratic loops when a set/dict/sort works. Trial division (even to sqrt(n)) is too slow for n > 10^12; use a Miller-Rabin primality test for large numbers. Check speed on a large input (timed) before answering."
+     }
+    ]
+   },
+   {
+    "pattern": "Coder uses an existence check (any) instead of a count check when the spec requires matching multiple elements between two collections",
+    "rationale": "In A10 the spec asks if you can exchange elements to make lst1 all even; the correct check is count(evens in lst2) >= count(odds in lst1), but the coder used any(even in lst2). The tester tested [1,3,5] vs [2] (3 odds, 1 even) but called the result 'correct' without verifying the expected output. No existing skill covers the count-vs-existence distinction. A short skill that directs the agent to count needed vs available and test a case where counts differ targets this exact logic gap.",
+    "evidence": [
+     "A10"
+    ],
+    "ops": [
+     {
+      "op": "add_skill",
+      "name": "count_match",
+      "when": "the spec asks if elements can be exchanged or swapped between two collections to satisfy a condition",
+      "text": "Count what is needed vs what is available. An existence check (any) is not enough when multiple elements must be replaced or matched: the source must have at least as many qualifying elements as the target requires. Test a case where the counts differ."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 72038,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.8667,
+   "cost": 3071.1,
+   "meta_cost": 1184.9,
+   "acc_hard": 1.0,
+   "nodes": 1.57,
+   "shapes": {
+    "coder[T][S]": 13,
+    "coder[T][S]>tester[T][S]": 10,
+    "coder[T][S]>tester[T]": 7
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "run_examples cannot parse '=>' format examples, so verification is skipped and logic errors invisible to the agent survive",
+    "rationale": "In A10 the problem uses 'exchange(...) => \"YES\"' format. run_examples only recognises '>>>' and 'assert', prints 'no examples found', and the agent never actually runs the failing example. Adding '=>' parsing to the tool lets every node verify against these examples for free, without changing any role or rule.",
+    "evidence": [
+     "A10"
+    ],
+    "ops": [
+     {
+      "op": "edit_tool",
+      "name": "run_examples",
+      "doc": "run_examples(func=None) -> prints PASS/FAIL for every example in the problem statement (the '>>>' lines, 'assert' lines, or 'func(...) => expected' lines) run against func (default: the function with the problem's name, defined in your code).",
+      "code": "def run_examples(func=None):\n    g = globals()\n    f = func or g.get(ENTRY)\n    if f is None:\n        print(f\"define {ENTRY} first\"); return\n    env = dict(g); env[ENTRY] = f\n    lines = PROBLEM.splitlines()\n    checks = []\n    for i, line in enumerate(lines):\n        s = line.strip()\n        if s.startswith(\"assert \"):\n            checks.append((s[7:], None))\n        elif s.startswith(\">>> \"):\n            nxt = lines[i + 1].strip() if i + 1 < len(lines) else \"\"\n            checks.append((s[4:], nxt))\n        elif \" => \" in s and \"(\" in s.split(\" => \")[0] and not s.startswith(\"#\"):\n            parts = s.split(\" => \", 1)\n            checks.append((parts[0].strip(), parts[1].strip()))\n    if not checks:\n        print(\"no examples found in the problem\"); return\n    n = 0\n    for expr, exp in checks:\n        try:\n            got = eval(expr, env)\n            if exp is None:\n                ok = bool(got)\n            else:\n                try:\n                    ok = got == eval(exp, env)\n                except Exception:\n                    ok = repr(got) == exp\n        except Exception as e:\n            ok, got = False, f\"{type(e).__name__}: {e}\"\n        n += bool(ok)\n        print((\"PASS \" if ok else \"FAIL \") + expr[:200] + (\"\" if ok else f\"  -> got {got!r:.200}\"\n              + (f\", expected {exp}\" if exp else \"\")))\n    print(f\"{n}/{len(checks)} examples pass\")",
+      "test": "import io, contextlib\n_p, _e = PROBLEM, ENTRY\nPROBLEM = 'def f(x):\\n    return x+1\\n>>> f(1)\\n2\\nf(2) => 3\\n'\nENTRY = 'f'\ndef f(x): return x+1\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    run_examples(f)\nout = buf.getvalue()\nPROBLEM, ENTRY = _p, _e\nassert '2/2 examples pass' in out, f\"Got: {out}\""
+     }
+    ]
+   },
+   {
+    "pattern": "Trial division up to sqrt(n) is infeasible for n > 10^12, causing timeout on hidden tests with large sequence elements",
+    "rationale": "In A26 the 12th prime Fibonacci is ~10^17; trial division to sqrt(10^17) needs ~3e8 iterations. The efficiency skill says 'avoid trial division beyond sqrt(n)' which the agent reads as 'sqrt(n) is fine'. Rewording to explicitly state the infeasibility threshold and name Miller-Rabin as the replacement gives the 9B model a concrete action without adding a new tool (previous tool-add attempts were rejected as part of bundles).",
+    "evidence": [
+     "A26"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "efficiency",
+      "text": "The plus tests use large inputs and a time limit of a few times the reference solution. Avoid exponential recursion (memoize or iterate), quadratic loops over long lists when a set/dict/sort works. Trial division up to sqrt(n) is too slow for n > 10^12; implement deterministic Miller-Rabin (bases [2,3,5,7,11,13,17,19,23,29,31,37]) instead. Check speed on a large input (timed) before answering."
+     }
+    ]
+   },
+   {
+    "pattern": "Using s == s.lower() instead of s.islower() returns True for strings with no cased characters (digits, symbols), causing case-validation logic to accept invalid inputs",
+    "rationale": "In A30 both nodes used k == k.lower() for the all-lower check; the key '5' satisfies '5' == '5'.lower() so a dict mixing letter and digit keys passed. Previous attempts to add this warning to string_rules were rejected as part of multi-change bundles. This is a one-line addition to an already-short skill, targeting the exact Python pitfall.",
+    "evidence": [
+     "A30"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "text": "Check: (1) Are non-letter characters (spaces, digits, punctuation) preserved unchanged? (2) Does the spec change case, and for which characters? Use .islower()/.isupper() for case checks, not ==str.lower()/==str.upper() (the latter is True for digit/symbol strings). (3) Match the exact output format from the examples."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent skips numeric_rules for rounding problems because rule 3 says to skip a skill if examples already demonstrate its guidance, so the agent uses int(x+0.5) instead of round()",
+    "rationale": "In A9 the problem says 'Round the answer to the nearest integer' and the examples show rounded binary outputs. The meta-agent gave edge_cases + examples_check (the 'obvious' skills) and skipped numeric_rules, reasoning the examples demonstrate the rounding. The agent then used int(avg + 0.5) which gives 971 for 970.5, but the hidden tests expect round()'s banker's rounding (970). Removing the skip clause and making the skill-to-risk mapping more explicit should make the meta-agent give numeric_rules for any rounding problem.",
+    "evidence": [
+     "A9"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give at most 2 skills per node, matched to the specific risk: numeric_rules for rounding/division/number-formatting, string_rules for case/character problems, edge_cases for size/sign boundaries, examples_check when the problem has examples. Do not skip a skill just because examples show the output; the skill guides implementation."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 71997,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.8667,
+   "cost": 2985.9,
+   "meta_cost": 933.2,
+   "acc_hard": 0.75,
+   "nodes": 1.6,
+   "shapes": {
+    "coder[T][S]": 12,
+    "coder[T][S]>tester[T]": 11,
+    "coder[T][S]>tester[T][S]": 7
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   3
+  ]
+ }
+]

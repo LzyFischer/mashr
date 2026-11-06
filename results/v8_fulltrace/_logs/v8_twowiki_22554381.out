@@ -1,0 +1,9 @@
+[job] vLLM port 34381
+udc-ba07-35
+name, memory.total [MiB]
+NVIDIA A40, 46068 MiB
+[vllm] ready Fri Nov  6 10:14:20 EST 2026
+[twowiki] smoke start Fri Nov  6 10:14:20 EST 2026
+[twowiki] smoke ok Fri Nov  6 10:28:59 EST 2026; full run start
+[2026-11-06T10:40:17.816] error: *** JOB 22554381 ON udc-ba07-35 CANCELLED AT 2026-11-06T10:40:17 DUE to SIGNAL Terminated ***
+/var/spool/slurm/slurmd/job22554381/slurm_script: line 1: 173929 Terminated              run_task "$task"

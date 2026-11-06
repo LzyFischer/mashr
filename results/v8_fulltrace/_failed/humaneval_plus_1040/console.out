@@ -1,0 +1,2 @@
+task humaneval_plus: dev-A 50, dev-B 30, test 83; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc; trace budget 120000 chars, max ops 8 (annealed)
+starting organization: the seed

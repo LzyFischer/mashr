@@ -1,0 +1,283 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Checker re-derives the answer from scratch, either changes a correct or near-correct answer to a wrong one, or enters long deliberation that hits the token limit and produces garbage output",
+    "rationale": "In A85 the decomposer correctly identified Frances Manners (close to correct Lady Frances Manners) but the checker re-analyzed the family tree, confused the lineage, and changed it to Anne Carey. In A94 the decomposer correctly answered Louis X of France but the checker re-derived the maternal-grandfather chain, entered a long deliberation loop, hit the 6000-char cut, and the final answer was the truncated reasoning text. The current checker role ('verify each hop, fix any error, and give the short answer you believe is correct') encourages full re-derivation. A conservative role that keeps the answer unless a specific fact is contradicted, with a hard 2-sentence reasoning cap, prevents both failure modes. The checker stats (18% changed, 4 to correct vs 4 to wrong) confirm it is a net zero that occasionally breaks correct answers.",
+    "evidence": [
+     "A85",
+     "A94"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You verify the given answer against the paragraphs. If every hop checks out, output the same answer unchanged. Only change it if a specific fact is contradicted by the text. Keep reasoning to at most 2 sentences. End with the final answer as a single short span."
+     }
+    ]
+   },
+   {
+    "pattern": "Reader outputs multiple candidate lines after the reasoning in comparison questions, and the system picks up the wrong one as the final answer",
+    "rationale": "In A12 the reader correctly stated 'Now Barabbas was released more recently' but then emitted four separate '####' lines (Now Barabbas, 1949, The Vein, 1928). The grader took the last line '1928' as the answer. The reader role does not constrain the output to a single final span. Adding an explicit instruction to end with exactly one final answer span prevents the multi-line output that causes the wrong value to be selected.",
+    "evidence": [
+     "A12"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "reader",
+      "role": "You answer multi-hop questions using only the given paragraphs: find each fact you need and give a short answer. End with exactly one final answer span on its own line."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 130235,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.76,
+   "cost": 3959.8,
+   "meta_cost": 3177.9,
+   "acc_hard": 0.7073,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 26,
+    "reader[T][S]": 8,
+    "decomposer[T][S]>checker[S]": 8,
+    "checker[T][S],decomposer[T][S]": 5
+   },
+   "n_shapes": 7,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Comparison questions that ask which entity are answered with a date or multiple final spans instead of the entity name.",
+    "rationale": "In A12 the reader correctly compared release years but emitted several '####' lines and the last line was a year, so the final answer was 1928 instead of the film name. The dates_numbers skill encourages date output, and comparison did not forbid dates in the final span. Editing the comparison skill and the skill-staffing rule keeps the final answer to the entity name.",
+    "evidence": [
+     "A12"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "comparison",
+      "when": "two entities are compared (which / who is older, earlier, larger; do both ...; same ...)",
+      "text": "1. Find the compared property for each entity in its own paragraph; write both values in reasoning only. 2. Compare carefully (earlier date = older person / earlier release). 3. For 'which/who' questions, answer only the entity's name as written in the question; do not output the date or both values. For 'both'/'same' questions answer yes/no. End with exactly one '#### <answer>' line."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Skills: give answer_span to every node and verify to every checker. Add relations only for family/social relations; distractors only for same/near names; comparison for which/who older/earlier/larger or same; dates_numbers only when the answer itself is a date, year, age, or count, not for which/who comparison questions; yes_no for yes/no; bridge for 'the X of Y' descriptions. Give at most 3 skills per node; verify counts."
+     }
+    ]
+   },
+   {
+    "pattern": "Checkers re-derive or second-guess a supported answer and turn correct decomposer output into a wrong answer or a token-limited non-answer.",
+    "rationale": "In A94 the decomposer gave the correct Louis X of France, but the checker re-derived the chain, rambled, and produced a cut wrong output. In A85 the checker replaced the decomposer's supported name with a different relative. A verify skill plus a rule giving it to every checker makes the checker preserve supported answers and change only on explicit contradiction.",
+    "evidence": [
+     "A94",
+     "A85",
+     "A56"
+    ],
+    "ops": [
+     {
+      "op": "add_skill",
+      "name": "verify",
+      "when": "any checker node that receives another node's work",
+      "text": "Check each hop in the given answer against the cited paragraphs. If every required fact is present, repeat the given final span unchanged. Change it only when a specific sentence contradicts it. Do not re-derive the whole chain or add new hops. End with exactly one '#### <answer>' line."
+     }
+    ]
+   },
+   {
+    "pattern": "Relation questions fail when siblings share parents or when the agent adds an extra relation hop instead of answering the property of the last entity.",
+    "rationale": "In A87 both agents answered not mentioned although the text gives the mother of Adelaide's sibling, requiring the inference that siblings share parents. In A123 the decomposer found the father's death place but then looked for the father's father and answered not mentioned. Adding these composition rules to the relations skill targets the missing step.",
+    "evidence": [
+     "A87",
+     "A123"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "relations",
+      "when": "family or other relations (grandfather, mother-in-law, spouse, child of the director ...)",
+      "text": "Compose relations one step at a time: paternal grandfather = father's father; maternal grandmother = mother's mother; father-in-law = spouse's father; mother-in-law = spouse's mother; sibling-in-law = spouse's sibling; siblings share parents. Name each intermediate entity in one short sentence with its paragraph number. Answer the property asked of the last entity in the chain; do not add another relation hop. Keep total reasoning under 4 sentences. End with the final answer as a single name or place."
+     }
+    ]
+   },
+   {
+    "pattern": "The meta-agent sometimes defines a checker without passing the node it should verify, so the checker runs independently and cannot see the work to check.",
+    "rationale": "In A131 the team defines d = decomposer(...) and c = checker(tools=..., skills=...) without d as input; the checker answers not mentioned while the decomposer had found a candidate. The same missing-input wiring appears in A66, A140, and A146. An explicit code rule tells the meta-agent to pass the input node positionally.",
+    "evidence": [
+     "A131",
+     "A66",
+     "A140",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "When a checker verifies another node's work, pass that node as the checker's first positional argument (e.g. c = checker(a, tools=[...], skills=[...])). A checker without an input node cannot see the work to verify."
+     }
+    ]
+   },
+   {
+    "pattern": "Agents output multiple final-answer lines or give up with not mentioned when the exact property word is absent, even though a closest span exists in the entity's paragraph.",
+    "rationale": "A12 emitted multiple '####' lines and the last one was selected. A125 answered not mentioned although the composer's paragraph contains the closest location span; A85 shows that over-normalization can also drop a title the grader expects. Editing answer_span enforces one final line, a search before giving up, and keeps 'Lady' when it is part of the name.",
+    "evidence": [
+     "A125",
+     "A12",
+     "A85"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question: a name, a title, a date, a number, or yes/no. No explanation, no 'The answer is'. Keep original spelling. Keep your reasoning to at most 3 sentences and end with exactly one line '#### <answer>'. (1) Never answer 'not mentioned', 'unknown', 'unanswerable', or 'cannot be determined'; if the exact property word is absent, search the entity name in all paragraphs and give the closest stated span. (2) For a place, give one place name: from 'City, State/Country' give only the city. (3) For a person's name, drop King, Queen, Count, Prince, Duke and parentheticals unless the question includes them; keep 'Lady' when it is part of the name in the paragraph. (4) For a nationality, give one word, not a hyphenated compound."
+     }
+    ]
+   }
+  ],
+  "repairs": 1,
+  "prompt_chars": 130249,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 4053.0,
+   "meta_cost": 3180.3,
+   "acc_hard": 0.7073,
+   "nodes": 1.92,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 40,
+    "reader[T][S]>checker[T][S]": 5,
+    "reader[T][S]": 4,
+    "decomposer[T][S]>checker[S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Checker re-derives the answer and changes a correct decomposer output to a wrong one (A56 correct\u2192'not mentioned', A94 correct\u2192token-cut, A106 correct 'Indian'\u2192'Northern Indian', A85 close\u2192wrong entity)",
+    "rationale": "The checker role says 'fix any error, and give the short answer you believe is correct', which invites re-derivation. In A56 the decomposer correctly answers Krak\u00f3w but the checker re-reads the paragraph, misses the birthplace, and outputs 'not mentioned'. In A94 the checker second-guesses a correct 2-hop answer and runs out of tokens. In A106 the checker 'improves' the correct answer 'Indian' to the more specific 'Northern Indian'. The fix is to make the checker conservative: verify each hop against a supporting sentence, and if all hops check out, output the given answer unchanged.",
+    "evidence": [
+     "A56",
+     "A94",
+     "A106",
+     "A85"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You verify the given answer against the paragraphs. For each hop, find the sentence that supports it. If every hop is supported by the text, output the given answer unchanged. Only if a hop is contradicted or unsupported, correct that specific hop and recompute the final short answer."
+     }
+    ]
+   },
+   {
+    "pattern": "Agents answer 'not mentioned' when the target entity's paragraph contains the answer under different wording (A87 mother via sibling, A123 confused reference, A125 'moved to Moscow' implies deathplace, A39/A43/A45/A104/A130/A140 location stated but agent misses it)",
+    "rationale": "The answer_span skill says 'never answer not mentioned' but gives no guidance on what counts as a valid answer when the exact property word (birthplace, deathplace, burial) is absent. In A87 Adelaide's mother isn't named in her paragraph but her brother William's mother is Herleva. In A125 Khachaturian 'moved to Moscow' and died there. In A45 Nick Drake 'died in rural Warwickshire' answers 'place of burial'. The agent needs explicit permission to use any stated location or fact about the correct entity, and a hint to check siblings' paragraphs for shared parents.",
+    "evidence": [
+     "A87",
+     "A123",
+     "A125",
+     "A39",
+     "A43",
+     "A45",
+     "A104",
+     "A130",
+     "A140",
+     "A17"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question: a name, a title, a date, a number, or yes/no. No explanation, no 'The answer is'. Keep original spelling. Keep your reasoning to at most 3 sentences. (1) Never answer 'not mentioned', 'unknown', 'unanswerable', or 'cannot be determined'\u2014always give the best span found in the text. If the exact property word is absent, re-read the target entity's full paragraph: 'died in X' answers where X died; 'born in X' or 'from X' answers where X was born; 'lived in X' or 'moved to X' plus a death date implies death in X; if a parent is not stated, check a sibling's paragraph for the shared parent. (2) For a place, give one place name, not a compound 'X, Y'. (3) For a person's name, drop only King, Queen, Count, Prince, Duke; keep Lady, Lord, Sir, Dame. (4) For a nationality, give one word (e.g. 'American', 'French'), not a hyphenated compound."
+     }
+    ]
+   },
+   {
+    "pattern": "For 'which X is Y' comparison questions the agent outputs the compared value (a year) instead of the entity name (A12: 'Which film was released more recently' \u2192 answered 1928 instead of Now Barabbas)",
+    "rationale": "The comparison skill says 'Answer with the entity's name as written in the question' but the model focuses on the date values it computed and outputs the year. The reader in A12 correctly determined Now Barabbas (1949) is more recent than The Vein (1928) but output '1928'. The skill needs to explicitly state that the answer is the entity being compared, not the numeric value.",
+    "evidence": [
+     "A12"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "comparison",
+      "when": "two entities are compared (which / who is older, earlier, larger; do both ...; same ...)",
+      "text": "1. Find the compared property (birth date, release year, population, nationality) for each entity in its own paragraph; write both values. 2. Compare them carefully (earlier date = older person / earlier release). 3. For 'which/who' questions the answer is the entity's name (the film, person, or place), not the compared number or date. For 'both' and 'same' questions answer yes or no."
+     }
+    ]
+   },
+   {
+    "pattern": "Relations skill 4-sentence cap is too tight for 3-hop chains, causing the agent to skip a necessary inference step (A87: didn't check sibling's mother; A94: checker confused on 2-hop; A85: wrong generation)",
+    "rationale": "The last accepted change capped relations reasoning at 4 sentences, which was meant to prevent token exhaustion. However it broke A87 (agent needed to go: Adelaide \u2192 sibling William \u2192 William's mother Herleva, a 3-step chain that doesn't fit in 4 sentences with citations) and A94 (checker needed to verify a 2-hop chain but got confused under the brevity pressure). Increasing to 6 sentences and adding the sibling-parent inference rule fixes the regression without reintroducing the original token-exhaustion problem.",
+    "evidence": [
+     "A87",
+     "A94",
+     "A85"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "relations",
+      "when": "family or other relations (grandfather, mother-in-law, spouse, child of the director ...)",
+      "text": "Compose relations one step at a time: paternal grandfather = father's father; maternal grandmother = mother's mother; father-in-law = spouse's father; mother-in-law = spouse's mother; sibling-in-law = spouse's sibling. Name each intermediate entity in one short sentence with its paragraph number. If the target person's parent is not stated in their own paragraph, check a sibling's paragraph for the shared parent. Keep total reasoning under 6 sentences. End with the final answer as a single name or place."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 130208,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.78,
+   "cost": 4074.2,
+   "meta_cost": 3180.1,
+   "acc_hard": 0.7317,
+   "nodes": 1.74,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 29,
+    "reader[T][S]": 9,
+    "decomposer[T][S]>checker[S]": 6,
+    "reader": 3
+   },
+   "n_shapes": 6,
+   "fallback": 3
+  },
+  "flip_b": [
+   2,
+   1
+  ]
+ }
+]

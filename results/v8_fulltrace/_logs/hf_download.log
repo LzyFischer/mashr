@@ -1,0 +1,4 @@
+Hint: A new version of huggingface_hub (2.4.0) is available! You are using version 1.33.0.
+To update, run: hf update
+Hint: The `hf-cli` skill is not installed. Run `hf skills add -g` to teach your AI agents how to use the `hf` CLI.
+path=/sfs/weka/scratch/vjd5zr/.cache/huggingface/hub/models--Qwen--Qwen3.5-9B/snapshots/c202236235762e1c871ad0ccb60c8ee5ba337b9a

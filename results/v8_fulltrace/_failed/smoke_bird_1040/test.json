@@ -1,0 +1,41 @@
+{
+ "org_round0": {
+  "n": 8,
+  "acc": 0.375,
+  "cost": 3319.6,
+  "meta_cost": 727.7,
+  "acc_hard": 1.0,
+  "nodes": 2.0,
+  "shapes": {
+   "writer[T][S]>checker[T][S]": 8
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "org_final": {
+  "n": 8,
+  "acc": 0.375,
+  "cost": 3593.4,
+  "meta_cost": 693.6,
+  "acc_hard": 1.0,
+  "nodes": 2.0,
+  "shapes": {
+   "writer[T][S]>checker[T][S]": 8
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "single": {
+  "n": 8,
+  "acc": 0.375,
+  "cost": 539.8,
+  "meta_cost": 0.0,
+  "acc_hard": 1.0,
+  "nodes": 1.0,
+  "shapes": {
+   "writer": 8
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ }
+}

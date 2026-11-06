@@ -19,6 +19,11 @@ MAX_TOKENS = 3072
 MAX_RUNS = 5
 VOTE_ON_MISSING = True
 FALLBACK_TOOLS = ("run_sql",)
+TOOLS_ARE_CODE = True    # the evolver may add / edit tools (Python on DB, with a sandbox test)
+TOOL_ENV = ("Tool code runs in a sandbox (Python 3, sqlite3, no network, 30 s) with DB (the path of the "
+            "question's SQLite file; open it read-only: sqlite3.connect(f\"file:{DB}?mode=ro\", uri=True)) "
+            "and DESC (its database_description folder of CSV files) defined; tests run on one dev "
+            "database. Tools print their results.")
 SPLITS = {"dev_a": 150, "dev_b": 50, "test": 300}
 META = {"team": "answer questions over SQLite databases by writing SQL", "item": "question",
         "node": "the agent reads the schema, the question, its skills and the full work of its inputs, "
@@ -245,6 +250,17 @@ def load(split, n=None):
     return out[:n] if n else out
 
 
+def _prelude(db_id):
+    return (f"DB = {_db(db_id)!r}\nDESC = "
+            f"{os.path.join(DATA, 'dev_databases', db_id, 'database_description')!r}\n")
+
+
+def tool_prelude():
+    """Prepended to a tool's code and test when the evolver adds or edits a tool: the database of the
+    first dev-A question (DB, DESC)."""
+    return _prelude(load("dev_a", 1)[0]["db"])
+
+
 def meta_view(item):
     con = sqlite3.connect(f"file:{_db(item['db'])}?mode=ro", uri=True)
     tables = [t for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type='table'") if t != "sqlite_sequence"]
@@ -295,16 +311,16 @@ def run_node(eng, pool, node, item, work, is_output):
     if work:
         user += f"\n\nWork from your teammates:\n{work}\n\nGive your own final query."
     user += f"\n\n{ANSWER_FMT}"
+    S, T = pool.get("skills", SKILLS), pool.get("tools", TOOLS)
     system = pool["agents"][node["agent"]]["role"]
     if node["skills"]:
-        system += "\n\nSkills to apply:\n" + "\n".join(f"- {k}: {SKILLS[k]['text']}" for k in node["skills"])
+        system += "\n\nSkills to apply:\n" + "\n".join(f"- {k}: {S[k]['text']}" for k in node["skills"])
     if node["tools"]:
         system += (f"\n\nYou can run Python on this database up to {MAX_RUNS} times: write one ```python``` "
                    "code block that calls these functions and prints what you need, then stop and wait "
-                   "for its output:\n" + "\n".join(f"- {TOOLS[t]['doc']}" for t in node["tools"]))
+                   "for its output:\n" + "\n".join(f"- {T[t]['doc']}" for t in node["tools"]))
     msgs = [{"role": "system", "content": system}, {"role": "user", "content": user}]
-    pre = (f"DB = {_db(item['db'])!r}\nDESC = {os.path.join(DATA, 'dev_databases', item['db'], 'database_description')!r}\n"
-           + "\n".join(TOOLS[t]["code"] for t in node["tools"]))
+    pre = _prelude(item["db"]) + "\n".join(T[t].get("code", "") for t in node["tools"])
     calls, shown = [], []
     for k in range(MAX_RUNS + 1):
         r = eng.chat(msgs, MAX_TOKENS)

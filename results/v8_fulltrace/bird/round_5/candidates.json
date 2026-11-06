@@ -1,0 +1,239 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Writer adds extra unrequested columns or uses wrong values/operators from the question and evidence",
+    "rationale": "In A66 the writer selected r.text AND r.date when only text was asked; A72 added SUM(l.amount) as a helper column; A123 selected superhero_name AND weight_kg when only name was asked; A137 returned wrong column names and extra columns. In A71 the writer used = '1990' instead of > '1990'; A132 used ' = ' (with spaces) instead of '='. The current writer role is a single sentence with no output or value discipline, so the 9B model freely adds columns and misreads operators. Adding two short always-on constraints (exact columns, exact values/operators) targets the root cause without overlapping the per-question skills.",
+    "evidence": [
+     "A66",
+     "A72",
+     "A123",
+     "A137",
+     "A71",
+     "A132"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "writer",
+      "role": "You write correct SQLite queries. Select only the asked columns, in order. Use exact values and operators from the question and evidence."
+     }
+    ]
+   },
+   {
+    "pattern": "Checker rewrites a correct query by changing its structure (e.g. replacing ORDER BY LIMIT with a MAX subquery) instead of returning it unchanged",
+    "rationale": "In A14 the writer produced a correct ORDER BY DESC LIMIT 1 query, but the checker 'improved' it into a WHERE = (SELECT MAX(...)) subquery, reasoning about hypothetical ties. The current checker role says 'fix any error, and give the query you believe is correct,' which invites restructuring. The checker's stats show 8 changes to wrong. Adding 'If all match, return unchanged' and 'fix only that part' makes the checker conservative about structure while still allowing targeted fixes for genuine mismatches.",
+    "evidence": [
+     "A14"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check a teammate's SQL against the question and evidence. Run the query with run_sql. Verify each condition, join, value, and output column. If all match, return unchanged. If one part is wrong, fix only that part."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 153112,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.6,
+   "cost": 3118.1,
+   "meta_cost": 933.4,
+   "acc_hard": 0.5238,
+   "nodes": 1.9,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 44,
+    "writer[T][S]": 5,
+    "checker[T][S],writer[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   3,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "The top_k_ties skill's blanket 'Do not add IS NOT NULL' breaks ASC ordering where NULLs sort first, and the model still uses MAX/MIN subqueries instead of ORDER BY LIMIT.",
+    "rationale": "A39 needs IS NOT NULL for ASC (lowest) ordering because NULLs sort first in SQLite, but the skill forbids it, causing a direct regression. A92 shows the model still uses WHERE = MAX subquery despite the skill saying ORDER BY LIMIT is default. Making the ASC/NULL rule explicit and strengthening 'never replace ORDER BY LIMIT' fixes both.",
+    "evidence": [
+     "A39",
+     "A92"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "top_k_ties",
+      "when": "highest, lowest, most, least, top N, the first/last",
+      "text": "1. Default: ORDER BY the requested column ASC/DESC and LIMIT N.\n2. For ASC (lowest/least), add IS NOT NULL on the ordered column (NULLs sort first in SQLite). For DESC, do not add it. Do not add DISTINCT, GROUP BY, AVG, or extra columns unless explicitly required.\n3. Never replace ORDER BY ... LIMIT N with WHERE col = (SELECT MAX/MIN(...)). Use the subquery only when the question explicitly asks for all tied rows.\n4. For 'most/least frequent', GROUP BY the entity, ORDER BY COUNT(*) DESC/ASC, and return only the asked column."
+     }
+    ]
+   },
+   {
+    "pattern": "The checker replaces a correct ORDER BY LIMIT query with a MAX/MIN subquery, interpreting plural question wording as requiring all tied rows.",
+    "rationale": "In A14 the writer's ORDER BY convertedManaCost DESC LIMIT 1 was correct, but the checker 'improved' it to WHERE = (SELECT MAX(...)), returning multiple rows. The check_result skill says 'never add subqueries' but the checker still does it because it reads 'list the cards' as needing all ties. An explicit 'keep ORDER BY LIMIT for top-one' instruction closes this gap.",
+    "evidence": [
+     "A14"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "check_result",
+      "when": "reviewing another agent's query",
+      "text": "1. List each condition in the question/evidence and the asked output columns.\n2. Run the teammate's query. If every condition is present and the output columns match, keep it unchanged.\n3. Never delete a condition. Never add DISTINCT, GROUP BY, subqueries, or extra columns. If the writer used ORDER BY ... LIMIT N for a top-one or top-N question, keep it; do not replace it with a MAX/MIN subquery.\n4. If one condition, join, value, or output column is wrong, fix only that part and rerun."
+     }
+    ]
+   },
+   {
+    "pattern": "The writer adds extra columns not asked for or selects wrong column names in the final SELECT list.",
+    "rationale": "A66 selected text+date when only text was asked; A123 selected name+weight when only name was asked; A137 used School instead of School Name. The output_columns skill says 'select exactly the attributes asked' but the 9B model still appends helper columns. Stating the column-count requirement explicitly ('exactly as many columns as asked attributes') makes the constraint harder to overlook.",
+    "evidence": [
+     "A66",
+     "A123",
+     "A137"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "output_columns",
+      "when": "before the final query of any question",
+      "text": "1. Select exactly the columns the question asks for, in that order. The SELECT list must have exactly as many columns as there are asked attributes\u2014no more.\n2. If it asks for entities without naming an attribute, return the entity's identifier column (primary key or id/link column named by evidence), not a name or helper column.\n3. Do not add columns used only for filtering, sorting, or checking. Do not add DISTINCT, LIMIT, or ORDER BY unless implied.\n4. Run the final query once; if the SELECT list has extra or missing columns, fix only the SELECT list."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 153126,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.56,
+   "cost": 3017.7,
+   "meta_cost": 931.3,
+   "acc_hard": 0.4762,
+   "nodes": 1.9,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 45,
+    "writer[T][S]": 4,
+    "writer[T]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 1
+  },
+  "flip_b": [
+   3,
+   5
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "top_k_ties skill forbids IS NOT NULL causing missed NULL filters, and its 4-point text is too long for the 9B model to reliably follow the ORDER BY default",
+    "rationale": "A39 regression: the skill's blanket 'Do not add IS NOT NULL' caused the model to omit a needed NULL filter on the sort column. A92 regression: the model still used a MAX subquery despite the skill saying ORDER BY LIMIT is the default. Shortening to 3 points and removing the blanket prohibition lets the model use judgment on NULLs while keeping the simple ORDER BY pattern prominent.",
+    "evidence": [
+     "A39",
+     "A92"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "top_k_ties",
+      "when": "highest, lowest, most, least, top N, the first/last",
+      "text": "1. 'Highest/lowest/most/least/top-N' \u2192 ORDER BY col DESC/ASC LIMIT N. 2. Use WHERE col = (SELECT MAX/MIN) only when the question asks for ALL tied rows. 3. For 'most/least frequent', GROUP BY entity, ORDER BY COUNT(*) DESC/ASC, return only the asked column."
+     }
+    ]
+   },
+   {
+    "pattern": "Checker rewrites a correct teammate query by adding unnecessary subqueries or restructuring, turning a right answer into a wrong one",
+    "rationale": "A14 regression: the writer produced a correct ORDER BY DESC LIMIT 1, but the checker 'improved' it into a MAX subquery that changed the result. The check_result skill says 'keep it unchanged' but the model still restructures. Shortening to 4 tight points and making the no-change rule explicit ('EXACTLY as-is, do not restructure or improve') gives the 9B model a clearer stopping condition.",
+    "evidence": [
+     "A14"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "check_result",
+      "when": "reviewing another agent's query",
+      "text": "1. Run the teammate's query. 2. Check each condition and output column against the question and evidence. 3. If everything matches, return the query EXACTLY as-is. Do not restructure or 'improve' a correct query. 4. If one part is wrong, fix only that part and rerun."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer adds extra columns to the SELECT list that the question does not ask for, such as helper sort/filter columns or related-table attributes",
+    "rationale": "A66 added a date column, A72 added a SUM column, A123 added weight_kg, A137 selected wrong columns from the joined table. The output_columns skill says 'select exactly' but the 9B model still appends columns it finds useful. Rewriting point 1 as 'ONLY \u2026 No extra columns' and shortening the skill to 4 concise points makes the constraint harder to skip.",
+    "evidence": [
+     "A66",
+     "A72",
+     "A123",
+     "A137"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "output_columns",
+      "when": "before the final query of any question",
+      "text": "1. Select ONLY the columns the question explicitly asks to return, in that order. No extra columns. 2. If an entity is asked without naming an attribute, return its identifier (primary key or id column). 3. Never use SELECT *. 4. If your query has extra or missing columns, fix only the SELECT list."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent omits evidence_first when the question includes evidence, so the writer substitutes its own interpretation for evidence-defined conditions and formulas",
+    "rationale": "A10: the evidence formula's numerator condition was moved to WHERE, changing the denominator. A22: evidence 'weight_kg = 0 OR IS NULL' was reduced to IS NULL only. A45 (regression): wrong column and case used despite evidence specifying the exact value. In all three, evidence_first was absent from the writer's skills. Adding it to rule 3 guarantees the writer sees the 'copy evidence literally' instruction whenever evidence is present.",
+    "evidence": [
+     "A10",
+     "A22",
+     "A45"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give the fewest skills that match the question. Always give check_result to a checker and output_columns to the node whose query is returned. Always give evidence_first when the question includes evidence."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 153085,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.52,
+   "cost": 2710.5,
+   "meta_cost": 929.1,
+   "acc_hard": 0.5238,
+   "nodes": 1.94,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 45,
+    "writer[T][S]": 3,
+    "checker[T][S],writer[T][S],writer[T][S]": 1,
+    "writer[T]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 1
+  },
+  "flip_b": [
+   2,
+   6
+  ]
+ }
+]

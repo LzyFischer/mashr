@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 results/cache/
 data/_download/
+results/**/vllm_*.log
+results/v8/_queue/

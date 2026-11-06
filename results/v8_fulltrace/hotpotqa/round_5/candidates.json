@@ -1,0 +1,282 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Decomposer outputs are cut at the token limit because the role's 'cite the paragraph' instruction encourages per-step paragraph citations that inflate output length",
+    "rationale": "In A37, A52, A61, and A119 the decomposer wrote 400-600+ words of step-by-step reasoning with paragraph citations and was cut before reaching a clean answer line. The 6% cut rate for decomposer (vs 3% for reader) is driven by the role's 'cite the paragraph' clause, which makes the model write 'Paragraph [N] states...' for every sub-fact. The multi-hop procedure is already provided by the bridge skill, so the role does not need to restate citation. Removing this clause reduces output length without changing the answering procedure.",
+    "evidence": [
+     "A37",
+     "A52",
+     "A61",
+     "A119"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into single-hop sub-questions, answer each from the paragraphs, and combine them into the final short answer."
+     }
+    ]
+   },
+   {
+    "pattern": "Checker rubber-stamps the decomposer's wrong span form (extra descriptors, dropped qualifiers, wrong name length) instead of correcting it against the paragraph text",
+    "rationale": "In A3, A4, A44, A73, A107, A124, A137, A144, and A146 the checker received a span-form error from the decomposer, said 'the teammate's answer is correct,' and repeated the identical wrong span. The current role says 'verify each hop, fix any error' which the 9B model interprets as a plausibility confirmation rather than a text-comparison step. Replacing the vague 'verify each hop' with the concrete instruction 'copy the answer verbatim from the paragraph sentence that states it' gives the model a specific, actionable check: find the sentence, copy the span. The checker stats confirm the problem: only 12 of 101 inputs were changed, and only 5 of those changes were to correct.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A44",
+     "A73",
+     "A107",
+     "A124",
+     "A137",
+     "A144",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the answers you are given against the paragraphs: for each fact, find the paragraph sentence that states it and copy the answer verbatim from that sentence. Fix any mismatch, then give the short answer."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 157199,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.7,
+   "cost": 4374.8,
+   "meta_cost": 3153.7,
+   "acc_hard": 0.6905,
+   "nodes": 1.9,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 38,
+    "reader[T][S]": 5,
+    "checker[T][S],decomposer[T][S]": 5,
+    "reader[T][S]>checker[T][S]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Final answers are not verbatim paragraph spans: names are shortened or over-qualified, lists miss conjunctions, and units or descriptors are added or dropped",
+    "rationale": "Many wrong traces found the right entity or fact but returned a span that is not the exact text needed: A4/A40/A58/A59/A67/A131/A137/A144/A146 shortened or lengthened person names; A44/A73/A91/A102/A106/A107/A24 added or dropped qualifiers/units; A33 missed the conjunction in a list. A general verification helper lets a node mechanically check whether its candidate answer occurs verbatim and, when not, see nearby sentences to copy the correct span. This is residual because the meta-agent decides which node gets the helper.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A24",
+     "A33",
+     "A44",
+     "A58",
+     "A59",
+     "A67",
+     "A73",
+     "A91",
+     "A102",
+     "A106",
+     "A107",
+     "A137",
+     "A144",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "add_tool",
+      "name": "verify_answer",
+      "doc": "verify_answer(candidate) -> checks whether candidate appears verbatim in CONTEXT. If found, prints the matching sentence. If not found, prints NOT FOUND and up to 3 NEAR sentences ranked by word overlap, so the agent can locate the correct span.",
+      "code": "def verify_answer(candidate):\n    c = str(candidate).lower().strip()\n    found = False\n    for i, (title, sents) in enumerate(CONTEXT, 1):\n        for j, s in enumerate(sents):\n            if c and c in s.lower():\n                print(f\"FOUND [{i}] {title} ({j}): {s.strip()}\")\n                found = True\n    if not found:\n        print(f\"NOT FOUND: '{candidate}'\")\n        c_words = [w.strip('.,;:!?'\"'\"'()[]{}') for w in c.split() if len(w) > 2]\n        if c_words:\n            cands = []\n            for i, (title, sents) in enumerate(CONTEXT, 1):\n                for j, s in enumerate(sents):\n                    s_words = set(w.strip('.,;:!?'\"'\"'()[]{}').lower() for w in s.split())\n                    overlap = sum(1 for w in c_words if w in s_words)\n                    if overlap >= 1:\n                        cands.append((overlap / len(c_words), i, title, j, s.strip()))\n            cands.sort(key=lambda x: -x[0])\n            for score, i, title, j, s in cands[:3]:\n                print(f\"NEAR [{i}] {title} ({j}): {s.strip()}\")",
+      "test": "CONTEXT = [[\"P1\", [\"Alice was born in 1990.\", \"She is a doctor in London.\"]], [\"P2\", [\"Bob lives in Paris.\", \"The city is beautiful and old.\"]]]\nimport io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    verify_answer(\"Alice\")\nout = buf.getvalue()\nassert \"FOUND\" in out and \"P1\" in out\nbuf2 = io.StringIO()\nwith contextlib.redirect_stdout(buf2):\n    verify_answer(\"Alice Smith\")\nout2 = buf2.getvalue()\nassert \"NOT FOUND\" in out2\nassert \"NEAR\" in out2"
+     }
+    ]
+   },
+   {
+    "pattern": "Checkers on bridge questions rubber-stamp non-verbatim spans because they have no concrete way to confirm the exact text form",
+    "rationale": "In many bridge traces the decomposer identified the right entity but the checker repeated a wrong span form: A3 kept a descriptor, A44 kept County, A73 kept a longer facility name, A107 kept a unit, and person-name traces kept shortened forms. The checker is the natural residual recipient of verify_answer because it already sees the input answer and the paragraphs; giving it the tool turns verification into a concrete step before returning the final answer.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A44",
+     "A58",
+     "A67",
+     "A73",
+     "A107",
+     "A124",
+     "A137",
+     "A144",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "For bridge questions, give the checker node the verify_answer tool so it can confirm the final span is verbatim in the paragraphs before returning it."
+     }
+    ]
+   },
+   {
+    "pattern": "Comparison questions sometimes end with the compared value, both entities, or a range instead of the single answer the question asks for",
+    "rationale": "A2 answered a year instead of the title asked by 'which came first'; A93 listed or chose the wrong entity in a which-question; A42 needs a year because the question explicitly asks for the overlapping year. The current comparison skill says to answer with the entity's name as written in the question, which both causes short-name errors and does not tell the model to answer the requested property when the question asks for a date or number. Editing the skill to answer exactly what the question asks avoids forbidding valid date/number answers while preventing both-entity or wrong-property finals.",
+    "evidence": [
+     "A2",
+     "A21",
+     "A42",
+     "A53",
+     "A93",
+     "A122"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "comparison",
+      "when": "two entities are compared (which / who is older, earlier, larger; do both ...; same ...)",
+      "text": "1. Find the compared property for each entity in its own paragraph; write both values in reasoning. 2. Compare carefully (earlier date = older / earlier release). 3. Answer only what the question asks: for which/who, the single entity; for both/same, yes/no; for a requested year/date/amount, that value. Do not answer with both entities or with a value when an entity is asked."
+     }
+    ]
+   },
+   {
+    "pattern": "The answer_span skill's 'shortest span' wording makes agents drop needed words or add unnecessary ones instead of copying the exact supporting span",
+    "rationale": "The same traces that motivate verify_answer show a skill-level cause: 'shortest span' encourages dropping middle names (A4, A40, A58, A59, A67, A131, A137, A144, A146) or, inconsistently, keeping descriptors/units (A3, A24, A44, A91, A106, A107). Replacing the instruction with a verbatim-copy rule targeting the sentence that states the answer addresses both too-short and too-long spans without adding question-specific exceptions.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A24",
+     "A40",
+     "A44",
+     "A58",
+     "A59",
+     "A67",
+     "A91",
+     "A106",
+     "A107",
+     "A137",
+     "A144",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the exact span from the paragraphs that answers the question. Copy it verbatim from the sentence that states the answer: do not paraphrase, add, or drop words. For a person's name, use the name form written in the identifying sentence, often the full name in that person's own paragraph. No explanation, no 'The answer is', keep original spelling."
+     }
+    ]
+   }
+  ],
+  "repairs": 1,
+  "prompt_chars": 157213,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.7,
+   "cost": 4617.4,
+   "meta_cost": 3171.3,
+   "acc_hard": 0.7143,
+   "nodes": 1.84,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 39,
+    "reader[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 3,
+    "checker[T][S]": 2
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   4
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "The 'shortest span' instruction in answer_span causes the model to drop middle names, required qualifiers, or sentence context, producing spans that mismatch the grader's expected form in both directions (too short and too long).",
+    "rationale": "In A4, A40, A58, A59, A67, A131, A137, A144, A146 the model used the brief name from a reference paragraph instead of the fuller name in the entity's own paragraph because 'shortest' encouraged dropping words. In A29, A68, A124 the model dropped sentence context the grader expects. In A3, A24, A44, A73, A76, A107 the model added descriptors. Replacing 'shortest span' with 'copy the exact span from the sentence that states the fact, no more, no less' removes the bias toward brevity and anchors the model to the specific sentence rather than the shortest available name.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A24",
+     "A29",
+     "A40",
+     "A44",
+     "A58",
+     "A59",
+     "A67",
+     "A68",
+     "A73",
+     "A76",
+     "A107",
+     "A124",
+     "A131",
+     "A137",
+     "A144",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Copy the exact span from the paragraph sentence that states the fact. No more, no less: do not add descriptors, units, or qualifiers, and do not drop middle names or qualifiers that appear in that sentence. No explanation, no 'The answer is'. Keep original spelling and punctuation."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent generates invalid team code (unknown agent name 'agent', undefined return target, syntax errors), causing 6 questions to fall back to a single no-tools agent with no skills.",
+    "rationale": "The report lists 18 code-generation errors: unknown agent 'agent' appears 6 times, undefined return 4 times, no node 4 times, syntax errors 2 times. Each fallback loses all tools and skills, degrading the answer. The 9B meta-agent writes generic 'agent' instead of a valid name because no rule constrains the name set. A two-sentence rule stating the valid names and the return requirement is the minimal fix; it adds only ~60 chars to the meta prompt.",
+    "evidence": [
+     "A22",
+     "A76"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Agent names must be reader, decomposer, or checker. Return must name a variable defined above."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 157172,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.7,
+   "cost": 4605.2,
+   "meta_cost": 3157.5,
+   "acc_hard": 0.6905,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 39,
+    "reader[T][S]": 6,
+    "decomposer[T][S]>checker[S]": 4,
+    "checker[T][S],decomposer[T][S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   4
+  ]
+ }
+]

@@ -1,0 +1,239 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Final queries select wrong, extra, or all columns instead of the exact attributes or identifier asked.",
+    "rationale": "In A3, A28, A87, A104, and A138 the writer's final SELECT chose a similar column, returned a name instead of an identifier, added helper columns, or used SELECT *. The writer often does not receive the output_columns skill, so an always-on writer role enforcing exact SELECT discipline targets the source of these errors.",
+    "evidence": [
+     "A3",
+     "A28",
+     "A87",
+     "A104",
+     "A138"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "writer",
+      "role": "You write SQLite queries. Select exactly the columns asked, in order. Use the exact column for each asked attribute; if an entity is asked without an attribute, return its identifier column. No helper columns or SELECT *."
+     }
+    ]
+   },
+   {
+    "pattern": "The checker rewrites or accepts a teammate query without a concrete mismatch, causing regressions.",
+    "rationale": "In A22, A10, A12, A28, and A36 the checker accepted or altered near-correct queries despite wrong evidence handling, wrong output columns, or unnecessary changes. The current checker role says to fix any error and give the query it believes is correct, which encourages rewriting. A short final-review role that runs the query and changes only a verified mismatch should reduce harmful changes while preserving necessary fixes.",
+    "evidence": [
+     "A22",
+     "A10",
+     "A12",
+     "A28",
+     "A36"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You produce the final SQLite query. Run a teammate's query, then return it unchanged unless a condition, join, value, or output column is wrong against the question/evidence; fix only that part."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 150575,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.54,
+   "cost": 2954.7,
+   "meta_cost": 897.8,
+   "acc_hard": 0.4286,
+   "nodes": 1.94,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 47,
+    "writer[T][S]": 2,
+    "writer[T]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 1
+  },
+  "flip_b": [
+   4,
+   6
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Evidence conditions are simplified or substituted (IS NULL for =0 OR IS NULL, LIKE for =, BETWEEN for > AND <, COUNT(DISTINCT) for COUNT) because evidence_first is not given to the writer",
+    "rationale": "In A22, A35, A115, A124, A15, A120, A98, A128, A58 the evidence field is non-empty but evidence_first is absent from the writer's skills, so the model substitutes its own interpretation. Rule 3 says 'fewest skills' but does not mandate evidence_first, so the 9B meta-agent skips it. Adding an explicit mandate to rule 3 ensures the skill is present whenever evidence exists, addressing the single most pervasive failure pattern (~16 wrong questions involve evidence deviation).",
+    "evidence": [
+     "A22",
+     "A35",
+     "A115",
+     "A124",
+     "A15",
+     "A120",
+     "A98",
+     "A128",
+     "A58"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give the fewest skills that match the question. Always give check_result to a checker and output_columns to the node whose query is returned. Always give evidence_first when the evidence field is non-empty."
+     }
+    ]
+   },
+   {
+    "pattern": "Top-k and superlative queries are over-engineered with unnecessary tie-handling subqueries, NULL filters, or GROUP BY + AVG when a simple ORDER BY LIMIT suffices",
+    "rationale": "top_k_ties is the worst-performing skill (42% when given vs 59% otherwise, 26 nodes). In A47 and A83 the model used ORDER BY LIMIT 1 when WHERE = MIN was needed; in A91 it used WHERE = 7.0 when ORDER BY LIMIT 1 was correct; in A19 it added GROUP BY + AVG; in A26 it used a CASE comparison instead of ORDER BY COUNT DESC LIMIT 1. The 4-point skill's tie-handling and NULL-exclusion guidance confuses the 9B model into over-engineering. Shortening to 3 points that frame ORDER BY LIMIT as the default and restrict tie-handling to explicit 'all tied values' questions reduces this.",
+    "evidence": [
+     "A47",
+     "A83",
+     "A91",
+     "A19",
+     "A26"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "top_k_ties",
+      "when": "highest, lowest, most, least, top N, the first/last",
+      "text": "1. 'Highest/lowest/most/least/top-N': ORDER BY col DESC/ASC LIMIT N. 2. Use WHERE col = (SELECT MAX/MIN) only when the question asks for ALL tied values. 3. Do not add GROUP BY, AVG, or NULL filters unless explicitly required."
+     }
+    ]
+   },
+   {
+    "pattern": "find_values is given by default to all non-simple questions, wasting limited tool runs on value lookups that are unnecessary or already confirmed by evidence",
+    "rationale": "find_values is the most harmful tool (53% when given vs 61% otherwise, 118 nodes). In A17 the writer spent a run confirming 'Business' existed; in A22 it spent runs listing all colour values already given in evidence; in A28 it spent 2 runs checking values. Rule 2 mandates find_values for all joins/aggregates/ratios/specific values, so the meta-agent gives it even when the value is already confirmed by evidence or the question is about structure. Making it conditional in rule 2 reduces wasted runs and lets the writer spend its 5 runs on the actual query.",
+    "evidence": [
+     "A17",
+     "A22",
+     "A28"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Joins, aggregates, ratios or specific values: a writer with run_sql, then a checker with run_sql. Add find_values to the writer only when the question names a specific value whose stored spelling or form is uncertain."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 150589,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.54,
+   "cost": 3026.3,
+   "meta_cost": 1042.1,
+   "acc_hard": 0.4286,
+   "nodes": 1.94,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 47,
+    "writer[T][S]": 2,
+    "writer[T]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 1
+  },
+  "flip_b": [
+   2,
+   4
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Counting questions after joins often become wrong because the writer replaces the expected simple COUNT(key) with COUNT(DISTINCT key).",
+    "rationale": "In A12, A64, A119, and A96 the queries were otherwise close but used COUNT(DISTINCT Patient/Account/ID) where the expected answer counts the joined key or rows. The current counting skill explicitly says to use COUNT(DISTINCT key) after a join, which pushes the 9B model toward the wrong benchmark pattern. Editing the skill to make simple counting the default and distinct counting opt-in targets the root cause without changing staffing.",
+    "evidence": [
+     "A12",
+     "A64",
+     "A119",
+     "A96"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "counting",
+      "when": "how many, number of, count",
+      "text": "1. Default to counting the joined row set: COUNT(key) or COUNT(*), not COUNT(DISTINCT). 2. Use COUNT(DISTINCT key) only when the question explicitly asks for distinct entities and the join can repeat them. 3. Put conditions on related tables in WHERE after the join, or use EXISTS. 4. Remember COUNT(column) skips NULLs while COUNT(*) does not."
+     }
+    ]
+   },
+   {
+    "pattern": "Top-k and superlative queries are over-engineered with unrequested NULL filters, extra helper columns, unnecessary GROUP BY/AVG, or wrong tie handling.",
+    "rationale": "top_k_ties has the worst residual accuracy in the report (42% when given vs 59% otherwise). Traces show its guidance causing or failing to prevent deviations: A19 added GROUP BY/AVG to an existing average column, A98 added an unrequested IS NOT NULL filter, A104 kept a helper rating column, and A47/A83 show that tie handling must be chosen carefully. A shorter skill that defaults to ORDER BY LIMIT and forbids unrequested changes should reduce regressions while preserving the needed patterns.",
+    "evidence": [
+     "A19",
+     "A47",
+     "A83",
+     "A98",
+     "A104"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "top_k_ties",
+      "when": "highest, lowest, most, least, top N, the first/last",
+      "text": "1. Default: ORDER BY the requested column ASC/DESC and LIMIT N. 2. Do not add IS NOT NULL, DISTINCT, LIMIT, GROUP BY, AVG, or extra columns unless the question explicitly requires them. 3. Use WHERE col = (SELECT MAX/MIN(col) ...) only when the question asks for all tied rows. 4. For 'most/least frequent', GROUP BY the entity, ORDER BY COUNT(*) DESC/ASC, and return only the asked column."
+     }
+    ]
+   },
+   {
+    "pattern": "Writers are given find_values by default and spend tool runs or reasoning on value lookups that do not fix the query, sometimes leading to over-exploration or cut output.",
+    "rationale": "find_values is harmful overall (53% when given vs 61% otherwise, 118 nodes). In A15, A17, A22, and A35 the writer had find_values and used runs or long reasoning to inspect values, but still produced the wrong final query; A15 was cut. Rule 2 currently defaults find_values to all join/aggregate/ratio/specific-value questions. Making it conditional preserves the ability to check stored spellings while removing a common distraction source.",
+    "evidence": [
+     "A15",
+     "A17",
+     "A22",
+     "A35"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Joins, aggregates, ratios, or specific values: a writer with run_sql, then a checker with run_sql. Add find_values to the writer only when the question names a specific value whose stored spelling, case, or format may differ from the question text."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 150548,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.6,
+   "cost": 2941.1,
+   "meta_cost": 931.3,
+   "acc_hard": 0.5238,
+   "nodes": 1.9,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 45,
+    "writer[T][S]": 4,
+    "writer[T]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 1
+  },
+  "flip_b": [
+   6,
+   5
+  ]
+ }
+]

@@ -1,0 +1,213 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Coder writes extensive analysis and re-derivations before the code, hitting the token limit and producing a solution whose logic does not match its own trace (vowel-shifted within the vowel list instead of the full alphabet), and the examples are never successfully run to catch the discrepancy.",
+    "rationale": "In A1 the coder's python tool returned '(no output)' twice, meaning the examples were never actually executed against the code. The coder traced by hand with the wrong indices (full-alphabet positions) while the code used vowel-list positions, and no tool run caught the mismatch. The root cause is that the agent spent its token budget on prose re-derivations instead of running the code. Moving 'run the examples' and 'be concise' into the always-on role makes them unconditional, unlike a skill the meta-agent may or may not assign.",
+    "evidence": [
+     "A1"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "You write correct, complete Python functions that meet the specification exactly. Run your code against every example in the problem (run_examples or a direct call) before finalizing; if any example fails, find the bug and fix it. Spend your output on code and test results, not on long re-derivations or explanations."
+     }
+    ]
+   },
+   {
+    "pattern": "Tester reviews the teammate's code by reading alone, misses subtle bugs that hidden tests probe (regex $ matching before a trailing newline; key==key.lower() passing for digit-only strings), and on ambiguous specs rambles so long it is cut and emits no valid function.",
+    "rationale": "In A2 the tester never tested an input with trailing whitespace, so the Python-regex $-before-newline bug survived. In A30 the tester never tested a digit-only string key, so the key==key.lower() vs key.islower() bug survived; it also renamed the parameter. In A23 the tester spent its entire token budget debating '>2 vs >=2' and was cut, outputting None. All three share the root cause: the tester does not systematically run the code against edge-case inputs and does not manage its output length. Putting 'always run the code', 'test edge cases', 'keep the original signature', 'be concise', and 'commit on ambiguity' into the always-on role addresses all three failures without depending on skill assignment.",
+    "evidence": [
+     "A2",
+     "A23",
+     "A30"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "You test the solution your teammates wrote: run it against the problem's examples, then against edge cases (empty input, boundary values, unusual or mixed types, trailing whitespace), fix every bug you find, and give the corrected complete function keeping the original name and parameter names. Always run the code to verify; do not rely on reading alone. Spend your output on code and test results, not long explanations. If the spec is ambiguous, follow the examples and commit to one interpretation without extended debate."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 57579,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.8667,
+   "cost": 3554.5,
+   "meta_cost": 1012.5,
+   "acc_hard": 1.0,
+   "nodes": 1.6,
+   "shapes": {
+    "coder[T][S]>tester[T][S]": 13,
+    "coder[T][S]": 12,
+    "coder[T][S]>tester[T]": 5
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Tester with no skills can loop on an ambiguous spec point and hit the token limit, producing no function (A23), or miss the correct idiom because no domain skill was given (A30).",
+    "rationale": "Rule 3 ('Give skills that match the problem') is too vague: the meta-agent gave the tester zero skills in A23 (fix_spaces) and A30 (check_dict_case). In A23 the tester deliberated endlessly on 'more than 2' vs '2 or more' and was cut with output None; in A30 neither node had string_rules so both used s==s.lower() instead of s.islower(). Making the rule explicit that the tester always gets read_spec plus the relevant domain skill gives the 9B model a concrete procedure and the right idiom.",
+    "evidence": [
+     "A23",
+     "A30"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give skills matching the problem type. The tester must always receive read_spec; also give string_rules for string/case/format problems, numeric_rules for arithmetic, efficiency for large-input problems."
+     }
+    ]
+   },
+   {
+    "pattern": "Using s==s.lower() instead of s.islower() returns True for strings with no cased characters (digits, symbols), giving wrong results on case-checking problems; regex $ in Python matches before a trailing newline, so format-validation accepts inputs with extra whitespace.",
+    "rationale": "A30: both coder and tester used key==key.lower() which is True for '5', so a dict with a digit key passed the all-lower check. A2: the regex ^\u2026$ matched '06-04-2020\\n' because $ matches before a trailing newline. Both are general Python string pitfalls that the string_rules skill should warn about. The skill was not given in either case, but the meta-agent rule fix above ensures it will be.",
+    "evidence": [
+     "A30",
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "when": "string manipulation (case, words, characters, formatting, validation)",
+      "text": "1. Case: does the comparison or output keep, lower or upper case? 2. Whitespace: split() vs split(' ') (multiple spaces, leading/trailing spaces). 3. Which characters count (letters only, vowels incl. 'y'?, digits, punctuation)? 4. Keep the original order unless told to sort. 5. Return the exact format of the examples (quotes, separators). 6. Use .islower()/.isupper() to test case, not s==s.lower() (digits and symbols pass the latter). 7. Exact format: reject trailing whitespace/newlines; in regex use \\Z not $."
+     }
+    ]
+   },
+   {
+    "pattern": "A tester (or coder) can loop indefinitely on an ambiguous spec detail, consuming the token budget and producing no output.",
+    "rationale": "In A23 the tester spent its entire output budget re-deliberating whether 'more than 2 consecutive spaces' means >2 or >=2, never writing a final function. The read_spec skill already says to restate rules and match examples, but it lacks an explicit 'resolve and move on' directive. Adding point 5 gives the 9B model a clear stopping rule: pick the reading that satisfies the examples, implement, verify, stop.",
+    "evidence": [
+     "A23"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "read_spec",
+      "when": "any problem",
+      "text": "1. Restate the input types, the output type and every rule in the specification before coding. 2. The examples are part of the specification: your function must reproduce them exactly, including the output type (list vs tuple, int vs float, True/False). 3. Return the value; do not print and do not read input. 4. Keep the given function name and parameter order. 5. If a spec detail is ambiguous, resolve it with the examples (pick the reading that makes them all correct), then implement and verify\u2014do not re-deliberate."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 57593,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.9333,
+   "cost": 4110.6,
+   "meta_cost": 1430.3,
+   "acc_hard": 0.75,
+   "nodes": 1.83,
+   "shapes": {
+    "coder[T][S]>tester[T][S]": 25,
+    "coder[T][S]": 5
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Agents waste tokens on manual reasoning or extended analysis instead of running code to verify, leading to token-limit cutoffs or missed subtle bugs.",
+    "rationale": "In A1 the coder traced examples by hand, never called run_examples, and was cut at the token limit. In A23 the tester spent thousands of tokens debating an ambiguity and was cut, outputting None. In A2 the tester reasoned the code was correct without running a boundary test (trailing newline exposed the regex $ gotcha). The root cause is in the self-harness: both roles invite long explanations and do not mandate running the tools first.",
+    "evidence": [
+     "A1",
+     "A2",
+     "A23"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "You write correct, complete Python functions that meet the specification exactly. Write the function, then run run_examples to verify. Do not trace examples by hand. Keep explanations to 2-3 lines."
+     },
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "You verify and fix the solution from your teammates. (1) Run run_examples on the function. (2) If all pass, write 1-2 quick tests for a boundary the examples do not cover (extra whitespace, empty input, type edge). (3) Fix any bug found. (4) Output the complete function. Do not re-derive the algorithm. Keep reasoning brief."
+     }
+    ]
+   },
+   {
+    "pattern": "Skills add tokens and cause the 9B model to over-analyze without preventing the core logic errors.",
+    "rationale": "edge_cases is at 84% when given vs 93% without; string_rules at 77% vs 91%. In A1 the coder had 3 skills and was cut; in A30 edge_cases did not help catch the digit-string key bug (key=='5' passes both key==key.lower() and key==key.upper() but islower()/isupper() correctly reject it). Shortening the skills and capping the count per node reduces token bloat while keeping the useful guidance.",
+    "evidence": [
+     "A1",
+     "A30"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "edge_cases",
+      "text": "Test the boundaries the spec implies: empty input, single element, and values at the stated limits. Verify no crash and correct return for each."
+     },
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "text": "Check: (1) Are non-letter characters (spaces, digits, punctuation) preserved unchanged? (2) Does the spec change case, and for which characters? (3) Match the exact output format from the examples."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give at most 2 skills per node, chosen for the specific risk in the problem (e.g. string_rules for case/character problems, numeric_rules for rounding/division). Skip a skill if the problem's examples already demonstrate its guidance."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 57552,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.9333,
+   "cost": 3197.8,
+   "meta_cost": 1106.8,
+   "acc_hard": 0.75,
+   "nodes": 1.8,
+   "shapes": {
+    "coder[T][S]>tester[T][S]": 18,
+    "coder[T][S]>tester[T]": 6,
+    "coder[T][S]": 6
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   1
+  ]
+ }
+]

@@ -1,0 +1,212 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Solver has Python available but performs the final numerical computation by hand (miscounting digits, manual simulation), leading to arithmetic errors that a one-line Python call would avoid.",
+    "rationale": "In A118 the solver miscounted the digits of 999,999,999,998 as 15 instead of 12, derived the formula n-1 zeros, and even ran Python with the wrong n=15, confirming the incorrect answer 14 instead of 11. In A58 the solver attempted a thousands-of-tokens manual locker simulation instead of a 20-line Python loop. The current role says 'Use available Python/tools for computation' but the model treats this as optional. Adding the explicit directive 'Always compute the final numerical answer with Python' makes the instruction concrete: the model must use the original numbers from the problem in a Python call for the final step, avoiding hand-arithmetic errors in counting, simulation, and enumeration.",
+    "evidence": [
+     "A118",
+     "A58"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "solver",
+      "role": "Careful math solver. Solve concisely. Use available Python/tools for computation, enumeration, exact algebra, or checking instead of manual arithmetic. Always compute the final numerical answer with Python. List all requested values. Put the final answer on the last line, exactly as asked, then stop."
+     }
+    ]
+   },
+   {
+    "pattern": "Verifier redoes the full derivation in text using the same method as the solver, confirming the solver's setup or arithmetic error, or getting cut at the token limit before reaching a conclusion.",
+    "rationale": "In A64 the verifier re-derived the entire energy calculation with the same (wrong) geometric reading, confirming the solver's error. In A118 the verifier repeated the identical digit-counting reasoning and confirmed 14. In A60 the verifier re-derived the Vieta expansion and found different but still wrong values, burning tokens on a full redo. The current role says 'do not redo the full solution' but the 9B model ignores this vague prohibition. Adding 'For numerical answers, verify by computing with Python' gives the verifier a concrete, short, independent action: plug the answer into Python and check it, rather than re-deriving the solution in text. This reduces token usage and breaks the correlated-error pattern.",
+    "evidence": [
+     "A64",
+     "A118",
+     "A60"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "verifier",
+      "role": "Verifier. Check the given answer with a short independent check (substitution, small case, or available Python/tools); do not redo the full solution. For numerical answers, verify by computing with Python. List all requested values. Put the final answer on the last line, exactly as asked, then stop."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 112560,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6644.0,
+   "meta_cost": 3224.4,
+   "acc_hard": 0.8519,
+   "nodes": 2.0,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 41,
+    "solver[T][S]>verifier[T]": 3,
+    "solver[T][S],verifier[T][S]>verifier": 1,
+    "solver[T],solver[T][S],verifier[T][S]": 1
+   },
+   "n_shapes": 8,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Meta-agent assigns a wrong-domain skill (algebra skill to a geometry problem, counting skill to a geometry problem), so the solver lacks the correct geometric setup method.",
+    "rationale": "A64 (equilateral triangle, charge moved to midpoint) received algebra_manipulation and misidentified the distance from the midpoint to the endpoints as the altitude (\u221a3/2\u00b7a) instead of half the side (a/2), producing 1.55 instead of 10. A61 (lines forming equilateral triangles) received counting_setup and could not set up the coordinate-geometry counting. Rule 4 'Give skills that match the problem type' is too vague; a concrete domain-to-skill mapping lets the 9B meta-agent assign the right skill.",
+    "evidence": [
+     "A64",
+     "A61"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 4,
+      "text": "Give 1-2 skills matching the problem's primary domain: geometry/figures/coordinates/distances/areas \u2192 geometry_coordinates; counting/arrangements/selections \u2192 counting_setup; number theory (divisors, primes, remainders) \u2192 divisors_primes or modular; algebra/expressions/roots \u2192 algebra_manipulation; probability \u2192 probability. Match the skill to the main domain, not a secondary aspect."
+     }
+    ]
+   },
+   {
+    "pattern": "Solver performs multi-step algebraic arithmetic (digit counting, Vieta expansion, polynomial manipulation) by hand despite having Python, producing errors that a short Python computation would avoid.",
+    "rationale": "A118 counted the digits of a 12-digit number as 15 by hand (5 groups of 3 misread), never verifying with the Python it had; the correct zero count is 11, not 14. A60 hand-expanded Vieta product formulas over thousands of tokens and made sign/arithmetic errors, getting b=\u2212330 instead of \u221233090. The algebra_manipulation skill currently lists hand techniques (substitution, rationalizing) with Python only as a step-5 check, so the 9B model executes the techniques manually. Making Python the primary computation method in step 1 redirects the model to use it throughout.",
+    "evidence": [
+     "A118",
+     "A60"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "algebra_manipulation",
+      "when": "simplifying expressions, systems of equations, substitutions, x + 1/x type identities",
+      "text": "1. Write the setup briefly, then use Python/sympy for ALL computation: expansion, solving, simplification, substitution, counting digits or terms. Do not do multi-step arithmetic by hand. 2. For systems: define variables in sympy and solve. For x+1/x type: substitute t and expand with sympy. 3. Pitfalls: extraneous roots from squaring, dividing by expressions that can be 0, domain of sqrt/log. 4. Verify the final answer by substituting back or recomputing with Python (tool: check_answer)."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 112574,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 6743.5,
+   "meta_cost": 3219.6,
+   "acc_hard": 0.8519,
+   "nodes": 2.02,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 44,
+    "solver[T][S],verifier[T][S]": 4,
+    "solver[T][S]>verifier[T]": 1,
+    "solver[T][S],solver[T][S]>verifier[T][S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   4
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Residual skills describe step-by-step mathematical methods (shoelace formula, Vieta expansion, divisor-pair casework) that cause the 9B solver to do hand computation instead of writing a short Python script, producing arithmetic errors or token-limit cutoffs.",
+    "rationale": "The residual-harness table shows geometry_coordinates at 74% when given vs 89% otherwise (27 uses), integer_equations at 79% vs 89% (29 uses), and algebra_manipulation at 85% vs 89% (92 uses). In A118 the solver hand-counted digits and miscounted (14 vs 11); in A60 both nodes hand-expanded Vieta products over thousands of tokens; in A58 and A61 the solver traced the process by hand until cutoff. The skills' method descriptions (e.g. 'lengths by distance, areas by the shoelace formula') read as instructions to compute by hand. Replacing the method-description step with an explicit 'write Python code, run it, use the output' directive at the computation step turns the skill into a setup-and-code workflow rather than a hand-derivation recipe. This is a library-layer fix because the skill text is the residual harness the meta-agent hands to the solver; the role already says 'use Python' but the skill overrides it with a detailed manual procedure.",
+    "evidence": [
+     "A118",
+     "A60",
+     "A58",
+     "A61",
+     "A120",
+     "A129",
+     "A130",
+     "A97",
+     "A148",
+     "A145"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "geometry_coordinates",
+      "when": "geometry with a diagram (Asymptote code), lengths, areas, intersections, or a figure with points moved/added",
+      "text": "1. If Asymptote code is given, read the exact coordinates of every labeled point from it; they define the figure. 2. Otherwise place the figure: a vertex at the origin, a side on the x-axis, use symmetry. 3. Identify exactly which region, length, or area is asked. 4. Write Python code (coord_geometry or sympy) that computes the answer from the coordinates; run it and use the printed result. 5. Check one known length or area from the problem against your coordinates to catch a setup error."
+     },
+     {
+      "op": "edit_skill",
+      "name": "integer_equations",
+      "when": "equations or conditions in integers (Diophantine, digits, bases, floor)",
+      "text": "1. Bound the variables first (sizes, signs, digit ranges 0-9, leading digit not 0). 2. Write Python code that iterates over the bounded ranges (or uses brute_force) to find all solutions; run it and use the output. 3. If the search space is too large, use parity or a modulus to cut cases, then code the reduced search. 4. For unbounded factorisation (Simon's trick), run over divisor pairs in code. 5. Check every candidate the code finds in the original equation."
+     },
+     {
+      "op": "edit_skill",
+      "name": "algebra_manipulation",
+      "when": "simplifying expressions, systems of equations, substitutions, Vieta / symmetric sums, x + 1/x type identities",
+      "text": "1. Name the target expression. 2. Write Python (sympy) code that sets up the equations or expression and solves/simplifies it; run the code and use the output. Do not expand or solve by hand. 3. For x+1/x type identities, define the substitution in sympy and let it expand. 4. Pitfalls: dividing by an expression that can be 0, squaring both sides (extraneous roots), domain of sqrt/log. 5. Check: substitute the result back into every original equation (check_answer or sympy)."
+     }
+    ]
+   },
+   {
+    "pattern": "The meta-agent returns a single solver with no verifier for multi-step problems (A80) or creates a two-solver architecture where one solver's output is never read (A89), because rules 1 and 2 overlap and give no clear default.",
+    "rationale": "A80 (Intermediate Algebra L5, answer 420 vs correct 810) was staffed as a single solver with no verifier. A89 (Number Theory L5, answer -1 vs correct 540) used solver,solver,verifier where the verifier only read the first solver. The architecture table shows solver[T] at 50% and solver,solver>verifier at 0%. Rules 1 ('trivial: one solver; every other: solver+verifier') and 2 ('harder problem: solver, then verifier') overlap and the 9B meta-agent misclassifies. Merging them into one rule with an explicit default (solver+verifier) and a single exception (trivial) removes the ambiguity and guarantees a second check on every non-trivial problem.",
+    "evidence": [
+     "A80",
+     "A89"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 1,
+      "text": "Trivial problem (one arithmetic step or a direct lookup, no multi-step reasoning): one solver with python. Every other problem: solver (or coder for heavy computation) + verifier that reads the solver's work. Never return a single solver for a multi-step problem."
+     },
+     {
+      "op": "remove_rule",
+      "rule": 2
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 112533,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.94,
+   "cost": 6669.3,
+   "meta_cost": 3176.3,
+   "acc_hard": 0.963,
+   "nodes": 2.0,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 43,
+    "solver[T][S],verifier[T][S]": 3,
+    "solver[T][S]>verifier[T]": 1,
+    "coder[T][S]>verifier[T][S]": 1
+   },
+   "n_shapes": 6,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   2
+  ]
+ }
+]

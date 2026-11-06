@@ -1,0 +1,6 @@
+[job] vLLM port 22278
+udc-aw37-14
+name, memory.total [MiB]
+NVIDIA RTX PRO 6000 Blackwell Server Edition, 97887 MiB
+[2026-11-06T14:18:13.604] error: *** JOB 22562278 ON udc-aw37-14 CANCELLED AT 2026-11-06T14:18:13 DUE to SIGNAL Terminated ***
+/var/spool/slurm/slurmd/job22562278/slurm_script: line 1: 688663 Terminated              sleep 5

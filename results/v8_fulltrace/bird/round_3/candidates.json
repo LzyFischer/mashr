@@ -1,0 +1,320 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "The writer's first query already deviates from the spec: it drops or simplifies a branch of an evidence expression (e.g. keeps only the IS NULL half of '= 0 OR IS NULL'), adds a guard condition the question/evidence never states, or selects a similar/denormalized column or all columns instead of the exact asked attribute.",
+    "rationale": "In A22 the writer wrote only 'weight_kg IS NULL' although the evidence defines missing weight as 'weight_kg = 0 OR weight_kg IS NULL'; in A9 it added an unrequested 'NumTstTakr > 0' guard; in A36 it returned the denormalized owner-name column instead of the joined user's name; in A138 it returned SELECT *; in A3 it picked the similar NCESDist column. These are the writer's own initial deviations, and because the checker is the returned node it usually just echoes them (A22, A9, A36, A138 all accepted unchanged). The writer role is a single generic sentence, so when the evidence/output skills are not given (evidence_first reaches only ~34 nodes) nothing forces literalness or an exact SELECT list. This is the task-agent (self) layer: a practice the writer must follow on every question belongs in its always-on role, and a short two-point role is more reliably followed by the 9B than the long detailed roles tried in rounds 1-2 (both rejected).",
+    "evidence": [
+     "A22",
+     "A9",
+     "A36",
+     "A138",
+     "A3"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "writer",
+      "role": "You write the SQLite query that answers the question. Copy every condition and formula given in the evidence into the query exactly, without simplifying, dropping a branch, or adding a condition the question or evidence does not state. Select exactly the columns the question asks for, in that order, and no others (never SELECT *). Run the query and confirm it returns the expected shape."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146397,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.5,
+   "cost": 3299.0,
+   "meta_cost": 972.6,
+   "acc_hard": 0.4762,
+   "nodes": 1.92,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 46,
+    "writer[T][S]": 4
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   7,
+   11
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Top-k / superlative queries use the wrong pattern: LIMIT 1 when tie-handling is needed, or WHERE = MAX/MIN when a simple ORDER BY LIMIT 1 suffices, and the top_k_ties skill's 4-point text overloads the 9B model.",
+    "rationale": "A47 and A83 needed WHERE col = (SELECT MIN(...)) but the model used LIMIT 1; A91 needed ORDER BY LIMIT 1 but the model used WHERE = 7.0; A19 added an unnecessary GROUP BY + AVG. The top_k_ties skill is the single most harmful item (42% when given vs 59% otherwise) because its tie-handling and NULL-exclusion points cause the model to over- or under-apply patterns. Shortening to 2 core patterns removes the confusing edge cases.",
+    "evidence": [
+     "A47",
+     "A83",
+     "A91",
+     "A19"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "top_k_ties",
+      "when": "highest, lowest, most, least, top N, the first/last",
+      "text": "1. 'The highest/lowest/most/least/top-N X' \u2192 ORDER BY col DESC/ASC LIMIT N. 'All X that have the highest/lowest value' \u2192 WHERE col = (SELECT MAX/MIN(col) FROM ...). 2. 'Most frequent' \u2192 GROUP BY col ORDER BY COUNT(*) DESC LIMIT 1."
+     }
+    ]
+   },
+   {
+    "pattern": "Date and time text columns are parsed with strftime on non-ISO strings or with fixed-position SUBSTR, and the 6-point dates_text skill is too long for the 9B model to follow.",
+    "rationale": "A21 used MIN(milliseconds) instead of parsing the time string (dates_text was not given); A101 added an unnecessary GROUP BY + SUM when only ORDER BY was needed; A128 used LIKE '2012%' instead of SUBSTRING. The 6-point skill overwhelms the model; reducing to 3 points keeps the critical format-check and strftime-guard instructions.",
+    "evidence": [
+     "A21",
+     "A101",
+     "A128"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "dates_text",
+      "when": "dates, years, months, ages, times, or numbers stored as text",
+      "text": "1. sample_rows the column first to see the actual format. 2. strftime works only on ISO (YYYY-MM-DD) strings; for other formats use SUBSTR or INSTR. 3. If evidence gives a date expression, use it exactly."
+     }
+    ]
+   },
+   {
+    "pattern": "Evidence conditions and formulas are simplified, split, or replaced with the model's own interpretation instead of being copied verbatim.",
+    "rationale": "A22 used only IS NULL instead of the evidence's '= 0 OR IS NULL'; A10 replaced the evidence formula with DISTINCT subqueries; A12 used COUNT(DISTINCT) instead of simple COUNT; A35 used LIKE '%_4' instead of the evidence's substr expression; A115 used LIKE '%SJS%' instead of = 'SJS'. The 5-point evidence_first skill is slightly harmful (53% vs 58%) because points 1 and 5 are redundant and point 2's find_values reference distracts. Merging to 3 points with an explicit 'verbatim' instruction.",
+    "evidence": [
+     "A22",
+     "A10",
+     "A12",
+     "A35",
+     "A115"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "evidence_first",
+      "when": "the question comes with evidence (formulas, value mappings)",
+      "text": "1. Copy every evidence expression (conditions, values, formulas) verbatim into the query. Do not simplify, split, or reinterpret. 2. If evidence maps a phrase to a value or test result, return that mapped value, not the raw column. 3. If evidence gives a formula, compute it in a single expression."
+     }
+    ]
+   },
+   {
+    "pattern": "The writer is given find_values by default for any question with 'specific values', wasting limited tool runs on unnecessary value lookups and reducing accuracy.",
+    "rationale": "find_values is the most harmful tool (53% when given vs 61% otherwise, 118 nodes). In A17 the writer spent a run confirming 'Business' existed; in A22 it spent runs listing all colour values already given in evidence; in A28 it spent 2 runs checking rarity and format values. Rule 2 currently mandates find_values for 'specific values' too broadly. Making it conditional on the question actually naming a value to filter on reduces wasted tool runs.",
+    "evidence": [
+     "A17",
+     "A22",
+     "A28"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Joins, aggregates, or ratios: a writer with run_sql, then a checker with run_sql. Add find_values to the writer only when the question names a specific value to filter on and the stored spelling is uncertain."
+     }
+    ]
+   },
+   {
+    "pattern": "The meta-agent gives 3+ skills per node, and the combination of multiple skills (e.g. top_k_ties + join_paths + value_matching) overloads the 9B model, causing it to follow the wrong skill's pattern.",
+    "rationale": "Wrong questions frequently have 3 skills on the writer (A3: join_paths+top_k_ties+output_columns, A29: join_paths+top_k_ties+value_matching, A36: top_k_ties+join_paths+output_columns, A109: top_k_ties+join_paths+output_columns). The 'fewest skills' in rule 3 is too vague; the meta-agent still over-staffs. Capping at 1-2 content skills per writer forces the meta-agent to pick the most relevant skill and avoids conflicting instructions.",
+    "evidence": [
+     "A3",
+     "A29",
+     "A36",
+     "A109"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give 1-2 skills to the writer that match the question type. Always give check_result to a checker and output_columns to the node whose query is returned."
+     }
+    ]
+   },
+   {
+    "pattern": "Ratio and percentage queries add extra output columns, use COUNT(CASE) instead of SUM(CASE), or build separate subqueries when one row set suffices.",
+    "rationale": "A75 added an extra c.id column to the percentage result; A141 used COUNT(CASE) instead of SUM(CASE) as the skill prescribes; A10 used separate DISTINCT subqueries instead of one joined row set. The ratio_percentage skill is slightly harmful (50% vs 58%) because its 4-point 'Do not use' list in point 3 is confusing. Removing that list and keeping only the positive pattern.",
+    "evidence": [
+     "A75",
+     "A141",
+     "A10"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "ratio_percentage",
+      "when": "rates, ratios, percentages, averages computed by division",
+      "text": "1. Build one joined row set with all base filters in WHERE. 2. percentage = CAST(SUM(CASE WHEN cond THEN 1 ELSE 0 END) AS REAL)*100/COUNT(*) on that row set. 3. Return one value unless groups are asked."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146411,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.5,
+   "cost": 2576.6,
+   "meta_cost": 877.2,
+   "acc_hard": 0.4286,
+   "nodes": 1.86,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 43,
+    "writer[T][S]": 7
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   5,
+   9
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Evidence conditions and formulas are simplified, restructured, or replaced with the model's own interpretation (e.g., = changed to LIKE, > changed to BETWEEN, one branch of an OR dropped, simple COUNT changed to COUNT DISTINCT, flat formula changed to subqueries).",
+    "rationale": "In A22 the evidence 'weight_kg = 0 OR IS NULL' became only IS NULL; A10's flat DIVIDE(SUM(...),COUNT(...)) became DISTINCT subqueries; A12's COUNT became COUNT(DISTINCT); A115's = 'SJS' became LIKE '%SJS%'; A124's > 600 AND < 800 became BETWEEN. The current 5-point skill is too diffuse for the 9B model. A 4-point skill that explicitly names the forbidden transformations (= to LIKE, > to BETWEEN, adding conditions, restructuring) gives the model concrete guardrails.",
+    "evidence": [
+     "A22",
+     "A10",
+     "A12",
+     "A115",
+     "A124"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "evidence_first",
+      "when": "the question comes with evidence (formulas, value mappings)",
+      "text": "1. Implement every evidence condition and formula with the exact same operators and logical structure. Do not change = to LIKE, > to BETWEEN, drop a branch of an OR, add extra conditions, or restructure a flat expression into subqueries. 2. Adapt table aliases and column names to the actual schema. 3. If evidence maps a phrase to a value or test, use that exact value in WHERE or SELECT. 4. Only if the query returns 0 rows, check stored values with find_values and adjust spelling only."
+     }
+    ]
+   },
+   {
+    "pattern": "The meta-agent does not consistently give evidence_first when the question includes evidence, so the writer substitutes its own interpretation for evidence-defined conditions.",
+    "rationale": "In A22, A10, and A12 the evidence was present but the model still deviated from it. Rule 3 currently says 'give the fewest skills that match' which lets the meta-agent skip evidence_first. Adding an explicit 'always give evidence_first when evidence is present' closes this gap without adding a new rule.",
+    "evidence": [
+     "A22",
+     "A10",
+     "A12"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give the fewest skills that match the question. Always give check_result to a checker and output_columns to the node whose query is returned. Always give evidence_first when the question includes evidence."
+     }
+    ]
+   },
+   {
+    "pattern": "Top-k and ranking questions are over-engineered with unnecessary tie-handling subqueries, NULL filters, or GROUP BY AVG when a simple ORDER BY LIMIT suffices, or the model uses a value filter instead of ordering.",
+    "rationale": "top_k_ties has 42% accuracy when given vs 59% otherwise, the worst of any skill. In A47 and A83 the model used ORDER BY LIMIT 1 when = MIN() was correct; in A91 it used = 7.0 when ORDER BY LIMIT 1 was correct; in A19 it used GROUP BY AVG when ORDER BY LIMIT 1 was correct; in A26 it used a CASE comparison when GROUP BY ORDER BY was correct. The current skill's point about ties and NULLs causes the model to second-guess the simple approach. A directive skill that says 'use ORDER BY LIMIT' by default and only deviate when explicitly asked prevents over-engineering.",
+    "evidence": [
+     "A47",
+     "A83",
+     "A91",
+     "A19",
+     "A26"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "top_k_ties",
+      "when": "highest, lowest, most, least, top N, the first/last",
+      "text": "1. For 'most/least/highest/lowest/top N': ORDER BY col DESC/ASC LIMIT N. 2. For 'most frequent': GROUP BY col ORDER BY COUNT(*) DESC LIMIT 1. 3. Return the column the question asks for, not the count, unless both are asked. 4. Do not add tie-handling subqueries, NULL filters, or GROUP BY unless the question explicitly asks for all tied values, excludes missing values, or asks for a per-group result."
+     }
+    ]
+   },
+   {
+    "pattern": "The checker accepts queries that deviate from the evidence or question (wrong operator, missing condition branch, wrong output column) and also 'improves' correct queries by adding DISTINCT or changing structure.",
+    "rationale": "In A10 the checker accepted DISTINCT subqueries over the evidence's flat formula; A12 accepted COUNT(DISTINCT); A22 accepted IS NULL only; A28 accepted name instead of id; A36 accepted a denormalized column. The checker changed 34 times: 15 to correct, 9 to wrong. The current role says 'fix any error' which is too permissive. Adding 'return unchanged if correct' and 'fix only the specific part that is wrong' makes the checker conservative by default.",
+    "evidence": [
+     "A10",
+     "A12",
+     "A22",
+     "A28",
+     "A36"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You verify a teammate's SQL query. Run it with run_sql. Check every condition and output column against the question and evidence. Return the query unchanged if it is correct. Fix only the specific part that is wrong."
+     }
+    ]
+   },
+   {
+    "pattern": "Final queries return wrong, missing, or extra columns: picking a similar-named identifier, returning a name when an id is expected, adding a helper aggregate column, or using SELECT *.",
+    "rationale": "A3 selected NCESDist instead of NCESSchool; A28 returned name instead of id; A87 added a COUNT column; A104 added overall_rating; A138 used SELECT *. The current skill says 'select exactly the attributes' but does not explicitly forbid SELECT * and the identifier guidance is buried in a long point 2. Adding 'Never use SELECT *' as a standalone clause and shortening the identifier rule makes it harder for the 9B model to skip.",
+    "evidence": [
+     "A3",
+     "A28",
+     "A87",
+     "A104",
+     "A138"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "output_columns",
+      "when": "before the final query of any question",
+      "text": "1. Select exactly the attributes the question asks for, in that order. Never use SELECT *. 2. If it asks for entities without naming an attribute, return the entity's primary key or id column, not a name or helper column. 3. Do not add columns used only for filtering, sorting, or checking. 4. Do not add DISTINCT, LIMIT, or ORDER BY unless the question implies them."
+     }
+    ]
+   },
+   {
+    "pattern": "The writer joins the wrong tables or adds unnecessary joins because it does not first identify which table actually contains the column the question needs, leading to filtering a foreign-key column by a related table's value or joining through an intermediate table that is not needed.",
+    "rationale": "A17 filtered link_to_major = 'Business' instead of joining the major table to get major_name; A29 joined posts.OwnerUserId instead of going through postHistory; A56 added unnecessary joins through circuits and results; A117 joined sets/set_translations instead of foreign_data. The current join_paths skill says 'find the key columns that link the tables' but does not direct the model to first map each needed column to its source table. Adding that step as point 1 prevents the model from guessing the wrong table.",
+    "evidence": [
+     "A17",
+     "A29",
+     "A56",
+     "A117"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "join_paths",
+      "when": "the answer needs columns from more than one table",
+      "text": "1. For each column the question needs, identify which table contains it by checking the schema. 2. Join tables along the path connecting those columns (same name or documented id); alias tables T1, T2. 3. Always prefix column names with the table alias to avoid ambiguity. 4. If a join multiplies rows and the question asks for a count, use COUNT(DISTINCT key). 5. Run the query and check the row count is plausible."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146370,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.56,
+   "cost": 3117.4,
+   "meta_cost": 1027.5,
+   "acc_hard": 0.4762,
+   "nodes": 1.94,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 47,
+    "writer[T][S]": 3
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   5,
+   6
+  ]
+ }
+]

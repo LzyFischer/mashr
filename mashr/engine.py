@@ -69,5 +69,5 @@ class Engine:
             answer = majority([o["answer"] for o in done.values()])
         calls = [c for n in plan["nodes"] for c in done[n["id"]]["calls"]]
         return {"answer": answer, "calls": calls,
-                "nodes": [{k: v for k, v in done[n["id"]].items() if k not in ("text", "calls")}
+                "nodes": [{k: v for k, v in done[n["id"]].items() if k != "calls"}
                           | {"cost": round(cost(done[n["id"]]["calls"]), 1)} for n in plan["nodes"]]}

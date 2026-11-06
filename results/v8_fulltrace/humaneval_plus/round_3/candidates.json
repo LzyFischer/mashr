@@ -1,0 +1,221 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Tester passes all given examples but never tests the algorithm's decision boundary (a count threshold, a value at a rule limit), and drops necessary imports from the final output",
+    "rationale": "In A10 the tester ran run_examples (all PASS) and output the same code without testing the case where the count of odds in lst1 exceeds the count of evens in lst2; in A23 the tester confirmed the 4 given examples (1-space and 3-space) but never tested the 2-space boundary that separates underscore from dash; in A24 the tester output the function without 'import math' because 'Output the complete function' was interpreted as just the def block. The current parenthetical '(extra whitespace, empty input, type edge)' does not match the actual failure boundaries (logic thresholds, counts), so the 9B model does not generate relevant boundary tests. Replacing the parenthetical with '(a value at or across a threshold, one more or fewer element, a different case)' steers the tester toward the actual decision points without adding an analytical step (which caused the round-2 regression), and adding 'including all imports' to step 4 directly prevents the import-dropping failure.",
+    "evidence": [
+     "A10",
+     "A23",
+     "A24"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "You verify and fix the solution from your teammates. (1) Run run_examples on the function. (2) If all pass, write 1-2 quick tests for a boundary the examples do not cover (a value at or across a threshold, one more or fewer element, a different case). (3) Fix any bug found. (4) Output the complete function including all imports. Do not re-derive the algorithm. Keep reasoning brief."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 80626,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.9667,
+   "cost": 2882.3,
+   "meta_cost": 1043.0,
+   "acc_hard": 1.0,
+   "nodes": 1.53,
+   "shapes": {
+    "coder[T][S]": 14,
+    "coder[T][S]>tester[T][S]": 10,
+    "coder[T][S]>tester[T]": 6
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Case-handling errors: wrong case-swap direction (A1) and using s==s.lower() instead of s.islower() for case checks (A30)",
+    "rationale": "In A1 the coder mapped uppercase vowels to uppercase output and lowercase to lowercase (no swap), but the spec requires swapping case. In A30 both nodes used k==k.lower() which is True for digit strings like '5', so a dict with a digit key passed the all-lowercase check. The string_rules skill lacks explicit guidance on verifying case-swap direction and the islower/isupper idiom.",
+    "evidence": [
+     "A1",
+     "A30"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "when": "string manipulation (case, words, characters, formatting)",
+      "text": "Check: (1) Are non-letter characters (spaces, digits, punctuation) preserved unchanged? (2) Does the spec change case, and for which characters? When swapping case, verify direction: uppercase becomes lowercase and lowercase becomes uppercase; test one of each. (3) To test if a string is all-lower or all-upper, use str.islower()/str.isupper(), not s==s.lower()/s==s.upper() (the latter returns True for strings with no letters). (4) Match the exact output format from the examples."
+     }
+    ]
+   },
+   {
+    "pattern": "Final output drops import statements, causing NameError on hidden tests",
+    "rationale": "In A24 the tester's final output omitted 'import math' even though the function uses math.floor and math.ceil. The coder included the import but the tester, focused on the def block, dropped it. A skill explicitly reminding the final node to include all imports addresses this completeness gap.",
+    "evidence": [
+     "A24"
+    ],
+    "ops": [
+     {
+      "op": "add_skill",
+      "name": "include_imports",
+      "when": "the solution uses external modules (math, re, itertools, collections, etc.)",
+      "text": "Your final output must be a complete, runnable script. Include all import statements at the top. If you use math, re, itertools, or any other standard library module, the import must be in your output."
+     }
+    ]
+   },
+   {
+    "pattern": "Trial division for primality is too slow for numbers exceeding 10^12, causing timeout on hidden tests",
+    "rationale": "In A26 the 12th prime Fibonacci is ~10^17; trial division to sqrt(n) requires ~3\u00d710^8 iterations, far exceeding the time limit. The efficiency skill says to avoid trial division 'beyond sqrt(n)' but does not say sqrt(n) itself is infeasible for very large n. A deterministic Miller-Rabin tool (is_prime_mr) runs in O(k log^2 n) and handles n up to 3.3\u00d710^24 instantly.",
+    "evidence": [
+     "A26"
+    ],
+    "ops": [
+     {
+      "op": "add_tool",
+      "name": "is_prime_mr",
+      "doc": "is_prime_mr(n) -> True if n is prime. Deterministic Miller-Rabin, correct for n < 3.3*10^24. Use instead of trial division for large numbers.",
+      "code": "def is_prime_mr(n):\n    if n < 2:\n        return False\n    if n == 2 or n == 3:\n        return True\n    if n % 2 == 0:\n        return False\n    r, d = 0, n - 1\n    while d % 2 == 0:\n        r += 1\n        d //= 2\n    for a in [2, 3, 5, 7, 11, 13, 17]:\n        if a >= n:\n            continue\n        x = pow(a, d, n)\n        if x == 1 or x == n - 1:\n            continue\n        for _ in range(r - 1):\n            x = pow(x, 2, n)\n            if x == n - 1:\n                break\n        else:\n            return False\n    return True",
+      "test": "assert is_prime_mr(2) == True\nassert is_prime_mr(3) == True\nassert is_prime_mr(4) == False\nassert is_prime_mr(17) == True\nassert is_prime_mr(20) == False\nassert is_prime_mr(9973) == True\nassert is_prime_mr(1000000007) == True\nassert is_prime_mr(1000000008) == False"
+     },
+     {
+      "op": "edit_skill",
+      "name": "efficiency",
+      "when": "inputs can be large (primes, divisors, sequences, nested loops, recursion)",
+      "text": "The plus tests use large inputs and a time limit of a few times the reference solution. Avoid exponential recursion (memoize or iterate), quadratic loops over long lists when a set/dict/sort works. For primality of numbers > 10^12, trial division to sqrt(n) is infeasible; use is_prime_mr (Miller-Rabin). Check the speed on a large input (timed) before answering."
+     },
+     {
+      "op": "add_rule",
+      "text": "Give is_prime_mr to the coder when the problem involves checking primality of numbers that can exceed 10^12 (e.g., large Fibonacci, Mersenne, or sequence elements)."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 80640,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.8333,
+   "cost": 3483.6,
+   "meta_cost": 1310.4,
+   "acc_hard": 0.75,
+   "nodes": 1.77,
+   "shapes": {
+    "coder[T][S]>tester[T][S]": 18,
+    "coder[T][S]": 7,
+    "coder[T][S]>tester[T]": 5
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Tester runs the given examples (all pass) but does not test the algorithm's key decision boundary, so logic errors invisible to the examples survive; the final output can also drop required imports.",
+    "rationale": "In A10 the coder used any(even in lst2) instead of count(even in lst2) >= count(odd in lst1); both provided examples pass with the wrong logic and the tester wrote no test where the count matters. In A23 the code maps any run \u2264 2 spaces to a single underscore, but the examples only show 1-space and 3-space cases; the tester never tested 2 spaces. In A1 the examples contain no uppercase vowel, so the case-flip bug on 'E'\u2192'G' (should be 'g') went uncaught. In A24 the tester output the function without 'import math'. Root cause: the tester role's step 2 lists generic edge types (whitespace, empty, type) rather than directing the agent to find the algorithm's own decision point and test both sides. Fixing the role (task-agent layer) makes the boundary test targeted; adding 'including all imports' prevents the A24 regression.",
+    "evidence": [
+     "A10",
+     "A23",
+     "A1",
+     "A24"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "You verify and fix the solution from your teammates. (1) Run run_examples on the function. (2) If all pass, identify the key decision or threshold in the algorithm and write 1-2 tests with inputs on both sides of it. (3) Fix any bug found. (4) Output the complete function including all imports. Do not re-derive the algorithm. Keep reasoning brief."
+     }
+    ]
+   },
+   {
+    "pattern": "Using s == s.lower() instead of s.islower() returns True for strings with no cased characters (digits, symbols), causing case-validation logic to accept invalid inputs.",
+    "rationale": "In A30 both coder and tester used k == k.lower() for the all-lower check; the key '5' (a digit string) satisfies '5' == '5'.lower(), so a dict mixing letter and digit keys passed the all-lower test and returned True instead of False. The string_rules skill is the natural place for this Python pitfall since it already covers case-related checks. Adding the islower/isupper warning (library layer) gives the agent the correct idiom without adding a new skill.",
+    "evidence": [
+     "A30"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "text": "Check: (1) Are non-letter characters (spaces, digits, punctuation) preserved unchanged? (2) Does the spec change case, and for which characters? (3) Match the exact output format from the examples. (4) Use .islower()/.isupper() not s==s.lower()/s==s.upper() (latter is True for digit/symbol-only strings)."
+     }
+    ]
+   },
+   {
+    "pattern": "Trial-division primality test is too slow for numbers exceeding ~10^12, causing timeout on hidden tests that use large sequence elements.",
+    "rationale": "In A26 the 12th prime Fibonacci is ~10^17; the coder's trial division to sqrt(n) \u2248 3\u00d710^8 iterations exceeds the time limit. The efficiency skill says 'avoid trial division beyond sqrt(n)' which implies sqrt(n) is acceptable, but it is not for n > 10^12. The timed tool was never given so no node checked performance. Fix: edit the efficiency skill to state the 10^12 threshold and point to is_prime_fast (library layer), add a deterministic Miller-Rabin tool (library layer), and add a meta-harness rule telling the meta-agent to give the tool when primality of large numbers is needed (meta-agent layer).",
+    "evidence": [
+     "A26"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "efficiency",
+      "text": "The plus tests use large inputs and a time limit of a few times the reference solution. Avoid exponential recursion (memoize or iterate), quadratic loops over long lists when a set/dict/sort works. Trial division is too slow for n > 10^12; use is_prime_fast (Miller-Rabin) if available. Check speed on a large input (timed) before answering."
+     },
+     {
+      "op": "add_tool",
+      "name": "is_prime_fast",
+      "doc": "is_prime_fast(n) -> True if n is prime. Deterministic Miller-Rabin, correct for n < 3.3*10^24. Use instead of trial division for large numbers.",
+      "code": "def is_prime_fast(n):\n    if n < 2: return False\n    if n < 4: return True\n    if n % 2 == 0: return False\n    d = n - 1\n    r = 0\n    while d % 2 == 0:\n        d //= 2\n        r += 1\n    for a in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]:\n        if a >= n: continue\n        x = pow(a, d, n)\n        if x == 1 or x == n - 1: continue\n        for _ in range(r - 1):\n            x = x * x % n\n            if x == n - 1: break\n        else:\n            return False\n    return True",
+      "test": "assert is_prime_fast(2) == True\nassert is_prime_fast(1) == False\nassert is_prime_fast(4) == False\nassert is_prime_fast(97) == True\nassert is_prime_fast(100) == False"
+     },
+     {
+      "op": "add_rule",
+      "text": "Give is_prime_fast to the coder when the problem requires checking primality of numbers that can exceed 10^9 (e.g. large Fibonacci, Mersenne, or sequence elements)."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 80599,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.9333,
+   "cost": 3095.1,
+   "meta_cost": 1281.9,
+   "acc_hard": 0.75,
+   "nodes": 1.43,
+   "shapes": {
+    "coder[T][S]": 17,
+    "coder[T][S]>tester[T][S]": 7,
+    "coder[T][S]>tester[T]": 6
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   1
+  ]
+ }
+]

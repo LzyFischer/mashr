@@ -15,6 +15,9 @@ ANSWER_FMT = "End your response with a final line of the form '#### <number>'."
 MAX_TOKENS = 4096    # per task-agent call
 VOTE_ON_MISSING = True
 FALLBACK_TOOLS = ("python",)
+TOOLS_ARE_CODE = True    # the evolver may add / edit tools (Python, with a sandbox test)
+TOOL_ENV = ("Tool code runs in a sandbox (Python 3, numpy and sympy, no network, 10 s); the code of a "
+            "node's tools is preloaded before the code the agent writes.")
 SPLITS = {"dev_a": 150, "dev_b": 50, "test": 156}
 META = {"team": "solve math problems", "item": "problem",
         "node": "the agent reads the problem, its skills and the full work of its inputs, then answers.",
@@ -83,6 +86,11 @@ def load(split, n=None):
     return items[:n] if n else items
 
 
+def tool_prelude():
+    """Prepended to a tool's code and test when the evolver adds or edits a tool."""
+    return ""
+
+
 def meta_view(item):
     return f"Problem: {item['question']}"
 
@@ -97,16 +105,17 @@ def run_node(eng, pool, node, item, work, is_output):
     else:
         user = (f"Problem: {item['question']}\n\nWork from your teammates:\n{work}\n\nGive your own "
                 f"solution and final answer.\n\n{ANSWER_FMT}")
+    S, T = pool.get("skills", SKILLS), pool.get("tools", TOOLS)
     system = pool["agents"][node["agent"]]["role"]
     if node["skills"]:
-        system += "\n\nSkills to apply:\n" + "\n".join(f"- {k}: {SKILLS[k]['text']}" for k in node["skills"])
+        system += "\n\nSkills to apply:\n" + "\n".join(f"- {k}: {S[k]['text']}" for k in node["skills"])
     if node["tools"]:
-        helpers = [t for t in node["tools"] if TOOLS[t]["code"].strip()]
+        helpers = [t for t in node["tools"] if T[t].get("code", "").strip()]
         system += ("\n\nYou can run Python (numpy and sympy available) once: write one ```python``` "
                    "code block that prints what you need, then stop and wait for its output.")
         if helpers:
             system += " These functions are already defined:\n" + "\n".join(
-                f"- {TOOLS[t]['doc']}" for t in helpers)
+                f"- {T[t]['doc']}" for t in helpers)
     msgs = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     r = eng.chat(msgs, MAX_TOKENS)
     calls = [{"agent": node["agent"], "node": node["id"], "prompt_tokens": r.prompt_tokens,
@@ -114,7 +123,7 @@ def run_node(eng, pool, node, item, work, is_output):
     shown, out = [r.text], None
     code = CODE.findall(r.text)
     if node["tools"] and code and "####" not in r.text.split("```")[-1]:
-        out, _ = run_python(tool_code(node["tools"]) + "\n" + code[-1])
+        out, _ = run_python(tool_code(node["tools"], T) + "\n" + code[-1])
         shown.append(f"[Python output]\n{out}")
         msgs += [{"role": "assistant", "content": r.text},
                  {"role": "user", "content": f"Output:\n{out}\n\nGive the final answer now. {ANSWER_FMT}"}]

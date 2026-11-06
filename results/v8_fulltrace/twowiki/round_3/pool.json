@@ -1,0 +1,65 @@
+{
+ "agents": {
+  "reader": {
+   "role": "You answer multi-hop questions using only the given paragraphs: find each fact you need and give a short answer."
+  },
+  "decomposer": {
+   "role": "You split the question into single-hop sub-questions, answer each from the paragraphs (cite the paragraph), and combine them into the final short answer."
+  },
+  "checker": {
+   "role": "You verify the given answer against the paragraphs. For each hop, find the sentence that supports it. If every hop is supported by the text, output the given answer unchanged. Only if a hop is contradicted or unsupported, correct that specific hop and recompute the final short answer."
+  }
+ },
+ "rules": [
+  "Comparison or yes/no question: one reader.",
+  "An entity described through another: a decomposer, then a checker that reads its work.",
+  "Skills: give answer_span to every node. Add relations only when the question names a family or social relation (father, mother, spouse, grandfather, grandmother, sibling-in-law, father-in-law, mother-in-law). Add distractors only when the paragraph list contains two entities with the same or near-identical name. Add comparison for 'which / who is older, earlier, larger' or 'same' questions. Add dates_numbers for dates, ages, or counts. Add yes_no for yes/no questions. Add bridge for 'the X of Y' entity descriptions. Give at most 3 skills per node."
+ ],
+ "skills": {
+  "bridge": {
+   "when": "an entity is described through another one ('the director of film X', 'the city where Y was born')",
+   "text": "1. Find the inner entity first (the film X), from its paragraph. 2. Read the property you need (its director) and name the bridge entity exactly. 3. Find the bridge entity's own paragraph and read the asked property there. 4. The answer is about the last entity in the chain, not the first."
+  },
+  "comparison": {
+   "when": "two entities are compared (which / who is older, earlier, larger; do both ...; same ...)",
+   "text": "1. Find the compared property (birth date, release year, population, nationality) for each entity in its own paragraph; write both values. 2. Compare them carefully (earlier date = older person / earlier release). 3. For 'which/who' questions the answer is the entity's name (the film, person, or place), not the compared number or date. For 'both' and 'same' questions answer yes or no."
+  },
+  "yes_no": {
+   "when": "a yes/no question (Is / Are / Were / Do / Did ... ?)",
+   "text": "Answer only 'yes' or 'no'. For 'both' questions, check the property for each entity separately; 'same nationality' needs both nationalities written down first."
+  },
+  "relations": {
+   "when": "family or other relations (grandfather, mother-in-law, spouse, child of the director ...)",
+   "text": "Compose relations one step at a time: paternal grandfather = father's father; maternal grandmother = mother's mother; father-in-law = spouse's father; mother-in-law = spouse's mother; sibling-in-law = spouse's sibling. Name each intermediate entity in one short sentence with its paragraph number. If the target person's parent is not stated in their own paragraph, check a sibling's paragraph for the shared parent. Keep total reasoning under 6 sentences. End with the final answer as a single name or place."
+  },
+  "dates_numbers": {
+   "when": "dates, ages, years, counts or quantities",
+   "text": "1. Copy dates exactly as written. 2. 'Who died first / was born first' compares full dates, not only years. 3. Age at an event = event year - birth year (minus one if the birthday comes later in that year). 4. Give a number or date in the form the paragraph uses."
+  },
+  "answer_span": {
+   "when": "any question",
+   "text": "Give the shortest span that answers the question: a name, a title, a date, a number, or yes/no. No explanation, no 'The answer is'. Keep original spelling. Keep your reasoning to at most 3 sentences. (1) Never answer 'not mentioned', 'unknown', 'unanswerable', or 'cannot be determined'\u2014always give the best span found in the text. If the exact property word is absent, re-read the target entity's full paragraph: 'died in X' answers where X died; 'born in X' or 'from X' answers where X was born; 'lived in X' or 'moved to X' plus a death date implies death in X; if a parent is not stated, check a sibling's paragraph for the shared parent. (2) For a place, give one place name, not a compound 'X, Y'. (3) For a person's name, drop only King, Queen, Count, Prince, Duke; keep Lady, Lord, Sir, Dame. (4) For a nationality, give one word (e.g. 'American', 'French'), not a hyphenated compound."
+  },
+  "distractors": {
+   "when": "similar names, several people with one name, or paragraphs about related entities",
+   "text": "If two paragraphs share a name, pick the right one using dates, profession, or country, then use that paragraph's facts directly. Do not discard a location or name just because the label (birth / death / burial) is not explicit\u2014use the closest location stated in the correct paragraph."
+  }
+ },
+ "tools": {
+  "python": {
+   "doc": "Run Python (standard library) with CONTEXT (the paragraphs as a list of [title, sentences]) defined, to search, count or compute.",
+   "code": "",
+   "test": "assert isinstance(CONTEXT, list)"
+  },
+  "search": {
+   "doc": "search(text) -> prints every sentence that contains text (case-insensitive), with its paragraph number, title and sentence number.",
+   "code": "\ndef search(text):\n    n = 0\n    for i, (title, sents) in enumerate(CONTEXT, 1):\n        for j, s in enumerate(sents):\n            if text.lower() in s.lower() or text.lower() in title.lower():\n                print(f\"[{i}] {title} ({j}): {s.strip()}\"); n += 1\n    print(f\"{n} sentences\")\n",
+   "test": "import io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    search('paris')\nassert '1 sentences' in buf.getvalue(), buf.getvalue()"
+  },
+  "dates": {
+   "doc": "dates(i=None) -> prints every date or year in paragraph i (all paragraphs if None), with the sentence it is in; useful for comparisons of age, time or order.",
+   "code": "\ndef dates(i=None):\n    import re\n    pat = re.compile(r\"\\b(?:\\d{1,2} )?(?:January|February|March|April|May|June|July|August|September|\"\n                     r\"October|November|December)?(?: \\d{1,2},)? ?\\b(?:1[0-9]|20)\\d\\d\\b\")\n    for k, (title, sents) in enumerate(CONTEXT, 1):\n        if i is not None and k != i:\n            continue\n        for j, s in enumerate(sents):\n            found = [m.group().strip() for m in pat.finditer(s)]\n            if found:\n                print(f\"[{k}] {title} ({j}): {', '.join(found)} | {s.strip()[:200]}\")\n",
+   "test": "import io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    dates()\nassert '1889' in buf.getvalue(), buf.getvalue()"
+  }
+ }
+}

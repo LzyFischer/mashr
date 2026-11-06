@@ -1,0 +1,175 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Actor gets stuck repeating the same failing command (inventory, go to) dozens of times until the token limit, and/or grabs the wrong object type because it substitutes a similar-sounding object for the one named in the task.",
+    "rationale": "In A2 the actor repeated 'inventory' 30+ times after a failed put command and in A3 it repeated 'go to cabinet 13' 14 times, burning all remaining steps with no recovery. The actor role currently has no loop-breaking instruction. In A2 the actor also grabbed a 'towel' when the task asked for a 'cloth' (a different object type), causing the put to fail; neither the actor nor the planner role instructs using the exact object type from the task text, so the 9B model freely substitutes similar objects. Adding loop-breaking and exact-object-matching to the actor role (always-on, every task) and a matching instruction to the planner role (so its plan names the right object) addresses both root causes at the self-harness layer where they belong.",
+    "evidence": [
+     "A2",
+     "A3"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "actor",
+      "role": "You act in a household text environment to complete the task. Each turn, write one short line 'Think: ...' and then 'Action: <one command>'. Use the exact object type named in the task; do not substitute a similar object. If a command returns 'Nothing happens' twice, or you notice you are repeating the same action, stop: run 'inventory', then go to a new unvisited location. Never repeat the same command more than twice."
+     },
+     {
+      "op": "edit_agent",
+      "name": "planner",
+      "role": "You read the task and the room, and write a short plan for the teammate who will act: where to look first and the steps to finish. Use the exact object type from the task in your plan; do not substitute a similar object. You do not act."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 22891,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.75,
+   "cost": 9474.8,
+   "meta_cost": 1456.7,
+   "acc_hard": 0.8,
+   "nodes": 2.0,
+   "shapes": {
+    "planner[S]>actor[T][S]": 5,
+    "actor[T][S],planner[S]": 2,
+    "planner[T][S]>actor[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Actor loops on the same command (inventory or go to) for 13-30+ steps, exhausting the step budget without making progress",
+    "rationale": "The stuck_recovery skill exists but its 'when' field says 'long or tricky tasks', so the meta-agent never gives it on simple tasks. Both A2 (inventory repeated 30+ times) and A3 (go to cabinet 13 repeated 13+ times) are simple tasks where the actor got stuck in a loop. Broadening 'when' to 'any task' and adding an explicit rule in the meta-harness ensures every actor receives this recovery guidance, breaking the loop before the step budget is exhausted.",
+    "evidence": [
+     "A2",
+     "A3"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give the skill for the task type. Always give stuck_recovery to the actor."
+     },
+     {
+      "op": "edit_skill",
+      "name": "stuck_recovery",
+      "when": "any task"
+     }
+    ]
+   },
+   {
+    "pattern": "Actor picks up a similar but different object type and then fails to complete the placement or wastes steps on an invalid put",
+    "rationale": "In A2 the task asks for 'a cloth' but the actor grabs 'a towel' from the towelholder because search_order maps towels to towelholder and the actor does not distinguish the two. The pick_place skill's pitfall note is a trailing sentence the 9B model skips. Moving the exact-name-match requirement into step 1 of the procedure makes it a primary instruction the actor must satisfy before taking anything, preventing the substitution at the source.",
+    "evidence": [
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "pick_place",
+      "text": "1. Find the object named in the task (use search_order), take it. The name must match the task exactly; a similar but different type (a cup is not a mug) is wrong\u2014keep searching. 2. Go to the target receptacle; open it if closed. 3. put {obj} in/on {recep}. Done when the object is placed."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 22905,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.625,
+   "cost": 16998.5,
+   "meta_cost": 2402.8,
+   "acc_hard": 0.6,
+   "nodes": 1.88,
+   "shapes": {
+    "planner[S]>actor[T][S]": 6,
+    "actor[T][S]": 1,
+    "actor[T][S],planner[S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Actor enters an infinite loop repeating a failed command (inventory, go-to) until the token limit is hit, wasting all remaining steps",
+    "rationale": "In A2 the actor repeated 'inventory' ~30 times after 'put towel 1 in drawer 1' failed twice; in A3 it repeated 'go to cabinet 13' ~14 times after 'Nothing happens'. Neither trace shows any recovery behaviour. The stuck_recovery skill was never granted, and no rule triggers it. Because getting stuck can happen on any task (both a simple pick-and-place and a two-object task failed this way), the recovery instruction belongs in the actor's always-on role rather than as a conditionally-granted skill.",
+    "evidence": [
+     "A2",
+     "A3"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "actor",
+      "role": "You act in a household text environment to complete the task. Each turn, write one short line 'Think: ...' and then 'Action: <one command>'. If a command fails twice, do not repeat it: check inventory, then go to a new unvisited place or re-search for the correct object."
+     }
+    ]
+   },
+   {
+    "pattern": "Planner substitutes a similar object type for the task target, causing the actor to grab and place the wrong object",
+    "rationale": "In A2 the task says 'put a cloth in drawer' but the planner's plan says 'Search Towels First \u2026 for a cloth', leading the actor to grab a towel. The subsequent 'put' fails because a towel is not a cloth, and the actor never recovers. The planner's role has no instruction to preserve the exact object name from the task, so it freely conflates similar types (towel\u2248cloth, cup\u2248mug). This is a general planning error that applies to every task the planner works on, so the fix belongs in the planner's role.",
+    "evidence": [
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "planner",
+      "role": "You read the task and the room, and write a short plan for the teammate who will act: where to look first and the steps to finish. You do not act. Use the exact object name from the task; never substitute a similar object type."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 22864,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.75,
+   "cost": 16750.0,
+   "meta_cost": 2367.5,
+   "acc_hard": 0.8,
+   "nodes": 1.75,
+   "shapes": {
+    "planner[S]>actor[T][S]": 5,
+    "actor[T][S]": 2,
+    "planner[T][S]>actor[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   1
+  ]
+ }
+]

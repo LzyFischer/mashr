@@ -1,0 +1,15 @@
+task bird: dev-A 8, dev-B 8, test 8; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc; trace budget 120000 chars, max ops 8 (annealed)
+starting organization: the seed
+[cost] round 0 / dev-B eval: 0.0 min; Qwen3.5-9B: 0.00M gen + 0.00M prompt billed, 36 calls (100% cached)
+round 0 incumbent dev-B {'n': 8, 'acc': 0.5, 'cost': 3539.6, 'meta_cost': 762.3, 'acc_hard': 0.5, 'nodes': 2.0, 'shapes': {'writer[T][S]>checker[T][S]': 6, 'writer[T][S],writer[T][S]>checker[T][S]': 1, 'writer[T][S]': 1}, 'n_shapes': 3, 'fallback': 0}
+[cost] round 1 / dev-A eval: 0.0 min; Qwen3.5-9B: 0.00M gen + 0.00M prompt billed, 30 calls (100% cached)
+round 1: incumbent dev-A {'n': 8, 'acc': 0.5, 'cost': 2335.2, 'meta_cost': 759.1, 'acc_hard': 0.3333, 'nodes': 2.0, 'shapes': {'writer[T][S]>checker[T][S]': 8}, 'n_shapes': 1, 'fallback': 0}
+[cost] round 1 / evolver proposals (27B): 1.1 min; Qwen3.8-27B: 0.02M gen + 0.03M prompt billed, 3 calls (0% cached)
+[cost] round 1 / dev-B gate (3 candidates): 0.0 min; Qwen3.5-9B: 0.00M gen + 0.00M prompt billed, 88 calls (100% cached)
+  cand 0 (task-agent): 2 changes, 2 ops, repairs 0, dev-B fixed/broke (2, 1), dev-B {'n': 8, 'acc': 0.625, 'cost': 2818.2, 'meta_cost': 692.9, 'acc_hard': 0.5, 'nodes': 2.0, 'shapes': {'writer[T][S]>checker[T][S]': 8}, 'n_shapes': 1, 'fallback': 0}
+  cand 1 (meta-agent+library): 3 changes, 3 ops, repairs 0, dev-B fixed/broke (0, 1), dev-B {'n': 8, 'acc': 0.375, 'cost': 2784.1, 'meta_cost': 667.3, 'acc_hard': 0.0, 'nodes': 1.88, 'shapes': {'writer[T][S]>checker[T][S]': 7, 'writer[T][S]': 1}, 'n_shapes': 2, 'fallback': 0}
+  cand 2 (task-agent+meta-agent+library): 3 changes, 5 ops, repairs 0, dev-B fixed/broke (1, 1), dev-B {'n': 8, 'acc': 0.5, 'cost': 2833.3, 'meta_cost': 767.3, 'acc_hard': 0.0, 'nodes': 2.0, 'shapes': {'writer[T][S]>checker[T][S]': 8}, 'n_shapes': 1, 'fallback': 0}
+round 1: accepted; incumbent dev-B {'n': 8, 'acc': 0.625, 'cost': 2818.2, 'meta_cost': 692.9, 'acc_hard': 0.5, 'nodes': 2.0, 'shapes': {'writer[T][S]>checker[T][S]': 8}, 'n_shapes': 1, 'fallback': 0}
+[cost] test (3 systems): 0.0 min; Qwen3.5-9B: 0.00M gen + 0.00M prompt billed, 66 calls (100% cached)
+TEST: {"org_round0": {"n": 8, "acc": 0.375, "cost": 3319.6, "meta_cost": 727.7, "acc_hard": 1.0, "nodes": 2.0, "shapes": {"writer[T][S]>checker[T][S]": 8}, "n_shapes": 1, "fallback": 0}, "org_final": {"n": 8, "acc": 0.375, "cost": 3593.4, "meta_cost": 693.6, "acc_hard": 1.0, "nodes": 2.0, "shapes": {"writer[T][S]>checker[T][S]": 8}, "n_shapes": 1, "fallback": 0}, "single": {"n": 8, "acc": 0.375, "cost": 539.8, "meta_cost": 0.0, "acc_hard": 1.0, "nodes": 1.0, "shapes": {"writer": 8}, "n_shapes": 1, "fallback": 0}}
+[cost] TOTAL: 0.04 h; Qwen3.5-9B: 0.00M gen + 0.00M prompt billed, 220 calls (100% cached); Qwen3.8-27B: 0.02M gen + 0.03M prompt billed, 3 calls (0% cached)

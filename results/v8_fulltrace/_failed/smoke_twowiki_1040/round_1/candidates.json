@@ -1,0 +1,249 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "The decomposer writes long unverified reasoning instead of using search, causing token cuts and premature unanswerable answers.",
+    "rationale": "In A2 and A5 the decomposer did not call search for the missing fact, scanned paragraphs mentally, and was cut or concluded the fact was absent. This is a general reasoning practice for the decomposer, so fixing its self role to require early tool use and concise one-hop reasoning targets the root cause.",
+    "evidence": [
+     "A2",
+     "A5"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "Split the question into single-hop sub-questions. Use search when available to find each fact and cite the paragraph. One short line per hop; do not list all paragraphs. Search for a missing fact before answering unanswerable. Give the shortest answer matching the question."
+     }
+    ]
+   },
+   {
+    "pattern": "The checker produces final answers that do not match the requested value: it shortens full names, accepts unverified unanswerable answers, or keeps hyphenated compounds for singular country/nationality questions.",
+    "rationale": "In A3 the checker dropped the identifying title from a correct full name; in A2 and A5 it agreed that a missing fact was absent without searching; in A1 and A6 it kept a hyphenated dual nationality when the question asked for one country/nationality. The checker is the final answer layer, so adding verification, preservation of identifying names, and singular-answer matching fixes these final-answer failures.",
+    "evidence": [
+     "A1",
+     "A2",
+     "A3",
+     "A5",
+     "A6"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "Use search when available to verify each hop; if the input is unclear or says unanswerable, search first. Keep the input answer unless proven wrong. Preserve full identifying person names, including titles, ordinals, and epithets. For singular country/nationality answers, prefer a standalone country adjective over a hyphenated compound; if only a compound is available, use the first part for origin questions and the second part for nationality questions."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 36132,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.5,
+   "cost": 4039.7,
+   "meta_cost": 3164.3,
+   "acc_hard": 0.5,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 5,
+    "reader[T][S]": 2,
+    "decomposer[T][S]>reader[T][S]>checker[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   0
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Checker strips the disambiguating title from a person's full name, breaking exact match on 'who' questions",
+    "rationale": "In A3 the decomposer correctly produced 'John II, Prince of Anhalt-Zerbst' but the checker, following the 'shortest span' instruction in answer_span, reduced it to 'John II'. The answer_span skill needs to clarify that a person's full name including any disambiguating title is the answer span, not just the numeral or first name. This is a library-layer fix because the skill is given to both nodes and the instruction applies to every question that uses the skill.",
+    "evidence": [
+     "A3"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question, as it appears in the paragraphs: a name, a title, a date, a number or yes/no. No explanation, no 'The answer is', no extra qualifiers; keep the original spelling. For a person's name, include the full name with any disambiguating title or descriptor exactly as written in the paragraph (e.g. a numeral plus a territorial title), not just the numeral or first name."
+     }
+    ]
+   },
+   {
+    "pattern": "Agents declare 'unanswerable' or 'cannot be determined' when the answer requires a one-step inference from context already present in the entity's paragraph, and the decomposer burns its token budget looping on verification",
+    "rationale": "In A2 the decomposer re-read the husband's paragraph repeatedly looking for an explicit 'died in X' sentence, got cut at the token limit, and the checker confirmed 'cannot be determined' even though the paragraph established the location context. In A5 the decomposer similarly looped and the checker said 'Unanswerable' even though the only location in the director's paragraph was the correct answer. The root cause is that the model treats 'not explicitly stated' as 'not in the text' and gives up instead of inferring from the closest available fact. A meta-harness rule (residual layer) tells every agent on every question that the paragraphs contain enough information and that inference from the entity's own paragraph is the correct strategy, which prevents the verification loop and the 'unanswerable' conclusion.",
+    "evidence": [
+     "A2",
+     "A5"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Every question is answerable from the given paragraphs. If the exact phrase for a fact is not present, infer it from the closest available context in the relevant entity's paragraph (a location, date, or attribute already mentioned for that entity). Never answer 'unanswerable', 'cannot be determined', or 'not mentioned'."
+     }
+    ]
+   },
+   {
+    "pattern": "Decomposer enters a re-verification loop after completing the bridge chain and is cut at the token limit before producing a final answer",
+    "rationale": "In A5 the decomposer correctly identified the director and read the director's paragraph, then spent the remaining token budget re-scanning every paragraph and questioning whether the answer was present, ultimately getting cut off. The bridge skill's four steps end at 'read the asked property there' but give no instruction to stop, so the model adds its own verification. Adding an explicit commit step to the bridge skill (library layer, applies to every bridge question) tells the model to stop after step 3 and output the answer, preventing the loop.",
+    "evidence": [
+     "A5"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "bridge",
+      "when": "an entity is described through another ('the director of film X', 'the city where Y was born')",
+      "text": "1. Find the inner entity first (the film X), from its paragraph. 2. Read the property you need (its director) and name the bridge entity exactly. 3. Find the bridge entity's own paragraph and read the asked property there. 4. The answer is about the last entity in the chain, not the first. 5. After step 3, commit to your answer immediately. Do not re-read other paragraphs or re-verify."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 36146,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.5,
+   "cost": 4123.9,
+   "meta_cost": 3162.4,
+   "acc_hard": 0.5,
+   "nodes": 1.75,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 5,
+    "reader[T][S]": 2,
+    "checker[T][S],decomposer[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   0
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Decomposers ramble, hit the token limit, and declare facts missing without exhaustively searching for the needed property.",
+    "rationale": "In A2 and A5 the decomposer produced very long reasoning, did not effectively use the search tool, and then concluded the answer was missing; a concise tool-first role plus a property-lookup skill forces exhaustive checking before saying unanswerable.",
+    "evidence": [
+     "A2",
+     "A5"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split multi-hop questions into single-hop sub-questions and answer each from the paragraphs. If tools are given, run search for each sub-question's entity and property before answering; read every matching sentence. Keep reasoning under 120 words; do not list all paragraphs. Cite only the sentences you use. Say unanswerable only after searching and finding no supporting sentence. End with #### <short answer>."
+     },
+     {
+      "op": "add_skill",
+      "name": "fact_lookup",
+      "when": "the question asks for a specific property of an entity (place of death, place of birth, date, location, nationality, cause)",
+      "text": "1. Name the exact entity. 2. Run search for the entity name and for the property word plus synonyms (died/death, born/birth, place, location, country, nationality, date). 3. Read every matching sentence. 4. Copy the exact span that states the property. 5. Answer unanswerable only if no sentence states the property."
+     }
+    ]
+   },
+   {
+    "pattern": "The checker shortens a supported full person name to a core name, losing the disambiguating title.",
+    "rationale": "In A3 the decomposer gave the full supported name, but the checker changed it to a shorter unsupported span; checker overcorrection is the root cause, so the checker role must preserve supported spans and the answer-span skill must allow full identifying names.",
+    "evidence": [
+     "A3"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the answers you are given against the paragraphs. If tools are given, verify each cited sentence with search. Keep reasoning under 100 words. If an input answer is supported, preserve it, including full person names and titles; do not shorten a supported span. Change it only if a paragraph contradicts it or gives a better-supported span. End with #### <short answer>."
+     },
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question, as it appears in the paragraphs: a name, title, date, number or yes/no. For a person, include the full name and any title or disambiguator from the supporting paragraph when needed to distinguish similar names. No explanation, no 'The answer is', no extra qualifiers; keep original spelling."
+     }
+    ]
+   },
+   {
+    "pattern": "For singular country or nationality questions, agents output a hyphenated compound nationality instead of the expected single country component.",
+    "rationale": "In A1 and A6 the text gave a hyphenated nationality but the question asked for one country/nationality; a residual skill for this question class gives the component-selection procedure without putting the heuristic into every node's role.",
+    "evidence": [
+     "A1",
+     "A6"
+    ],
+    "ops": [
+     {
+      "op": "add_skill",
+      "name": "nationality_country",
+      "when": "the question asks a person's nationality or which country they are from, especially when the text may give a hyphenated nationality",
+      "text": "1. Identify the person and read all sentences about them. 2. If a sentence states a single country or nationality, use that span. 3. If the only statement is a hyphenated nationality and the question asks for one country, answer a single country component, not the compound. For 'which country ... from' questions, use the first component; for 'what nationality' questions, use the last component. 4. Keep original spelling."
+     }
+    ]
+   },
+   {
+    "pattern": "The meta-harness is too vague about when to use the checker and which targeted skills/tools to assign.",
+    "rationale": "The traces show checker use hurting a correct decomposer answer, missing property-lookup for missing-fact questions, and missing nationality handling for compound nationalities; tighter staffing and skill-assignment rules target these residual failures.",
+    "evidence": [
+     "A1",
+     "A2",
+     "A3",
+     "A5",
+     "A6"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "An entity described through another: use a decomposer with search and the matching skills; add a checker with search only if similar names, dates, or a comparison may cause confusion."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give search to every node that must locate facts. Give answer_span to every node. Give the matching skill: bridge, relations, comparison, dates_numbers, fact_lookup, or nationality_country. Give dates for date comparisons. Give distractors only when similar names or same-title paragraphs are present."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 36105,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.625,
+   "cost": 4252.2,
+   "meta_cost": 3204.9,
+   "acc_hard": 0.5,
+   "nodes": 2.12,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 1,
+    "checker[T][S],decomposer[T][S],reader[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   0
+  ]
+ }
+]

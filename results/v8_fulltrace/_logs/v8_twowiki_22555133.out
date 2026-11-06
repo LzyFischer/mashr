@@ -1,0 +1,9 @@
+[job] vLLM port 35133
+udc-ba07-35
+name, memory.total [MiB]
+NVIDIA A40, 46068 MiB
+[vllm] ready Fri Nov  6 10:46:41 EST 2026
+[twowiki] smoke start Fri Nov  6 10:46:41 EST 2026
+[twowiki] smoke ok Fri Nov  6 10:54:30 EST 2026; full run start
+[twowiki] DONE Fri Nov  6 13:30:57 EST 2026: TEST: {"org_round0": {"n": 500, "acc": 0.748, "cost": 4233.4, "meta_cost": 3148.0, "acc_hard": 0.6783, "nodes": 1.72, "shapes": {"decomposer[T][S]>checker[T][S]": 299, "reader[T][S]": 128, "checker[T][S],decomposer[T][S]": 47, "reader": 10}, "n_shapes": 10, "fallback": 10}, "org_final": {"n": 500, "
+[job] all tasks finished Fri Nov  6 13:30:57 EST 2026

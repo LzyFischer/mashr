@@ -1,0 +1,249 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Task agents often hit the token limit by writing long manual derivations instead of using available tools and finalizing, so the final answer is missing or wrong.",
+    "rationale": "Traces A61, A6, A89, A10, and A81 show solver or verifier nodes being cut off after long manual work even when Python or other tools were available; A80 and the coder statistics show the same computation-node truncation pattern. The self roles currently encourage step-by-step work and independent re-derivation without requiring concise tool-first computation or a final answer, so editing the roles directly targets the root cause.",
+    "evidence": [
+     "A61",
+     "A6",
+     "A89",
+     "A10",
+     "A81",
+     "A80"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "solver",
+      "role": "Careful math solver. Solve concisely. Use available Python/tools for computation, enumeration, exact algebra, or checking instead of manual arithmetic. List all requested values. Put the final answer on the last line, exactly as asked, then stop."
+     },
+     {
+      "op": "edit_agent",
+      "name": "verifier",
+      "role": "Verifier. Check the given answer with a short independent check (substitution, small case, or available Python/tools); do not redo the full solution. If the check fails, redo only that part. List all requested values. Put the final answer on the last line, exactly as asked, then stop."
+     },
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "Math solver using short Python. Write minimal code, print only needed results, and explain briefly. List all requested values. Put the final answer on the last line, exactly as asked, then stop."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 96328,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6210.3,
+   "meta_cost": 3196.9,
+   "acc_hard": 0.9259,
+   "nodes": 1.82,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 29,
+    "solver[T][S]": 9,
+    "solver[T][S]>verifier[T]": 6,
+    "solver[T][S],verifier[T][S]": 4
+   },
+   "n_shapes": 6,
+   "fallback": 0
+  },
+  "flip_b": [
+   3,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Solvers with Python tools perform multi-step algebraic computation (expanding polynomials, eliminating radicals, solving systems) entirely by hand in text, producing very long outputs that hit the token limit or contain arithmetic errors.",
+    "rationale": "In A6 the solver hand-squared three times to eliminate radicals; in A35 it hand-computed a quadratic formula; in A60/A130/A149 it expanded and manipulated polynomials by hand. All had Python/sympy available but never called it. The algebra_manipulation skill describes methods but never directs the model to compute with Python, so the 9B model defaults to verbose hand work. Adding an explicit Python-first directive to the skill (which the task agent reads) will shorten outputs and eliminate arithmetic slips.",
+    "evidence": [
+     "A6",
+     "A35",
+     "A60",
+     "A130",
+     "A149",
+     "A16"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "algebra_manipulation",
+      "when": "simplifying expressions, systems of equations, substitutions, x + 1/x type identities",
+      "text": "1. Use Python (sympy) for ALL algebraic computation: expanding, factoring, solving, evaluating. Write the mathematical setup in 1-2 sentences, then compute with Python. Do NOT expand polynomials, multiply expressions, or do arithmetic by hand. 2. Name the target expression and look for a substitution (e.g. t = x + 1/x gives x^2 + 1/x^2 = t^2 - 2). 3. Systems: add/subtract to get symmetric sums; multiply all equations for products. 4. Rationalize denominators with conjugates. 5. Pitfalls: dividing by 0, squaring creates extraneous roots, domain of sqrt/log. 6. Check: substitute the result back into every original equation (tool: check_answer)."
+     }
+    ]
+   },
+   {
+    "pattern": "Solvers enumerate integer solutions case-by-case in text (checking p=2,3,5,7,11,...) instead of writing a short Python loop, producing outputs that are cut at the token limit before the answer is reached.",
+    "rationale": "In A89 the solver and verifier both hand-checked dozens of primes and composites for \u03c4(n)+\u03c4(n+1)=7, getting cut mid-enumeration. In A80/A129/A130 similar hand enumeration occurred. The integer_equations skill mentions brute_force only in step 5 as a check, not as the primary method. Promoting Python enumeration to the main step (step 5) and adding an explicit 'do NOT enumerate by hand' directive will keep outputs short and complete.",
+    "evidence": [
+     "A89",
+     "A80",
+     "A129",
+     "A130"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "integer_equations",
+      "when": "equations or conditions in integers (Diophantine, digits, bases, floor)",
+      "text": "1. Bound variables first (sizes, signs, digits 0-9, leading digit not 0). 2. Factor: rewrite as (ax+b)(cy+d) = N (Simon's trick); run over divisor pairs including negatives if allowed. 3. Use parity or a modulus to cut cases. 4. Base b: digits 0..b-1, value = sum d_i b^i. Floor: x = n + f, 0 <= f < 1. 5. Use Python for ALL enumeration and arithmetic. Once bounded, write a short Python loop or use brute_force to find every solution. Do NOT enumerate cases by hand. 6. Check every candidate in the original equation."
+     }
+    ]
+   },
+   {
+    "pattern": "Solvers interpret Asymptote coordinates and compute areas, perimeters, and intersections by hand in text, producing long outputs that are cut before the final answer.",
+    "rationale": "In A10 both nodes spent most of their tokens re-deriving side lengths and areas from the Asymptote code by hand, getting cut before outputting the answer (which they had actually computed correctly mid-reasoning). In A61/A97/A103/A148 similar hand coordinate computation occurred. The geometry_coordinates skill mentions coord_geometry in step 3 but does not forbid hand computation. Making Python the mandatory computation tool will eliminate the verbosity and the arithmetic errors.",
+    "evidence": [
+     "A10",
+     "A61",
+     "A97",
+     "A103",
+     "A148"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "geometry_coordinates",
+      "when": "geometry with a diagram (Asymptote code), lengths, areas, intersections",
+      "text": "1. If Asymptote code is given, read the exact coordinates of every labeled point from it; they define the figure. 2. Otherwise place the figure: a vertex at the origin, a side on the x-axis, use symmetry. 3. Use Python for ALL computations: distances, areas (shoelace), intersections, perimeters. Do NOT compute by hand. 4. Identify exactly which region or segment is asked (shaded part, specific quadrilateral). 5. Pitfalls: unit vs scaled diagram, degrees vs radians, an area that must be subtracted. Check one known length or area from the problem against your coordinates."
+     }
+    ]
+   },
+   {
+    "pattern": "The meta-agent staffs a plain solver (rule 2 'harder problem') for problems that require many algebraic or arithmetic steps, when a coder with Python would complete the computation in a few lines of code.",
+    "rationale": "In A6, A89, A10, A81 the meta-agent chose solver>verifier (rule 2) even though the work involved expanding high-degree polynomials, enumerating over integers, or computing areas from coordinates. Rule 3 lists 'heavy computation, counting or search' but does not explicitly cover multi-step algebra and coordinate geometry, so the meta-agent classifies them as 'harder' rather than 'heavy computation'. Expanding rule 3 with concrete examples will shift these problems to the coder architecture, which avoids the token-limit failure mode.",
+    "evidence": [
+     "A6",
+     "A89",
+     "A10",
+     "A81"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Heavy computation, counting, search, or any problem with many algebraic/arithmetic steps (expanding polynomials, eliminating radicals, solving over integers, computing areas or distances from coordinates): a coder with Python, then a verifier."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 96342,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 6619.0,
+   "meta_cost": 3203.3,
+   "acc_hard": 0.963,
+   "nodes": 1.78,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 28,
+    "solver[T][S]": 13,
+    "solver[S]>verifier[T]": 2,
+    "coder[T][S]>verifier[T][S]": 2
+   },
+   "n_shapes": 8,
+   "fallback": 0
+  },
+  "flip_b": [
+   3,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Solver does arithmetic, counting, and algebra by hand in verbose text even when Python tools are available, exhausting the token budget and producing a garbage answer",
+    "rationale": "In A6 the solver had python+polynomial+simplify_exact but expanded radicals by hand for thousands of tokens; in A89 it listed primes and factored by hand; in A81 it computed trig areas by hand; in A10 it re-analyzed Asymptote coordinates repeatedly. The role 'Reason step by step' encourages long text output. Moving the 'use tools for computation' instruction into the self role (always-on) is the right layer because the behavior is per-agent, not per-problem.",
+    "evidence": [
+     "A6",
+     "A89",
+     "A81",
+     "A10",
+     "A61"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "solver",
+      "role": "You are a careful math solver. If you have Python or other tools, use them for all computation, counting, and algebra - do not do arithmetic by hand. Be concise: set up, compute with tools, verify, give the final answer."
+     }
+    ]
+   },
+   {
+    "pattern": "Verifier re-derives the entire solution from scratch, doubling token usage and hitting the limit before confirming or correcting the answer",
+    "rationale": "In A6 the verifier re-derived all 8 conjugates and symmetric sums; in A89 it re-ran every case of the divisor analysis; in A10 it re-analyzed the Asymptote code; in A61 it re-derived the grid counting. The role 're-derive the answer independently' causes full re-derivation. Spot-checking key steps and recomputing the final answer with tools preserves verification quality while cutting token usage roughly in half.",
+    "evidence": [
+     "A6",
+     "A89",
+     "A10",
+     "A61"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "verifier",
+      "role": "You check the given solution: verify the setup and key steps, recompute the final answer with your tools, and give the answer you believe is correct. Be concise - do not re-derive every step from scratch."
+     }
+    ]
+   },
+   {
+    "pattern": "Verifier is staffed with only check_answer and no Python, so it cannot recompute the answer and either repeats the solver's error or gives up",
+    "rationale": "In A61 the verifier had only check_answer (no Python) and produced 1 instead of 660; in A130 it had only check_answer and got 24 instead of 20; in A16 and A60 the same staffing left it unable to verify. The meta-agent decides tool assignment, so a meta-harness rule ensuring the verifier always gets Python is the correct layer. This complements the verifier role edit (which says 'recompute with your tools') by guaranteeing the tool is present.",
+    "evidence": [
+     "A61",
+     "A130",
+     "A16",
+     "A60"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Always give python to the verifier so it can recompute and verify the numeric answer."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 96301,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6361.4,
+   "meta_cost": 3214.8,
+   "acc_hard": 0.9259,
+   "nodes": 1.88,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 41,
+    "solver[T][S]": 5,
+    "solver[T][S]>verifier[T]": 2,
+    "solver[S]>verifier[T]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 1
+  },
+  "flip_b": [
+   2,
+   1
+  ]
+ }
+]

@@ -1,0 +1,8 @@
+udc-ba02-35
+name, memory.total [MiB]
+NVIDIA A40, 46068 MiB
+[vllm] ready Fri Nov  6 10:13:10 EST 2026
+[humaneval_plus] smoke start Fri Nov  6 10:13:10 EST 2026
+[humaneval_plus] smoke ok Fri Nov  6 10:40:04 EST 2026; full run start
+[2026-11-06T10:40:17.816] error: *** JOB 22554249 ON udc-ba02-35 CANCELLED AT 2026-11-06T10:40:17 DUE to SIGNAL Terminated ***
+/var/spool/slurm/slurmd/job22554249/slurm_script: line 1: 993273 Terminated              run_task "$task"

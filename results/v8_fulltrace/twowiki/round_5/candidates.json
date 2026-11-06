@@ -1,0 +1,236 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Both decomposer and checker copy compound text spans (City, State / Place, City / Title+Name) verbatim as the final answer because the checker role says 'output unchanged' which directly contradicts the answer_span skill's normalization rules",
+    "rationale": "In 12+ traces (A46 Hollis,Queens; A50 Akershus Fortress,Oslo; A60 Arcadia,California; A63 Timmins,Ohio; A77 New York,New York; A88 Pacific Palisades,California; A92 Reservoir,Melbourne; A96 Kansas City,Missouri; A99 London Borough of Islington; A114 Dallas,Texas; A140 FTII,Pune; A2 Ey\u00fcp Palace,Constantinople) the decomposer copies the full span and the checker passes it through because its role says 'output the given answer unchanged.' This instruction directly contradicts the answer_span skill ('give one place name, not a compound'), and the 9B model resolves the conflict by following the role. Removing 'unchanged' from the checker role eliminates the contradiction so the skill's normalization rules can take effect, and adding 'one span' to the decomposer role reinforces the single-span format at the source where the compound is first produced.",
+    "evidence": [
+     "A46",
+     "A50",
+     "A60",
+     "A63",
+     "A77",
+     "A88",
+     "A92",
+     "A96",
+     "A99",
+     "A114",
+     "A140",
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into single-hop sub-questions, answer each from the paragraphs (cite the paragraph), and combine them into the final short answer. The final answer is one span: a single name, place, date, number, or yes/no."
+     },
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You verify the given answer against the paragraphs. For each hop, find the sentence that supports it. If every hop is supported, output the given answer. Only if a hop is contradicted or unsupported, correct that specific hop and recompute the final short answer."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 159590,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.76,
+   "cost": 4028.3,
+   "meta_cost": 3180.0,
+   "acc_hard": 0.7073,
+   "nodes": 1.78,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 33,
+    "reader[T][S]": 9,
+    "checker[T][S],decomposer[T][S]": 4,
+    "decomposer[T][S]>checker[S]": 2
+   },
+   "n_shapes": 5,
+   "fallback": 2
+  },
+  "flip_b": [
+   1,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Checker is wired without the decomposer as input, runs independently, and overrides a correct or near-correct decomposer answer with 'not mentioned' or a different wrong span.",
+    "rationale": "In A125 the decomposer correctly answers 'Moscow' (from 'moved to Moscow' + death date) but the independently-wired checker (c = checker(tools=['search'], skills=['answer_span']) with no node argument) cannot find an explicit 'died in Moscow' sentence and overrides with 'not mentioned'. The same missing-input wiring appears in A43 (decomposer 'not mentioned', independent checker 'Westminster Abbey'), A39 (both 'not mentioned'), A122 (decomposer wrong entity, independent checker 'not mentioned'), and A76 (both 'King Mongkut'). Rule 2 currently says 'a checker that reads its work' but only for 'entity described through another' questions and does not show the code syntax, so the meta-agent frequently omits the positional argument. Making the wiring explicit in the rule with a code template fixes the root cause at the meta-agent layer.",
+    "evidence": [
+     "A125",
+     "A43",
+     "A39",
+     "A122",
+     "A76"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Multi-hop question (entity described through another, relation chain, or any question needing more than one paragraph): a = decomposer(tools=['search'], skills=[...]); c = checker(a, tools=['search'], skills=[...]); return c. The checker MUST take the decomposer node as its first positional argument so it sees and verifies that work, not re-derive from scratch."
+     }
+    ]
+   },
+   {
+    "pattern": "Agents answer 'not mentioned' or pick the wrong entity when the target paragraph states the needed fact under a different property word (exiled/buried/owned/works-at instead of died-in/birthplace/workplace), or when a same-name entity in another paragraph is the wrong one.",
+    "rationale": "In A14 the text says 'exiled to Rangoon' + death date but both nodes output 'not mentioned' for burial; in A43 'buried at Westminster Abbey' is rejected as not being 'place of death'; in A122 'owned the potash producer Uralkali' is rejected as not being a workplace, and the decomposer picks AS Monaco FC (a different role) instead; in A10 the only Joe Parker paragraph says 'South African comedian' and is the right entity but the model doubts it; in A75 the model conflates two different Phintys accounts. The answer_span skill already lists 'moved to X' + death date but omits exile, burial, and workplace inferences, and the distractors skill (41% when given vs 71% otherwise) makes the model over-verify and doubt the correct paragraph. Extending answer_span's inference list and tightening distractors to commit to one paragraph addresses both sub-causes at the library layer.",
+    "evidence": [
+     "A14",
+     "A43",
+     "A122",
+     "A10",
+     "A75"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question: a name, a title, a date, a number, or yes/no. No explanation, no 'The answer is'. Keep original spelling. Keep your reasoning to at most 3 sentences. (1) Never answer 'not mentioned', 'unknown', 'unanswerable', or 'cannot be determined'\u2014always give the best span found in the text. If the exact property word is absent, re-read the target entity's full paragraph: 'died in X' answers where X died; 'born in X' or 'from X' answers where X was born; 'lived in X', 'moved to X', 'exiled to X', or 'buried at X' plus a death date implies death in X; 'owned X', 'worked at X', or 'president of X' answers where X works; if a parent is not stated, check a sibling's paragraph for the shared parent. (2) For a place, give one place name, not a compound 'X, Y'. (3) For a person's name, drop only King, Queen, Count, Prince, Duke; keep Lady, Lord, Sir, Dame. (4) For a nationality, give one word (e.g. 'American', 'French'), not a hyphenated compound."
+     },
+     {
+      "op": "edit_skill",
+      "name": "distractors",
+      "when": "similar names, several people with one name, or paragraphs about related entities",
+      "text": "If two paragraphs share a name, pick the right one using dates, profession, or country in ONE sentence, then use that paragraph's facts directly as the answer. Do not re-verify or doubt the chosen paragraph after selecting it."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 159604,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 4194.6,
+   "meta_cost": 3185.8,
+   "acc_hard": 0.7317,
+   "nodes": 1.92,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 45,
+    "reader[T][S]": 4,
+    "checker[T][S],decomposer[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Decomposer\u2192checker pipeline enters verbose re-reading loops, hits the token limit, or outputs 'not mentioned' on bridge/compositional/inference questions where the answer exists under different wording",
+    "rationale": "Decomposer answers correctly only 55% of the time vs reader at 97%. Traces A14, A17, A29, A39, A43, A45, A51, A56, A104, A122, A125, A128, A130, A131 show the decomposer re-reading paragraphs 5+ times, second-guessing, and either running out of tokens or concluding 'not mentioned'. The checker then either passes through 'not mentioned' or enters its own loop (A125: decomposer correctly says Moscow, checker overrides with 'not mentioned'). Switching to a single reader eliminates both the decomposition loop and the checker override. The reader's simpler role ('find each fact you need and give a short answer') avoids the verbose sub-question structure that triggers the loops.",
+    "evidence": [
+     "A14",
+     "A17",
+     "A29",
+     "A39",
+     "A43",
+     "A45",
+     "A51",
+     "A56",
+     "A104",
+     "A122",
+     "A125",
+     "A128",
+     "A130",
+     "A131",
+     "A1",
+     "A10",
+     "A31",
+     "A66",
+     "A75",
+     "A77",
+     "A88",
+     "A92",
+     "A93",
+     "A96",
+     "A99",
+     "A114",
+     "A117",
+     "A140",
+     "A143",
+     "A150"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "A question that requires finding one entity and then a property of it (bridge, compositional, or inference): a = reader(tools=['search'], skills=[...]); return a"
+     }
+    ]
+   },
+   {
+    "pattern": "Agents copy compound place spans ('City, State', 'Neighborhood, City', 'Landmark, City') verbatim instead of giving the single place name the grader expects",
+    "rationale": "12 wrong answers (A2, A46, A50, A60, A63, A77, A88, A92, A96, A99, A114, A140) show both nodes outputting the full 'X, Y' span. The current answer_span rule (2) says 'give one place name, not a compound X, Y' but the model cannot decide which part to keep. The rule needs to specify: for 'City, State/Province/Country' give the city; for 'Neighborhood, City' give the city; for 'Landmark, City' give the landmark. This is the same class of failure that persisted across rounds 1-4 despite multiple attempts, because previous edits were too vague ('one place name') or bundled with other changes that caused regressions.",
+    "evidence": [
+     "A46",
+     "A50",
+     "A60",
+     "A63",
+     "A77",
+     "A88",
+     "A92",
+     "A96",
+     "A99",
+     "A114",
+     "A140",
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question: a name, a title, a date, a number, or yes/no. No explanation, no 'The answer is'. Keep original spelling. Keep your reasoning to at most 3 sentences. (1) Never answer 'not mentioned', 'unknown', 'unanswerable', or 'cannot be determined'\u2014always give the best span found in the text. If the exact property word is absent, re-read the target entity's full paragraph: 'died in X' answers where X died; 'born in X' or 'from X' answers where X was born; 'lived in X' or 'moved to X' plus a death date implies death in X; 'exiled to X' implies death or burial in X; 'count of X' or 'king of X' implies origin in X; if a parent is not stated, check a sibling's paragraph for the shared parent. (2) For a place given as 'X, Y': if Y is a state, province, or country, give X; if X is a neighborhood, suburb, or district of city Y, give Y; if X is a specific landmark (fortress, palace, abbey, cemetery), give X. (3) For a person's name, drop only the titles King, Queen, Count, Prince, Duke; keep Lady, Lord, Sir, Dame; keep the full name as written in the text including any 'of Family' or surname. (4) For a nationality, give one word (e.g. 'American', 'French'), not a hyphenated compound."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 159563,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.76,
+   "cost": 3902.1,
+   "meta_cost": 3176.4,
+   "acc_hard": 0.7317,
+   "nodes": 1.54,
+   "shapes": {
+    "reader[T][S]": 24,
+    "decomposer[T][S]>checker[T][S]": 11,
+    "decomposer[T][S]>checker[S]": 7,
+    "reader[T][S]>checker[S]": 6
+   },
+   "n_shapes": 6,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   3
+  ]
+ }
+]

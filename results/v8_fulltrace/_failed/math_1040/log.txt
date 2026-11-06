@@ -1,0 +1,7 @@
+task math: dev-A 150, dev-B 50, test 156; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc; trace budget 120000 chars, max ops 8 (annealed)
+starting organization: the seed
+[cost] round 0 / dev-B eval: 3.8 min; Qwen3.5-9B: 0.25M gen + 0.30M prompt billed, 146 calls (16% cached)
+round 0 incumbent dev-B {'n': 50, 'acc': 0.88, 'cost': 6803.2, 'meta_cost': 3198.5, 'acc_hard': 0.8889, 'nodes': 1.88, 'shapes': {'solver[T][S]>verifier[T][S]': 22, 'solver[T][S]': 9, 'solver[T][S]>verifier[T]': 5, 'solver[T][S],verifier[T][S]': 5}, 'n_shapes': 12, 'fallback': 1}
+[cost] round 1 / dev-A eval: 6.0 min; Qwen3.5-9B: 0.91M gen + 1.06M prompt billed, 441 calls (5% cached)
+round 1: incumbent dev-A {'n': 150, 'acc': 0.88, 'cost': 7076.4, 'meta_cost': 3243.7, 'acc_hard': 0.7927, 'nodes': 1.9, 'shapes': {'solver[T][S]>verifier[T][S]': 99, 'solver[T][S]': 23, 'solver[T][S]>verifier[T]': 10, 'solver[T][S],verifier[T][S]': 7}, 'n_shapes': 12, 'fallback': 1}
+[cost] round 1 / evolver proposals (27B): 0.9 min; no model calls

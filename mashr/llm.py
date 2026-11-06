@@ -46,6 +46,11 @@ class LLM:
         self.usage = defaultdict(lambda: dict.fromkeys(
             ("calls", "cached", "prompt", "gen", "billed_prompt", "billed_gen"), 0))
 
+    def count_tokens(self, model: str, text: str) -> int:
+        """Tokens of a user message's text for this model (its own tokenizer; Tinker or local)."""
+        tok = self._local_tok(model) if model in LOCAL_MODELS else self._client(model)[1]
+        return len(tok.encode(text))
+
     def snapshot(self) -> dict:
         with self._lock:
             return {m: dict(u) for m, u in self.usage.items()}

@@ -1,0 +1,42 @@
+[
+ {
+  "round": 0,
+  "accepted": true,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.75,
+   "cost": 8291.1,
+   "meta_cost": 3245.2,
+   "acc_hard": 0.75,
+   "nodes": 2.0,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 2,
+    "coder[T][S],solver[T][S],verifier[T][S]": 1,
+    "solver[S]": 1,
+    "solver[T][S]": 1
+   },
+   "n_shapes": 7,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 1,
+  "accepted": true,
+  "dev_b": {
+   "n": 8,
+   "acc": 1.0,
+   "cost": 7225.3,
+   "meta_cost": 3260.1,
+   "acc_hard": 1.0,
+   "nodes": 2.0,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 4,
+    "solver[T][S],verifier[T][S]": 1,
+    "solver[T][S]>verifier[T]": 1,
+    "solver[T][S]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  }
+ }
+]

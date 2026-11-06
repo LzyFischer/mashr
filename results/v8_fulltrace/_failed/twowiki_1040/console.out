@@ -1,0 +1,4 @@
+task twowiki: dev-A 150, dev-B 50, test 500; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc; trace budget 120000 chars, max ops 8 (annealed)
+starting organization: the seed
+[cost] round 0 / dev-B eval: 5.3 min; Qwen3.5-9B: 0.14M gen + 0.31M prompt billed, 141 calls (16% cached)
+round 0 incumbent dev-B {'n': 50, 'acc': 0.72, 'cost': 4189.2, 'meta_cost': 3150.9, 'acc_hard': 0.7073, 'nodes': 1.82, 'shapes': {'decomposer[T][S]>checker[T][S]': 36, 'reader[T][S]': 9, 'checker[T][S],decomposer[T][S]': 3, 'decomposer[T][S]>checker[S]': 1}, 'n_shapes': 5, 'fallback': 0}

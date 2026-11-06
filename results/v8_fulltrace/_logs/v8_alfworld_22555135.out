@@ -1,0 +1,9 @@
+[job] vLLM port 35135
+udc-ba02-35
+name, memory.total [MiB]
+NVIDIA A40, 46068 MiB
+[vllm] ready Fri Nov  6 10:46:43 EST 2026
+[alfworld] smoke start Fri Nov  6 10:46:43 EST 2026
+[alfworld] smoke ok Fri Nov  6 10:54:05 EST 2026; full run start
+[2026-11-06T14:08:36.731] error: *** JOB 22555135 ON udc-ba02-35 CANCELLED AT 2026-11-06T14:08:36 DUE to SIGNAL Terminated ***
+/var/spool/slurm/slurmd/job22555135/slurm_script: line 1:  3833 Terminated              run_task "$task"

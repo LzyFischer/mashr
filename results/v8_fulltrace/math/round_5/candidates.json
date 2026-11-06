@@ -1,0 +1,228 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "The solver is cut at the token limit after a long manual derivation, leaving the final answer missing or wrong, even though Python was available to compute the value in a few lines.",
+    "rationale": "In A58 the solver wrote thousands of tokens of manual locker-state tracking and was cut before any answer; in A61 it hand-derived the grid count and was cut; A60 and A89 show the same long-hand-then-cut pattern. The current role says 'Solve concisely' and 'use Python instead of manual arithmetic' but never caps the length of the written reasoning, so the 9B model spends most of its budget on a text derivation and runs out before finalizing. This is a practice the solver must follow on every problem (always finish with the answer, keep the written work short), so it belongs in the self role, not a per-problem skill. Adding an explicit 'write at most a few setup lines then compute' cap plus 'never stop without the final line' directly targets the cutoff without changing the method the model uses to set up the problem (which is why it is lower-risk than the rejected round-3/4 verifier re-derivation edits).",
+    "evidence": [
+     "A58",
+     "A61",
+     "A60",
+     "A89"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "solver",
+      "role": "Careful math solver. Write at most a few setup lines, then compute the answer with available Python/tools (computation, counting, enumeration, exact algebra, checking) instead of doing it by hand. List all requested values. Put the final answer on the last line, exactly as asked, then stop; never stop before that line."
+     }
+    ]
+   },
+   {
+    "pattern": "The verifier 'checks' by re-deriving the solver's argument with the same method and same setup, so a shared setup or arithmetic error (wrong geometric distance, miscounted digits, wrong Vieta expansion) is confirmed instead of caught.",
+    "rationale": "In A64 the verifier re-derived the energy sum using the solver's wrong midpoint distance and confirmed 1.55; in A118 it repeated the identical digit-counting reasoning and confirmed 14; in A60 it re-ran the Vieta expansion and confirmed a wrong b. The current role offers 'substitution, small case, or Python' as check options, and the model picks the weakest (substitute into the given setup), which validates a wrong setup. The fix is to make the check numeric and independent: recompute the final value from the problem's own conditions (not from the given answer) and verify every numeric step, which catches wrong setups and arithmetic while staying a short check rather than the full re-derivation that the rejected round-3/4 edits forced (and that broke correct answers).",
+    "evidence": [
+     "A64",
+     "A118",
+     "A60"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "verifier",
+      "role": "Verifier. Check the given answer with a short independent check: recompute the final value from the problem's own conditions (not from the given answer) using available Python/tools, and verify each numeric step; do not just re-derive the same argument. If a check fails, redo only that part. List all requested values. Put the final answer on the last line, exactly as asked, then stop."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 117860,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6180.9,
+   "meta_cost": 3176.6,
+   "acc_hard": 0.9259,
+   "nodes": 2.02,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 44,
+    "solver[T][S]>verifier[T]": 4,
+    "solver[T],solver[T][S],verifier[T][S]": 1,
+    "solver[T][S],verifier[T][S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Nontrivial problems are sometimes staffed with no verifier, with an unused parallel solver, or with a verifier lacking Python, so errors are uncaught or nodes cannot recompute.",
+    "rationale": "A80 returned a single solver for a multi-step problem; A89 created two parallel solvers but the verifier read only one; A61\u2019s verifier had only check_answer and could not recompute the count. Rules 1 and 2 overlap and do not explicitly forbid extra solvers, so the 9B meta-agent still produces these unsafe architectures. Making the required wiring explicit in rule 1 and removing the redundant rule 2 targets the staffing/wiring root cause.",
+    "evidence": [
+     "A80",
+     "A89",
+     "A61"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 1,
+      "text": "Trivial problem (one arithmetic step or a direct lookup, no multi-step reasoning): one solver with python. Every other problem: exactly one solver or coder, then one verifier that reads it; no parallel solver nodes; every tools list must include python."
+     },
+     {
+      "op": "remove_rule",
+      "rule": 2
+     }
+    ]
+   },
+   {
+    "pattern": "Computation-heavy problems (counting, search, simulation, coordinate geometry, system solving, large-number arithmetic) are often given to a verbose solver and get cut off or hand-computed incorrectly.",
+    "rationale": "A58 required a short simulation, A61 required exact region counting, A60 required solving a Vieta system, and A129/A130 required bounded integer search; all were staffed as ordinary solvers and produced long manual work or wrong arithmetic. Rule 3 already names coder but its trigger is too narrow, so the meta-agent does not use it. Expanding the trigger to the class of computation-dominant problems should shift these to coder + verifier with Python.",
+    "evidence": [
+     "A58",
+     "A61",
+     "A60",
+     "A129",
+     "A130"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "If the main work is computation rather than insight\u2014counting, enumeration, search, simulation, coordinate geometry, solving systems, or large-number arithmetic\u2014use a coder with python plus a matching domain tool, then a verifier with python that reads the coder."
+     }
+    ]
+   },
+   {
+    "pattern": "Problems asking for all possible values lose valid values or fail because the final line is not formatted as a clean ordered list.",
+    "rationale": "A35 found both radii but the final answer was parsed as only 27 instead of the two-value answer; A60 found candidate values but the final multi-value answer was wrong/unusable. The common failure is not the mathematics alone but the final answer format for multiple values. Editing the always-useful check_answer_form skill fixes the residual answer-formatting practice without adding a new skill.",
+    "evidence": [
+     "A35",
+     "A60"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "check_answer_form",
+      "when": "before the final answer of any problem",
+      "text": "1. Re-read the question: which quantity is asked (sum of all solutions, the number of solutions, the largest value, m+n of a fraction m/n, the remainder...)? 2. Make sure every condition is used and every candidate satisfies all of them; discard extraneous roots. 3. Units and rates: chain the given ratios so the units cancel and end in the unit asked. 4. If multiple values are asked, list all valid values on the final line in increasing order unless the problem specifies another order, using the requested separator and no extra words. 5. If a quick independent check is possible (plug in, small case, python), do it."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 117874,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6521.6,
+   "meta_cost": 3207.5,
+   "acc_hard": 0.8519,
+   "nodes": 2.02,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 30,
+    "coder[T][S]>verifier[T][S]": 14,
+    "solver[T][S],verifier[T][S]": 2,
+    "solver[T][S]>verifier[T]": 1
+   },
+   "n_shapes": 7,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Geometry problems: the solver computes distances, areas, and intersections by hand, making setup errors (wrong distance formula) or getting cut at the token limit; geometry_coordinates skill is at 74% vs 89% baseline because it describes a 5-step manual method the 9B model follows instead of using Python.",
+    "rationale": "A64: solver used the altitude (sqrt(3)/2*a) instead of half the side (a/2) for a midpoint-to-endpoint distance, a basic geometric misidentification that a Python distance call would avoid. A97, A131, A148: solvers did manual coordinate computation and got wrong answers or were cut. The geometry_coordinates skill's 5-step manual procedure (place figure, shoelace, line equations, pitfalls) leads the 9B model to compute by hand. Replacing it with a short directive to use Python + coord_geometry tools for all computation eliminates the manual method while preserving the key instructions (read Asymptote, identify the region).",
+    "evidence": [
+     "A64",
+     "A97",
+     "A131",
+     "A148"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "geometry_coordinates",
+      "text": "Use Python with coord_geometry tools for ALL computation (distances, areas, intersections, angles). If Asymptote code is given, read exact coordinates from it. Identify exactly which region or quantity is asked. Do not compute geometry by hand."
+     }
+    ]
+   },
+   {
+    "pattern": "Integer/Diophantine problems: the solver enumerates candidates by hand in text (checking values one by one), getting cut at the token limit or missing solutions; integer_equations skill is at 79% vs 89% baseline because it describes manual methods (Simon's trick, parity casework) the 9B model follows instead of using Python.",
+    "rationale": "A129: solver listed candidates manually for a Diophantine equation, answered 99999 vs correct 10100. A130: similar hand enumeration, answered 97 vs correct 20. A145: hand-checked number-theory conditions, answered 160 vs correct 202. The integer_equations skill's 5-step manual method (factor, Simon's trick, parity, base, check) leads the 9B model into long hand enumeration. A 4-step Python-directed procedure makes brute_force the primary method after bounding.",
+    "evidence": [
+     "A129",
+     "A130",
+     "A145"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "integer_equations",
+      "text": "1. Bound variables (ranges, signs, digit constraints). 2. Use Python or brute_force to enumerate all candidates in the bounded range. 3. Check every candidate in the original equation. 4. Do not enumerate by hand."
+     }
+    ]
+   },
+   {
+    "pattern": "The meta-agent creates invalid team structures: a single solver with no verifier for a multi-step problem (A80) or parallel solver nodes where one solver's output is never read by any downstream node (A89).",
+    "rationale": "A80 (Intermediate Algebra L5) was staffed as a single solver with no verifier, so the wrong answer (420 vs 810) had no second chance. A89 (Number Theory L5) used two parallel solvers but the verifier only read the first one's output, wasting a node; this architecture has 0% accuracy. Rules 1-3 describe the solver+verifier pattern but do not explicitly forbid parallel solvers or single-solver teams for non-trivial problems. An explicit structural rule prevents both failure modes without removing any existing rule.",
+    "evidence": [
+     "A80",
+     "A89"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Use exactly one solver or coder per problem, followed by a verifier that reads its output. Do not create parallel solver nodes."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 117833,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 6276.2,
+   "meta_cost": 3205.6,
+   "acc_hard": 0.8519,
+   "nodes": 2.0,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 46,
+    "solver[T][S],verifier[T][S]": 3,
+    "solver[T][S]>verifier[T]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   3
+  ]
+ }
+]

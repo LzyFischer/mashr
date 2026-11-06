@@ -1,0 +1,209 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Tester hand-computes or assumes expected values for boundary tests, so arithmetic errors (A9: int(x+0.5) vs round) or logic errors (A10: any() vs count) are validated instead of caught",
+    "rationale": "In A9 the tester wrote assert func(1,4)=='0b11' with a hand-computed comment 'avg=2.5\u2192rounds to 3', but Python's round(2.5)=2, so the test confirmed the int(x+0.5) bug. In A10 the tester ran exchange([1,3,5],[2])\u2192'YES' and called it correct without computing that 3 odds need 3 evens (only 1 available\u2192'NO'). Both failures stem from the tester not computing expected values in Python. The round-3 tester role says 'write 1-2 quick tests' but does not say how to determine the expected value, so the 9B model either hand-calculates (arithmetic error) or accepts the function's output as correct (logic error). Adding 'expected values computed in Python, not by hand' forces the model to independently determine the correct output and compare, catching both classes of bugs.",
+    "evidence": [
+     "A9",
+     "A10"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "You verify and fix the solution from your teammates. (1) Run run_examples. (2) If all pass, write 1-2 boundary tests with expected values computed in Python, not by hand. (3) Fix any bug. (4) If the spec and examples seem to conflict, pick one interpretation and commit; do not re-analyze. (5) Output the complete function with all imports. Keep reasoning brief."
+     }
+    ]
+   },
+   {
+    "pattern": "Coder and tester over-deliberate on contradictory spec/examples, consuming the entire token budget and producing no function output",
+    "rationale": "In A38 the docstring says 'non-negative integers' but examples include negatives, and the stated sort rule does not match the example outputs. The coder spent 3000+ tokens cycling through interpretations ('Let me try one more interpretation\u2026', 'Wait, let me re-read\u2026') and was cut at the token limit with output None. The tester did the same. The current coder role says 'Keep explanations to 2-3 lines' but does not address the specific failure of re-analyzing a contradictory spec. Adding 'If the spec and examples seem to conflict, pick one interpretation and commit; do not re-analyze' gives the model an explicit exit condition, ensuring it produces a function even when the spec is ambiguous. This is right for every problem: on clear specs the condition is never triggered, and on ambiguous ones it prevents the token-limit failure.",
+    "evidence": [
+     "A38"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "You write correct, complete Python functions that meet the specification exactly. Write the function, then run run_examples to verify. Do not trace examples by hand. If the spec and examples seem to conflict, pick one interpretation and commit; do not re-analyze. Keep explanations to 2-3 lines."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 79385,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.8333,
+   "cost": 2749.8,
+   "meta_cost": 946.1,
+   "acc_hard": 0.25,
+   "nodes": 1.53,
+   "shapes": {
+    "coder[T][S]": 13,
+    "coder[T][S]>tester[T][S]": 9,
+    "coder[T][S]>tester[T]": 7,
+    "coder[T]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 1
+  },
+  "flip_b": [
+   1,
+   5
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Meta-agent skips a relevant skill because the visible examples look simple, so hidden-test edge cases (rounding halves, large inputs) go unaddressed",
+    "rationale": "In A9 the meta-agent gave edge_cases+examples_check but skipped numeric_rules, reasoning the examples already show rounded outputs. The agent then used int(x+0.5) (round-half-up) instead of round() (round-half-even), failing on (964,977) where avg=970.5. In A26 the meta-agent skipped efficiency because examples use small n, so trial division was never flagged as too slow for n~10^17. The root cause is rule 3's 'Skip a skill if the problem's examples already demonstrate its guidance' clause, which the 9B model applies too aggressively. Removing that clause and making the skill-to-risk mapping explicit ensures the right skill is given even when examples look trivial.",
+    "evidence": [
+     "A9",
+     "A26"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give at most 2 skills per node, matched to the specific risk: numeric_rules for rounding/division/number-format, string_rules for case/character, efficiency for large inputs or sequences. Give the is_prime_fast tool when primality of numbers that can exceed 10^9 is needed. Do not skip a skill because the examples look simple; hidden tests probe larger and edge-case inputs."
+     }
+    ]
+   },
+   {
+    "pattern": "Using s==s.lower() instead of s.islower() returns True for strings with no cased characters (digits, symbols), so case-validation logic accepts invalid inputs",
+    "rationale": "In A30 both the coder and the (absent) tester used k==k.lower() for the all-lower check; the key '5' satisfies '5'=='5'.lower(), so a dict mixing letter and digit keys passed the all-lowercase test and returned True instead of False. The string_rules skill is given to string/case problems but lacks this specific warning. Adding point (4) makes the idiom explicit so the 9B model picks .islower()/.isupper(). This is a one-line addition to an already-short skill, minimising regression risk.",
+    "evidence": [
+     "A30"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "text": "Check: (1) Are non-letter characters (spaces, digits, punctuation) preserved unchanged? (2) Does the spec change case, and for which characters? (3) Match the exact output format from the examples. (4) Use s.islower()/s.isupper() for case checks, not s==s.lower()/s==s.upper(); the latter return True for strings with no letters (digits, symbols)."
+     }
+    ]
+   },
+   {
+    "pattern": "Trial division to sqrt(n) is infeasible for n > 10^12 (e.g. large Fibonacci, Mersenne), causing timeout on hidden tests",
+    "rationale": "In A26 the 12th prime Fibonacci is ~10^17; trial division to sqrt(10^17)\u22483\u00d710^8 iterations exceeds the time limit. The efficiency skill says 'avoid trial division beyond sqrt(n)' which the agent reads as 'sqrt(n) is fine.' This has persisted for 4+ rounds. Rewording to explicitly state the infeasibility threshold and name the replacement (is_prime_fast / Miller-Rabin) removes the ambiguity. Paired with the is_prime_fast tool (next op), the agent gets both the warning and a working implementation.",
+    "evidence": [
+     "A26"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "efficiency",
+      "text": "The plus tests use large inputs and a time limit of a few times the reference solution. Avoid exponential recursion (memoize or iterate) and quadratic loops when a set/dict/sort works. Trial division to sqrt(n) is infeasible for n > 10^12 (e.g. large Fibonacci, Mersenne numbers); use is_prime_fast or a Miller-Rabin test instead. Check speed on a large input (timed) before answering."
+     }
+    ]
+   },
+   {
+    "pattern": "No fast primality helper is available, so the agent falls back to trial division even when warned it is too slow",
+    "rationale": "In A26 the agent's only primality option was hand-written trial division. Telling it 'use Miller-Rabin' in the efficiency skill is not enough for a 9B model to implement correctly under time pressure. A preloaded is_prime_fast tool (deterministic Miller-Rabin with 12 witnesses, correct for n < 3.3\u00d710^24) removes the implementation burden: the agent just calls it. Rule 3 (edited above) tells the meta-agent when to give this tool. The tool is a general compute helper with no problem-specific logic.",
+    "evidence": [
+     "A26"
+    ],
+    "ops": [
+     {
+      "op": "add_tool",
+      "name": "is_prime_fast",
+      "doc": "is_prime_fast(n) -> True if n is prime. Deterministic Miller-Rabin, correct for n < 3.3*10^24. Use instead of trial division for large numbers.",
+      "code": "def is_prime_fast(n):\n    if n < 2: return False\n    if n < 4: return True\n    if n % 2 == 0 or n % 3 == 0: return False\n    r, d = 0, n - 1\n    while d % 2 == 0:\n        r += 1\n        d //= 2\n    for a in [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]:\n        if a >= n: continue\n        x = pow(a, d, n)\n        if x == 1 or x == n - 1: continue\n        for _ in range(r - 1):\n            x = pow(x, 2, n)\n            if x == n - 1: break\n        else:\n            return False\n    return True",
+      "test": "assert is_prime_fast(2) == True\nassert is_prime_fast(3) == True\nassert is_prime_fast(4) == False\nassert is_prime_fast(17) == True\nassert is_prime_fast(20) == False\nassert is_prime_fast(99194853094755497) == True\nassert is_prime_fast(99194853094755498) == False"
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 79399,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.9,
+   "cost": 2947.9,
+   "meta_cost": 1058.5,
+   "acc_hard": 0.75,
+   "nodes": 1.6,
+   "shapes": {
+    "coder[T][S]": 12,
+    "coder[T][S]>tester[T][S]": 9,
+    "coder[T][S]>tester[T]": 9
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Using s==s.lower() instead of s.islower() returns True for strings with no cased characters (digits, symbols), causing case-validation logic to accept invalid inputs.",
+    "rationale": "In A30 both nodes used k==k.lower() for the all-lower check; the key '5' satisfies '5'=='5'.lower(), so a dict mixing letter and digit keys passed the all-lower test and returned True instead of False. The string_rules skill is already given to the coder but lacks an explicit warning about this Python pitfall. Adding one sentence directly tells the 9B model to use .islower()/.isupper() instead of the ==.lower()/==.upper() idiom.",
+    "evidence": [
+     "A30"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "text": "Check: (1) Are non-letter characters (spaces, digits, punctuation) preserved unchanged? (2) Does the spec change case, and for which characters? (3) Match the exact output format from the examples. (4) Use .islower()/.isupper() for case checks, not s==s.lower()/s==s.upper() (the latter returns True for strings with no cased characters like digits)."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent skips numeric_rules for rounding problems because rule 3 says to skip a skill if examples 'demonstrate its guidance', so the agent uses int(x+0.5) instead of round().",
+    "rationale": "In A9 the spec says 'Round the answer to the nearest integer' and the examples show rounded binary outputs. The meta-agent gave edge_cases+examples_check but skipped numeric_rules, reasoning the examples demonstrate the rounding. The agent then used int(avg+0.5) which rounds halves up, but the reference uses round() which rounds halves to even; for (964,977) avg=970.5, int(971.0)=971 but round(970.5)=970. The 'skip' sentence in rule 3 is the root cause: examples showing rounded output do not demonstrate which rounding rule to use. Removing that sentence (a shortening) lets the 'chosen for the specific risk' guidance correctly trigger numeric_rules for any problem mentioning rounding.",
+    "evidence": [
+     "A9"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give at most 2 skills per node, chosen for the specific risk in the problem (e.g. string_rules for case/character problems, numeric_rules for rounding/division)."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 79358,
+  "fail": null,
+  "dev_b": {
+   "n": 30,
+   "acc": 0.8667,
+   "cost": 3180.1,
+   "meta_cost": 1091.9,
+   "acc_hard": 1.0,
+   "nodes": 1.73,
+   "shapes": {
+    "coder[T][S]>tester[T][S]": 13,
+    "coder[T][S]>tester[T]": 9,
+    "coder[T][S]": 8
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   3
+  ]
+ }
+]

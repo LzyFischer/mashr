@@ -1,0 +1,82 @@
+[
+ {
+  "round": 0,
+  "accepted": true,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.8,
+   "cost": 9635.8,
+   "meta_cost": 2461.4,
+   "acc_hard": 0.7568,
+   "nodes": 1.92,
+   "shapes": {
+    "planner[S]>actor[T][S]": 39,
+    "planner[T][S]>actor[T][S]": 5,
+    "actor[T][S]": 4,
+    "actor[T][S],planner[S]": 2
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 1,
+  "accepted": false,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.8,
+   "cost": 9635.8,
+   "meta_cost": 2461.4,
+   "acc_hard": 0.7568,
+   "nodes": 1.92,
+   "shapes": {
+    "planner[S]>actor[T][S]": 39,
+    "planner[T][S]>actor[T][S]": 5,
+    "actor[T][S]": 4,
+    "actor[T][S],planner[S]": 2
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 2,
+  "accepted": true,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.84,
+   "cost": 10914.0,
+   "meta_cost": 2800.6,
+   "acc_hard": 0.7838,
+   "nodes": 1.86,
+   "shapes": {
+    "planner[S]>actor[T][S]": 32,
+    "actor[T][S]": 7,
+    "planner[T][S]>actor[T][S]": 5,
+    "actor[T][S],planner[S]": 4
+   },
+   "n_shapes": 6,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 3,
+  "accepted": true,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 9882.7,
+   "meta_cost": 2851.3,
+   "acc_hard": 0.8649,
+   "nodes": 1.82,
+   "shapes": {
+    "planner[S]>actor[T][S]": 27,
+    "actor[T][S]": 9,
+    "planner[T][S]>actor[T][S]": 5,
+    "actor[T][S],planner[S]": 5
+   },
+   "n_shapes": 7,
+   "fallback": 0
+  }
+ }
+]

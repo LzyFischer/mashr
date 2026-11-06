@@ -1,0 +1,204 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Tester performs manual prose tracing instead of executing the code, so bugs that a single run would reveal (e.g. code logic diverging from the trace, regex $ accepting trailing newlines) go undetected.",
+    "rationale": "In A1 the tester's manual trace used alphabet indices (e\u2192g) but the code it wrote used vowel-list indices (e\u2192o); running encode('test') would have returned 'TOST'\u2260'TGST' and exposed the bug. In A2 the regex ^\u2026$ matches a trailing \\n, so valid_date('06-04-2020\\n') returns True when it should return False; executing that input would have caught it. Both testers had run_examples/python tools but never invoked them. Making execution a hard requirement in the role (a practice correct for every problem a tester sees) closes the gap between 'I traced it mentally' and 'I ran it'.",
+    "evidence": [
+     "A1",
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "You test the solution your teammates wrote. You MUST run the code using your python tools to verify that outputs match the specification for every example and for edge cases you derive from the spec. Do not substitute manual tracing for execution\u2014if you have a tool, call it. Fix every bug you find and give the corrected complete function."
+     }
+    ]
+   },
+   {
+    "pattern": "Coder spends the token budget on long prose restatements and step-by-step traces, hitting the output limit before or while emitting the final function.",
+    "rationale": "A1's coder was cut at the token limit (12 % cut rate overall) after ~8 k chars of analysis; the final code it did emit still contained the vowel-shift bug. A concise workflow\u2014write the function, call the tool, output the code\u2014leaves room for the code and for the tool's output, reducing the chance of truncation and giving the downstream tester a complete input to work from.",
+    "evidence": [
+     "A1"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "You write correct, complete Python functions that meet the specification exactly. Be concise: define the function, test it with your tools, and output the final code. Do not restate the problem or write long prose analysis."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 38535,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 1.0,
+   "cost": 4560.4,
+   "meta_cost": 1319.0,
+   "acc_hard": 1.0,
+   "nodes": 1.88,
+   "shapes": {
+    "coder[T][S]>tester[T]": 4,
+    "coder[T][S]>tester[T][S]": 3,
+    "coder[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   0
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "The final node is under-equipped relative to the first coder, so it preserves bugs that visible-example or domain checks would catch.",
+    "rationale": "In A1 the tester had run_examples but not python/examples_check and never executed the examples; in A2 the tester lacked the string-format skill and kept a regex that accepts a trailing newline. Giving the final node the same relevant tools and skills targets the staffing root cause at the meta layer.",
+    "evidence": [
+     "A1",
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Tricky specification or many edge cases: a coder with python and run_examples, then a tester with python and run_examples that reads its work; give the tester the same relevant problem-matching skills as the coder."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give only the skills that match the problem; the final returned node must have examples_check when examples exist and the relevant domain skill."
+     }
+    ]
+   },
+   {
+    "pattern": "Agents substitute manual tracing for available execution and miss small hidden variants of visible examples, such as case changes or extra newline/whitespace in exact-format inputs.",
+    "rationale": "A1 had run_examples available but the coder manually traced and produced an incorrect vowel-shift mapping; A2's regex passed visible examples but accepted a trailing newline because $ is not a strict full-string anchor. Making the verification skill execution-first and adding string corner probes to edge_cases addresses the behavior and knowledge gaps at the library layer.",
+    "evidence": [
+     "A1",
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "examples_check",
+      "text": "If run_examples is available, call it on the final function before answering and require every example to PASS. Do not substitute manual tracing. If a check fails, fix the misread rule, not the example, and rerun."
+     },
+     {
+      "op": "edit_skill",
+      "name": "edge_cases",
+      "text": "Check corners from the specification: empty list/string, one element, all equal elements, duplicates, negative numbers, zero, unsorted input, very large values, and None-like cases. For strings, also check case variants (all upper/lower) and, when an exact input format is required, extra whitespace/newline. Decide each expected result from the specification and ensure the code does not crash."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 38549,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 1.0,
+   "cost": 5652.7,
+   "meta_cost": 1980.1,
+   "acc_hard": 1.0,
+   "nodes": 1.88,
+   "shapes": {
+    "coder[T][S]>tester[T][S]": 7,
+    "coder[T][S]": 1
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   0
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Model hand-traces examples instead of executing code, making index/logic errors that go undetected because the buggy logic is self-consistent in the trace",
+    "rationale": "In A1 the coder called the python tool but got no output, then claimed run_examples was unavailable, and hand-traced the examples using alphabet indices (e=4) applied to the vowel list (index 1). The trace 'matched' the expected output, so the model never saw the real code produce 'TOST' instead of 'TGST'. The root cause is that the 9B model substitutes manual tracing for actual execution, and its tracing contains arithmetic/index errors. Making the role explicitly require execution and forbid hand-tracing targets this directly at the layer where the behavior is set (the agent's standing instruction).",
+    "evidence": [
+     "A1"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "You write correct, complete Python functions that meet the specification exactly. Always define your function and run it with the python tool, then verify with run_examples before finalizing. Do not verify by hand-tracing; execute the code and read the actual output."
+     }
+    ]
+   },
+   {
+    "pattern": "Regex format-validation uses $ anchor which in Python matches before a trailing newline, accepting strings that violate the stated format",
+    "rationale": "In A2 the tester's regex r'^(\\d{2})-(\\d{2})-(\\d{4})$' matched '06-04-2020\\n' because Python's $ is zero-width before a final newline, so the function returned True where the hidden test expected False. The tester had run_examples and compare but never tested a string with trailing whitespace. The edge_cases skill (given to both nodes) lists corner cases but omits this specific Python regex gotcha. Adding it to the skill gives the 9B model the concrete knowledge it lacks, at the residual layer where problem-specific checks belong.",
+    "evidence": [
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "edge_cases",
+      "when": "inputs are lists, strings or numbers whose size or sign can vary",
+      "text": "Hidden tests probe the corners. Check before answering: empty list/string, one element, all equal elements, duplicates, negative numbers, zero, unsorted input, very large values, and None-like cases the specification mentions. For string format validation (regex), also test inputs with a trailing newline or extra whitespace: in Python, the $ anchor matches before a final newline, so use \\Z or re.fullmatch for strict end-of-string matching. Decide what each must return from the specification (not from a guess), and make sure the code does not crash on them."
+     }
+    ]
+   },
+   {
+    "pattern": "Model interprets 'shift N places in the alphabet' as shifting within a filtered character subset (e.g. the vowel list) rather than the full 26-letter alphabet",
+    "rationale": "In A1 both the coder and the tester used (idx+2)%5 over the string 'aeiou', shifting within the 5-vowel subset, when the spec says '2 places ahead in the english alphabet' (a\u2192c, e\u2192g, i\u2192k, o\u2192q, u\u2192w). The string_rules skill (given to the coder) covers case, whitespace, character sets, order, and format but says nothing about what 'the alphabet' refers to when a shift is specified. Adding a one-line clarification at the residual skill layer gives the model the disambiguation it needs without bloating the role.",
+    "evidence": [
+     "A1"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "when": "string manipulation (case, words, characters, formatting)",
+      "text": "1. Case: does the comparison or output keep, lower or upper case? 2. Whitespace: split() vs split(' ') (multiple spaces, leading/trailing spaces). 3. Which characters count (letters only, vowels incl. 'y'?, digits, punctuation)? 4. Keep the original order unless told to sort. 5. Return the exact format of the examples (quotes, separators). 6. When the spec says 'shift N places in the alphabet', use the full 26-letter alphabet via chr(ord(c) + N) with wrap-around, not a filtered subset such as the vowel list."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 38508,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.875,
+   "cost": 4277.8,
+   "meta_cost": 1247.8,
+   "acc_hard": 0.5,
+   "nodes": 1.5,
+   "shapes": {
+    "coder[T][S]": 4,
+    "coder[T][S]>tester[T][S]": 2,
+    "coder[T][S]>tester[T]": 2
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   0
+  ]
+ }
+]

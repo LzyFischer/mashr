@@ -1,0 +1,21 @@
+task math: dev-A 8, dev-B 8, test 8; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc; trace budget 120000 chars, max ops 8 (annealed)
+starting organization: the seed
+[cost] round 0 / dev-B eval: 0.0 min; Qwen3.5-9B: 0.00M gen + 0.00M prompt billed, 24 calls (100% cached)
+round 0 incumbent dev-B {'n': 8, 'acc': 0.75, 'cost': 8291.1, 'meta_cost': 3245.2, 'acc_hard': 0.75, 'nodes': 2.0, 'shapes': {'solver[T][S]>verifier[T][S]': 2, 'coder[T][S],solver[T][S],verifier[T][S]': 1, 'solver[S]': 1, 'solver[T][S]': 1}, 'n_shapes': 7, 'fallback': 0}
+[cost] round 1 / dev-A eval: 0.1 min; Qwen3.5-9B: 0.00M gen + 0.00M prompt billed, 23 calls (100% cached)
+/sfs/weka/scratch/vjd5zr/project/mashr/mashr/llm.py:89: FutureWarning: Using the future as the SamplingClient is deprecated; call .result() on it, or await it, to get the SamplingClient first
+  self._clients[model] = (s, s.get_tokenizer())
+round 1: incumbent dev-A {'n': 8, 'acc': 0.875, 'cost': 6960.7, 'meta_cost': 3248.6, 'acc_hard': 0.75, 'nodes': 1.75, 'shapes': {'solver[T][S]>verifier[T][S]': 5, 'solver[T][S]': 2, 'solver[T][S],verifier[T][S]': 1}, 'n_shapes': 3, 'fallback': 0}
+/sfs/weka/scratch/vjd5zr/project/mashr/mashr/llm.py:145: FutureWarning: Using the future as the SamplingClient is deprecated; call .result() on it, or await it, to get the SamplingClient first
+  fut = samp.sample(prompt=types.ModelInput.from_ints(prompt_ids),
+[cost] round 1 / evolver proposals (27B): 1.5 min; Qwen3.8-27B: 0.03M gen + 0.07M prompt billed, 3 calls (0% cached)
+<unknown>:2: SyntaxWarning: invalid escape sequence '\m'
+[cost] round 1 / dev-B gate (3 candidates): 6.3 min; Qwen3.5-9B: 0.05M gen + 0.06M prompt billed, 71 calls (73% cached)
+  cand 0 (task-agent): 1 changes, 2 ops, repairs 0, dev-B fixed/broke (2, 0), dev-B {'n': 8, 'acc': 1.0, 'cost': 7225.3, 'meta_cost': 3260.1, 'acc_hard': 1.0, 'nodes': 2.0, 'shapes': {'solver[T][S]>verifier[T][S]': 4, 'solver[T][S],verifier[T][S]': 1, 'solver[T][S]>verifier[T]': 1, 'solver[T][S]': 1}, 'n_shapes': 5, 'fallback': 0}
+  cand 1 (meta-agent+library): 1 changes, 3 ops, repairs 0, dev-B fixed/broke (1, 0), dev-B {'n': 8, 'acc': 0.875, 'cost': 8012.3, 'meta_cost': 3291.2, 'acc_hard': 0.75, 'nodes': 2.0, 'shapes': {'solver[T][S]>verifier[T][S]': 6, 'solver[T][S]': 1, 'coder[T][S],solver[T][S],verifier[T][S]': 1}, 'n_shapes': 3, 'fallback': 0}
+  cand 2 (task-agent+meta-agent+library): 1 changes, 2 ops, repairs 0, dev-B fixed/broke (0, 0), dev-B {'n': 8, 'acc': 0.75, 'cost': 6967.0, 'meta_cost': 3252.0, 'acc_hard': 0.75, 'nodes': 1.88, 'shapes': {'solver[T][S]>verifier[T][S]': 4, 'solver[S]>verifier[T]': 1, 'solver[T][S]>verifier[T]': 1, 'solver[T][S],verifier[T][S]': 1}, 'n_shapes': 5, 'fallback': 0}
+round 1: accepted; incumbent dev-B {'n': 8, 'acc': 1.0, 'cost': 7225.3, 'meta_cost': 3260.1, 'acc_hard': 1.0, 'nodes': 2.0, 'shapes': {'solver[T][S]>verifier[T][S]': 4, 'solver[T][S],verifier[T][S]': 1, 'solver[T][S]>verifier[T]': 1, 'solver[T][S]': 1}, 'n_shapes': 5, 'fallback': 0}
+<unknown>:2: SyntaxWarning: invalid escape sequence '\c'
+[cost] test (3 systems): 0.0 min; Qwen3.5-9B: 0.00M gen + 0.00M prompt billed, 51 calls (100% cached)
+TEST: {"org_round0": {"n": 8, "acc": 1.0, "cost": 5583.1, "meta_cost": 3241.3, "acc_hard": 1.0, "nodes": 1.62, "shapes": {"solver[T][S]>verifier[T][S]": 5, "solver[T][S]": 3}, "n_shapes": 2, "fallback": 0}, "org_final": {"n": 8, "acc": 1.0, "cost": 5156.2, "meta_cost": 3264.8, "acc_hard": 1.0, "nodes": 1.75, "shapes": {"solver[T][S]>verifier[T][S]": 6, "solver[T][S]": 2}, "n_shapes": 2, "fallback": 0}, "single": {"n": 8, "acc": 1.0, "cost": 1175.7, "meta_cost": 0.0, "acc_hard": 1.0, "nodes": 1.0, "shapes": {"solver": 8}, "n_shapes": 1, "fallback": 0}}
+[cost] TOTAL: 0.15 h; Qwen3.5-9B: 0.05M gen + 0.06M prompt billed, 169 calls (89% cached); Qwen3.8-27B: 0.03M gen + 0.07M prompt billed, 3 calls (0% cached)

@@ -1,0 +1,215 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "The model writes extensive analysis, multiple interpretations and manual traces, exhausting the token budget with no final function, or ships a function that passes the visible example but misses hidden edge cases (empty, zero, negative, single element) or misreads the assert's name or return type.",
+    "rationale": "Two root causes in the traces: (1) A61, A67, A83, A98 show the coder (and in A67 the tester) spending the entire budget on long derivations and re-interpretation loops, emitting None; the one-sentence roles give no output-order or conciseness guidance. (2) A27 (empty list), A31 (int(a/b) truncates instead of flooring for negatives), A55 (split() on empty string), A62 (duplicates), A69 (no uppercase run), A58 (invented name instead of the assert's), A86 and A96 (returned a tuple because the assert wraps its expected value in parentheses) all pass the visible example but fail hidden tests; the edge_cases skill is unreliable (67% vs 79% without) and not always given. This candidate may only edit roles, so 'write the function first, then test', a 2-sentence-per-step conciseness cap, a built-in edge-case sweep, and exact name/type matching are baked into the coder role (always on), and the tester role gets the same edge-case run plus a no-rewrite rule as a second net.",
+    "evidence": [
+     "A27",
+     "A31",
+     "A55",
+     "A58",
+     "A61",
+     "A62",
+     "A67",
+     "A69",
+     "A83",
+     "A86",
+     "A96",
+     "A98"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "You write correct Python functions matching the specification exactly. Use the exact function name from the assert line and match the return type shown in the examples (parentheses around the expected value do not mean tuple). Write the function first, then test it with your tools. Keep analysis to at most 2 sentences per step. Before finishing, check empty input, zero, negative values and single-element inputs, and make sure the code does not crash on them."
+     },
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "Run the given function on the problem's examples and on edge cases (empty, zero, negative, single element). If all pass, return it unchanged. If a test fails, fix only that specific bug and re-run. Do not rewrite the function from scratch. Keep analysis to at most 2 sentences per step."
+     }
+    ]
+   }
+  ],
+  "repairs": 1,
+  "prompt_chars": 132191,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.68,
+   "cost": 1563.8,
+   "meta_cost": 608.3,
+   "acc_hard": 0.75,
+   "nodes": 1.2,
+   "shapes": {
+    "coder[T][S]": 40,
+    "coder[T][S]>tester[T]": 10
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   6
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "run_examples tool is counterproductive (69% with vs 87% without) because the model re-defines the function in python blocks instead of calling run_examples(), wasting all 3 tool calls with no output",
+    "rationale": "In A27 the tester wrote its own run_examples function instead of calling the preloaded one; in A34, A68, A86 the model had run_examples as a tool but the trace shows 3 identical '(no output)' python calls (just re-pasting the function definition). The tool adds prompt tokens and cognitive load without the model ever invoking it. Removing it from the default toolkit lets the coder use its full budget on correct code via the python tool alone.",
+    "evidence": [
+     "A27",
+     "A34",
+     "A68",
+     "A86"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Tricky specification or many edge cases: one coder with python, with at most 2 skills. Give run_examples only when the problem has 2 or more examples to verify. Add a tester only when the problem needs comparing two implementations (e.g. fast vs brute-force)."
+     }
+    ]
+   },
+   {
+    "pattern": "Division/rounding problems use int(a/b) which truncates toward zero instead of a//b which floors, giving wrong results for negative operands",
+    "rationale": "A31: spec says 'rounded down to the nearest integer' but model wrote int(a/b); for (-1,2) this gives 0 instead of -1. The numeric_rules skill explicitly states '// and % with negative numbers round towards minus infinity in Python' and scores 100% when given (8 nodes) but is only given to 8/100 problems. A meta-harness rule targets the class of division/rounding problems so the skill is reliably attached.",
+    "evidence": [
+     "A31"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "If the problem involves division, rounding, floor/ceiling, or number formatting, include numeric_rules in the coder's skills."
+     }
+    ]
+   },
+   {
+    "pattern": "Edge cases (empty input, single element, duplicates, negative/zero) are not exercised before submitting, causing wrong returns or crashes on hidden plus tests",
+    "rationale": "A27: empty list returns [] but spec implies [[]]; A55: empty string with s.split() returns [] but spec implies ['']; A62: [2,2] raises ValueError but spec implies None. The current edge_cases skill is a 4-line checklist the 9B model cannot process (67% with vs 79% without). Shortening to a 2-line actionable instruction (run on 3 specific inputs, check return) reduces token cost and focuses on the most frequent failure modes.",
+    "evidence": [
+     "A27",
+     "A55",
+     "A62"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "edge_cases",
+      "when": "inputs are lists, strings or numbers whose size or sign can vary",
+      "text": "Before finalizing, run your function on empty input, a single element, and a negative or zero value. Check each return value against what the spec implies. Fix any crash or wrong type."
+     }
+    ]
+   },
+   {
+    "pattern": "Return type mismatches: model returns tuple instead of string (parens in assert are grouping, not a tuple) or int instead of float, because the example output type is not carefully read",
+    "rationale": "A86: assert shows ('216.8.94.196') \u2014 a string in parens \u2014 but model returns a tuple of strings. A96: assert shows ('pYTHON') \u2014 a string \u2014 but model returns a tuple of chars. A45: expected 1.333335333334e+18 is a float but model returns int via //. The read_spec skill mentions 'Match examples exactly including type' but buries it at the end of a 4-line instruction. Moving the type-matching to the front with concrete common mistakes (str-not-tuple, int-not-float) makes it salient for the 9B model.",
+    "evidence": [
+     "A86",
+     "A96",
+     "A45"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "read_spec",
+      "when": "any problem",
+      "text": "Note the function name from the assert and the exact return type from the examples (str not tuple, int not float, list not set). Write the function with that exact name and return type. Return the value, do not print."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 132205,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 2694.3,
+   "meta_cost": 1791.9,
+   "acc_hard": 0.625,
+   "nodes": 1.0,
+   "shapes": {
+    "coder[T][S]": 50
+   },
+   "n_shapes": 1,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Model misreads the return type in the assert line: a parenthesized single value like ('abc') is treated as a tuple, and the function name from the assert is sometimes replaced with a more descriptive name.",
+    "rationale": "A86 returned a tuple for ('216.8.94.196') which is a plain string; A96 returned a tuple for ('pYTHON') which is a plain string; A57 named the function max_sum_bitonic instead of max_sum; A58 named it split_odd_numbers instead of Split. The current assert_signature skill says 'match its type' but does not explain the Python gotcha that ('x') is not a tuple (no comma), and does not strongly enough enforce using the exact name from the assert. Clarifying both in the skill targets the root cause at the layer where the model reads the assert.",
+    "evidence": [
+     "A86",
+     "A96",
+     "A57",
+     "A58"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "assert_signature",
+      "when": "the problem gives an assert line (the MBPP style)",
+      "text": "The assert fixes the function name (use it exactly as written; do not rename), the argument order, and the return value. Match the return type precisely: ('abc') is a string, not a tuple (a tuple requires a comma: ('abc',)). Distinguish int from float. If the assert wraps the call in set(...), element order is irrelevant; otherwise it matters."
+     }
+    ]
+   },
+   {
+    "pattern": "Arithmetic and division problems are not given the numeric_rules skill, so the model picks the wrong operator (int(a/b) instead of a//b for floor division with negatives) or the wrong return type (int instead of float).",
+    "rationale": "A31 (quotient rounded down) used int(a/b) which truncates toward zero instead of flooring; the hidden test (-1, 2) expected -1 but got 0. numeric_rules has 100% accuracy (8 nodes) vs 73% without, and explicitly states '// and % with negative numbers round towards minus infinity in Python'. The meta-agent gave edge_cases instead of numeric_rules because rule 3 only says 'give skills that match the problem' without naming the mapping. Making the problem-type-to-skill mapping explicit in the rule lets the 9B meta-agent reliably equip arithmetic problems with the right skill.",
+    "evidence": [
+     "A31"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give skills matching the problem type: arithmetic, division, rounding, or number formats \u2192 numeric_rules; string manipulation \u2192 string_rules; inputs whose size or sign vary \u2192 edge_cases. Always include assert_signature when an assert line is present."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 132164,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.72,
+   "cost": 2062.0,
+   "meta_cost": 879.8,
+   "acc_hard": 0.625,
+   "nodes": 1.16,
+   "shapes": {
+    "coder[T][S]": 42,
+    "coder[T][S]>tester[T]": 5,
+    "coder[T][S]>tester[T][S]": 3
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   3
+  ]
+ }
+]

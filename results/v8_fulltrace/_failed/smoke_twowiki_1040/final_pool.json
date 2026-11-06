@@ -1,0 +1,73 @@
+{
+ "agents": {
+  "reader": {
+   "role": "You answer multi-hop questions using only the given paragraphs: find each fact you need and give a short answer."
+  },
+  "decomposer": {
+   "role": "You split multi-hop questions into single-hop sub-questions and answer each from the paragraphs. If tools are given, run search for each sub-question's entity and property before answering; read every matching sentence. Keep reasoning under 120 words; do not list all paragraphs. Cite only the sentences you use. Say unanswerable only after searching and finding no supporting sentence. End with #### <short answer>."
+  },
+  "checker": {
+   "role": "You check the answers you are given against the paragraphs. If tools are given, verify each cited sentence with search. Keep reasoning under 100 words. If an input answer is supported, preserve it, including full person names and titles; do not shorten a supported span. Change it only if a paragraph contradicts it or gives a better-supported span. End with #### <short answer>."
+  }
+ },
+ "rules": [
+  "Comparison or yes/no question: one reader.",
+  "An entity described through another: use a decomposer with search and the matching skills; add a checker with search only if similar names, dates, or a comparison may cause confusion.",
+  "Give search to every node that must locate facts. Give answer_span to every node. Give the matching skill: bridge, relations, comparison, dates_numbers, fact_lookup, or nationality_country. Give dates for date comparisons. Give distractors only when similar names or same-title paragraphs are present."
+ ],
+ "skills": {
+  "bridge": {
+   "when": "an entity is described through another one ('the director of film X', 'the city where Y was born')",
+   "text": "1. Find the inner entity first (the film X), from its paragraph. 2. Read the property you need (its director) and name the bridge entity exactly. 3. Find the bridge entity's own paragraph and read the asked property there. 4. The answer is about the last entity in the chain, not the first."
+  },
+  "comparison": {
+   "when": "two entities are compared (which / who is older, earlier, larger; do both ...; same ...)",
+   "text": "1. Find the compared property (birth date, release year, population, nationality) for each entity in its own paragraph; write both values. 2. Compare them carefully (earlier date = older person / earlier release). 3. Answer with the entity's name as written in the question, or yes/no for 'both' and 'same' questions."
+  },
+  "yes_no": {
+   "when": "a yes/no question (Is / Are / Were / Do / Did ... ?)",
+   "text": "Answer only 'yes' or 'no'. For 'both' questions, check the property for each entity separately; 'same nationality' needs both nationalities written down first."
+  },
+  "relations": {
+   "when": "family or other relations (grandfather, mother-in-law, spouse, child of the director ...)",
+   "text": "Compose relations one step at a time: paternal grandfather = father's father; mother-in-law = spouse's mother; 'the director's child' = find the director, then that person's child. Write each step with the paragraph that states it."
+  },
+  "dates_numbers": {
+   "when": "dates, ages, years, counts or quantities",
+   "text": "1. Copy dates exactly as written. 2. 'Who died first / was born first' compares full dates, not only years. 3. Age at an event = event year - birth year (minus one if the birthday comes later in that year). 4. Give a number or date in the form the paragraph uses."
+  },
+  "answer_span": {
+   "when": "any question",
+   "text": "Give the shortest span that answers the question, as it appears in the paragraphs: a name, title, date, number or yes/no. For a person, include the full name and any title or disambiguator from the supporting paragraph when needed to distinguish similar names. No explanation, no 'The answer is', no extra qualifiers; keep original spelling."
+  },
+  "distractors": {
+   "when": "similar names, several people with one name, or paragraphs about related entities",
+   "text": "Most paragraphs are distractors. Confirm each entity by its exact title and description (dates, profession, country) before using a fact from its paragraph; ignore facts about look-alike names."
+  },
+  "fact_lookup": {
+   "when": "the question asks for a specific property of an entity (place of death, place of birth, date, location, nationality, cause)",
+   "text": "1. Name the exact entity. 2. Run search for the entity name and for the property word plus synonyms (died/death, born/birth, place, location, country, nationality, date). 3. Read every matching sentence. 4. Copy the exact span that states the property. 5. Answer unanswerable only if no sentence states the property."
+  },
+  "nationality_country": {
+   "when": "the question asks a person's nationality or which country they are from, especially when the text may give a hyphenated nationality",
+   "text": "1. Identify the person and read all sentences about them. 2. If a sentence states a single country or nationality, use that span. 3. If the only statement is a hyphenated nationality and the question asks for one country, answer a single country component, not the compound. For 'which country ... from' questions, use the first component; for 'what nationality' questions, use the last component. 4. Keep original spelling."
+  }
+ },
+ "tools": {
+  "python": {
+   "doc": "Run Python (standard library) with CONTEXT (the paragraphs as a list of [title, sentences]) defined, to search, count or compute.",
+   "code": "",
+   "test": "assert isinstance(CONTEXT, list)"
+  },
+  "search": {
+   "doc": "search(text) -> prints every sentence that contains text (case-insensitive), with its paragraph number, title and sentence number.",
+   "code": "\ndef search(text):\n    n = 0\n    for i, (title, sents) in enumerate(CONTEXT, 1):\n        for j, s in enumerate(sents):\n            if text.lower() in s.lower() or text.lower() in title.lower():\n                print(f\"[{i}] {title} ({j}): {s.strip()}\"); n += 1\n    print(f\"{n} sentences\")\n",
+   "test": "import io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    search('paris')\nassert '1 sentences' in buf.getvalue(), buf.getvalue()"
+  },
+  "dates": {
+   "doc": "dates(i=None) -> prints every date or year in paragraph i (all paragraphs if None), with the sentence it is in; useful for comparisons of age, time or order.",
+   "code": "\ndef dates(i=None):\n    import re\n    pat = re.compile(r\"\\b(?:\\d{1,2} )?(?:January|February|March|April|May|June|July|August|September|\"\n                     r\"October|November|December)?(?: \\d{1,2},)? ?\\b(?:1[0-9]|20)\\d\\d\\b\")\n    for k, (title, sents) in enumerate(CONTEXT, 1):\n        if i is not None and k != i:\n            continue\n        for j, s in enumerate(sents):\n            found = [m.group().strip() for m in pat.finditer(s)]\n            if found:\n                print(f\"[{k}] {title} ({j}): {', '.join(found)} | {s.strip()[:200]}\")\n",
+   "test": "import io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    dates()\nassert '1889' in buf.getvalue(), buf.getvalue()"
+  }
+ }
+}

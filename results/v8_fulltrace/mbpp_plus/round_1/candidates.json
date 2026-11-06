@@ -1,0 +1,307 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Agents hit the token limit while writing extensive analysis and manual tracing, producing no final function (None answer)",
+    "rationale": "In 7 of 23 wrong problems the coder (or both coder and tester) rambled through long derivations, manual example traces, and re-interpretation loops, exhausting the token budget before ever emitting the complete function. The current one-sentence coder role gives no guidance on conciseness or output format, so the 9B model defaults to verbose chain-of-thought. Adding explicit 'be concise', 'always end with the function in a code block', and 'if low on space, output the function now' instructions directly targets this failure mode and should convert several None answers into at-least-runnable functions.",
+    "evidence": [
+     "A15",
+     "A37",
+     "A57",
+     "A61",
+     "A64",
+     "A67",
+     "A98"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "Write a correct Python function matching the specification exactly. Be concise: a few sentences per step, not paragraphs. Test with your tools, fix bugs, then output the final function. The final function contains only the definition and necessary imports, no test code, prints, or __main__ blocks. Always end with the complete function in a ```python code block. If running low on space, stop analyzing and output the function now."
+     }
+    ]
+   },
+   {
+    "pattern": "Testers re-derive the entire solution in verbose analysis instead of checking the existing code, wasting tokens and missing the real spec mismatch",
+    "rationale": "In A34 the tester re-derives the logic and concludes 'no bugs found' while the function misreads the spec; in A45 it declares the O(n) loop 'already optimal' without checking the large-input or return-type requirement; in A62 it finds a bug in its own test expectation instead of the raise-vs-return-None spec mismatch; in A69 and A86 it adds passing tests but misses the actual hidden-test failure. The current tester role ('derive test cases from the specification, run them, fix every bug') encourages full re-derivation. Reframing it as 'run the function, find bugs, fix them, do not re-derive' and enforcing conciseness lets the tester spend its budget on actually executing and comparing outputs.",
+    "evidence": [
+     "A34",
+     "A45",
+     "A62",
+     "A69",
+     "A86"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "Check your teammate's function against the specification and examples. Be concise: run the function on the examples and on edge cases from the spec, state each bug you find and the fix. Do not re-derive the solution. Always end with the complete corrected function in a ```python code block. If the function is already correct, output it unchanged."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 141578,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 1888.3,
+   "meta_cost": 574.2,
+   "acc_hard": 0.625,
+   "nodes": 1.38,
+   "shapes": {
+    "coder[T][S]": 30,
+    "coder[T][S]>tester[T]": 12,
+    "coder[T][S]>tester[T][S]": 7,
+    "coder[T]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 1
+  },
+  "flip_b": [
+   3,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "String problems given string_rules produce overthinking spirals or wrong case/format choices (53% with vs 78% without the skill)",
+    "rationale": "The 5-question analysis framework in string_rules causes the 9B model to deliberate extensively instead of coding. A15 hit token limit debating regex interpretation, A70 lowercased the first part instead of capitalizing, A86 returned wrong type and hit token limit. Replacing the analysis checklist with a concise 'match examples, code, test, fix' loop eliminates the deliberation trigger.",
+    "evidence": [
+     "A15",
+     "A70",
+     "A86"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "when": "string manipulation (case, words, characters, formatting)",
+      "text": "Match the examples exactly: case, separators, output type. Write the function, run run_examples, fix any failure. Keep analysis under 3 lines before coding."
+     }
+    ]
+   },
+   {
+    "pattern": "The 'restate every rule' instruction in read_spec causes verbose analysis that exhausts the token budget on complex problems, producing None output",
+    "rationale": "A37, A57, A61, A64, A67 all had read_spec and all hit the token limit with None output. The instruction to 'restate the input types, the output type and every rule' triggers a long analysis paragraph before any code is written. Shortening to a 2-line note (name + output type) frees tokens for actual code and testing.",
+    "evidence": [
+     "A37",
+     "A57",
+     "A61",
+     "A64",
+     "A67"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "read_spec",
+      "when": "any problem",
+      "text": "Note function name (from the assert if present) and output type from the examples in 2 lines, then write the function. Return the value, do not print. Keep the given name and parameter order. Match examples exactly including type."
+     }
+    ]
+   },
+   {
+    "pattern": "examples_check's 'trace the code line by line' fallback causes token-expensive manual verification when run_examples is unavailable, contributing to token-limit failures",
+    "rationale": "A64 had only the python tool (no run_examples) and the skill's 'by hand: trace the code line by line' instruction led to a very long manual walkthrough. A61 similarly spent tokens re-verifying. Removing the manual-trace fallback and focusing on run_examples + targeted fix keeps output short.",
+    "evidence": [
+     "A64",
+     "A61"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "examples_check",
+      "when": "the problem statement contains examples",
+      "text": "Run run_examples after writing the function. If all pass, submit. If one fails, fix the specific wrong line and re-run. Do not re-derive the whole solution."
+     }
+    ]
+   },
+   {
+    "pattern": "Default coder+tester architecture for tricky problems doubles token usage, causing both nodes to hit the token limit (75%/70% accuracy vs 78% for single coder)",
+    "rationale": "30 problems used coder>tester with 75% and 70% accuracy, while 69 single-coder problems got 78%. The tester 'to wrong' count (10) nearly equals 'to correct' (11). In A37, A57, A67, A86 both nodes hit the token limit. Removing the default tester halves token usage and lets the coder use its full budget for code+testing.",
+    "evidence": [
+     "A37",
+     "A57",
+     "A67",
+     "A86"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Tricky specification or many edge cases: one coder with python and run_examples, with at most 2 skills. Add a tester only when the problem needs comparing two implementations (e.g. fast vs brute-force)."
+     }
+    ]
+   },
+   {
+    "pattern": "Problem has an assert line but assert_signature is not given, causing the agent to invent a wrong function name",
+    "rationale": "A58: the assert says `Split([1,2,3,4,5,6])` but the agent named the function `split_odd`, failing all base tests. The assert_signature skill (82% vs 69% without) explicitly tells the agent the assert fixes the name, but the meta-agent did not give it. Making the rule explicit ensures the skill is always present when an assert line exists.",
+    "evidence": [
+     "A58"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give skills that match the problem. If the problem contains an assert line, always include assert_signature in the coder's skills."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 141592,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.78,
+   "cost": 2047.5,
+   "meta_cost": 998.2,
+   "acc_hard": 0.625,
+   "nodes": 1.1,
+   "shapes": {
+    "coder[T][S]": 45,
+    "coder[T][S]>tester[T]": 4,
+    "coder[T][S]>tester[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   3,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Model hits the token limit because it writes verbose docstrings, multiple code iterations, analysis paragraphs, and test code instead of just the function.",
+    "rationale": "10 of 23 wrong problems (A15, A37, A57, A61, A64, A67, A74, A77, A86, A98) show 'cut at the token limit' or 'None' as the final answer. The 9B model spends its budget on restating the spec, writing long docstrings, iterating on code, and including test scripts. The coder role gives no conciseness instruction, so the model defaults to verbose output. Adding an explicit 'be concise, only the function' instruction to the always-on role directly targets this.",
+    "evidence": [
+     "A15",
+     "A37",
+     "A57",
+     "A61",
+     "A64",
+     "A67",
+     "A74",
+     "A77",
+     "A86",
+     "A98"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "Write the correct Python function. Be concise: only the function, at most a one-line docstring, no test code, no analysis paragraphs. Match the spec exactly: name, parameter order, return type, and behavior."
+     },
+     {
+      "op": "edit_skill",
+      "name": "read_spec",
+      "when": "any problem",
+      "text": "The examples are part of the specification: reproduce them exactly, including the output type (list vs tuple, int vs float, True/False). Return the value; do not print. Keep the given function name and parameter order."
+     },
+     {
+      "op": "edit_skill",
+      "name": "examples_check",
+      "when": "the problem statement contains examples",
+      "text": "Run every example with run_examples before the final answer. If one fails, find the rule you misread."
+     }
+    ]
+   },
+   {
+    "pattern": "string_rules skill causes the model to overthink string problems into token-limit loops or misread case/format requirements.",
+    "rationale": "string_rules is given to 15 nodes with 53% accuracy vs 78% without \u2014 the worst residual item. In A15 the model spent its entire budget debating regex interpretation after reading the 5-item checklist. In A70 the model lowercased the first part of a snake_case string, contradicting the example. The 5-item checklist format encourages the model to enumerate and analyze each point rather than just matching the examples. Shortening it to a single directive to match the examples reduces token spend and prevents the analysis spiral.",
+    "evidence": [
+     "A15",
+     "A34",
+     "A69",
+     "A70",
+     "A96"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "string_rules",
+      "when": "string manipulation (case, words, characters, formatting)",
+      "text": "Match the exact case, format, and characters shown in the examples. Check: keep/lower/upper case? split() vs split(' ')? Which characters count? Keep original order unless told to sort."
+     }
+    ]
+   },
+   {
+    "pattern": "Tester rewrites the whole function from scratch, introducing new bugs or hitting the token limit, instead of making a targeted fix.",
+    "rationale": "The tester's 'changed' count is 16/30, with 11 to-correct and 10 to-wrong \u2014 nearly a coin flip when it modifies the code. In A34 the tester re-wrote the same function with a longer docstring and hit the token limit. In A57 the tester re-derived the entire DP from scratch and hit the token limit. In A62 the tester re-wrote the function and kept the bug (raising ValueError instead of returning None). The current role says 'derive test cases from the specification (including edge cases)' which prompts the model to generate new tests and rewrite. Changing the role to 'run examples, return unchanged if pass, fix only the specific bug if fail' prevents the rewrite spiral.",
+    "evidence": [
+     "A34",
+     "A37",
+     "A45",
+     "A57",
+     "A62",
+     "A67",
+     "A69",
+     "A86"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "Run the examples against the given function. If all pass, return it unchanged. If one fails, find the specific bug and fix only that. Do not rewrite from scratch."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent gives 3+ skills to a single node, compounding token cost and pushing the model over the limit.",
+    "rationale": "Cut problems frequently have 3 skills: A37 (read_spec+edge_cases), A57 (read_spec+assert_signature+numeric_rules), A67 (read_spec+edge_cases+efficiency), A77 (read_spec+examples_check+edge_cases), A86 (read_spec+string_rules+assert_signature), A98 (read_spec+string_rules+assert_signature). Each skill adds instructions the model must follow, multiplying token spend. A hard cap of 2 skills per node forces the meta-agent to pick the most relevant ones and keeps total prompt size manageable for the 9B model.",
+    "evidence": [
+     "A37",
+     "A57",
+     "A67",
+     "A77",
+     "A86",
+     "A98"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Give at most 2 skills per node. Extra skills make the model verbose and hit the token limit."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 141551,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.72,
+   "cost": 2532.4,
+   "meta_cost": 1709.0,
+   "acc_hard": 0.5,
+   "nodes": 1.48,
+   "shapes": {
+    "coder[T][S]": 26,
+    "coder[T][S]>tester[T][S]": 17,
+    "coder[T][S]>tester[T]": 7
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   4,
+   5
+  ]
+ }
+]

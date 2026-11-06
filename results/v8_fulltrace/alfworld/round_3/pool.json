@@ -1,0 +1,64 @@
+{
+ "agents": {
+  "actor": {
+   "role": "You act in a household text environment to complete the task. Each turn, write one short line 'Think: ...' and then 'Action: <one command>'."
+  },
+  "planner": {
+   "role": "You read the task and the room, and write a short plan for the teammate who will act: where to look first and the steps to finish. You do not act."
+  }
+ },
+ "rules": [
+  "Every task: an actor with valid_actions.",
+  "Tasks with two objects or with cleaning, heating or cooling: a planner, then the actor reading its plan.",
+  "Give the actor the skill matching the task type: 'look at X under lamp'\u2192look_in_light; 'hot/heat X'\u2192heat_task; 'cool/cold X'\u2192cool_task; 'clean X'\u2192clean_task; 'two X'\u2192pick_two; other placement\u2192pick_place. Also give search_order if the target object is not initially in view."
+ ],
+ "skills": {
+  "action_syntax": {
+   "when": "any task (exact command forms)",
+   "text": "Commands: go to {recep}; open {recep}; close {recep}; take {obj} from {recep}; move {obj} to {recep}; clean {obj} with {sinkbasin}; heat {obj} with {microwave}; cool {obj} with {fridge}; use {lamp}; examine {obj or recep}; inventory; look. Use the exact names with numbers as they appear ('mug 1', 'countertop 2'). You can hold one object; you must be at a receptacle to take from or move to it. 'Nothing happens' means the command was invalid: change it, do not repeat it."
+  },
+  "search_order": {
+   "when": "the target object is not in view (most tasks)",
+   "text": "Search likely places first and never revisit a place you have checked. Typical: food (apple, potato, tomato, egg, lettuce, bread) -> fridge, countertop, diningtable, sinkbasin, garbagecan; dishes (mug, cup, plate, bowl, pan, pot) -> countertop, cabinet, diningtable, sinkbasin, shelf, drawer; small items (keychain, creditcard, pen, pencil, cd, cellphone) -> desk, drawer, sidetable, dresser, shelf; towels/soap -> towelholder, countertop, toilet, cabinet; books/laptops -> desk, bed, sofa, sidetable. Open closed cabinets, drawers, fridges and safes to see inside."
+  },
+  "pick_place": {
+   "when": "put an object in/on a receptacle",
+   "text": "1. Find the exact object type named in the task (a cup is not a mug, a cloth is not a towel), take it. 2. Go to the target receptacle; open it if closed. 3. move {obj} to {recep}. The task is done when the object is placed."
+  },
+  "pick_two": {
+   "when": "put two objects of a type in/on a receptacle",
+   "text": "1. Find the first object, take it, move it to the target. 2. Go back to searching for the second one (it may be elsewhere; remember where you saw others). 3. Move the second to the same target. You can carry only one object at a time."
+  },
+  "clean_task": {
+   "when": "put a clean object somewhere",
+   "text": "1. Find and take the object. 2. go to sinkbasin 1 while holding it, then 'clean {obj} with sinkbasin 1'. Do NOT move the object into the sink. 3. Go to the target, open it if needed, move the object there."
+  },
+  "heat_task": {
+   "when": "put a hot or heated object somewhere",
+   "text": "1. Find and take the object. 2. go to microwave 1 while holding it, then 'heat {obj} with microwave 1'. Do NOT open the microwave or move the object inside. 3. Go to the target, open it if needed, move the object there."
+  },
+  "cool_task": {
+   "when": "put a cool or cold object somewhere",
+   "text": "1. Find and take the object. 2. go to fridge 1 while holding it, then 'cool {obj} with fridge 1'. Do NOT open the fridge or move the object inside. 3. Go to the target, open it if needed, move the object there. If the target is the fridge itself this is a plain placement."
+  },
+  "look_in_light": {
+   "when": "examine or look at an object with/under a lamp",
+   "text": "1. Find and take the object. 2. Find a desklamp or floorlamp (often on a desk, sidetable or dresser). 3. Go to the lamp while holding the object and 'use {lamp}'. Using the lamp while holding the object completes the task."
+  },
+  "stuck_recovery": {
+   "when": "long or tricky tasks",
+   "text": "If an action fails twice or you are repeating yourself: stop, check what you hold (inventory), list unvisited places, and pick a different command. Do not repeat the same failing command. Prefer going to a new place over examining."
+  }
+ },
+ "tools": {
+  "valid_actions": {
+   "doc": "after every observation, the list of commands that are valid right now."
+  },
+  "memory": {
+   "doc": "after every observation, a summary of the places visited so far and what was seen in each (closed/empty receptacles included)."
+  },
+  "goal_reminder": {
+   "doc": "after every observation, the task again and the number of steps left."
+  }
+ }
+}

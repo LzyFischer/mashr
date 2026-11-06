@@ -1,0 +1,264 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "The verifier node re-derives the solver's entire argument in text (same setup, same method) instead of independently computing the value, so it confirms the solver's setup/arithmetic error (A64) or repeats an incomplete hand-enumeration and gets cut (A89, A61, A60).",
+    "rationale": "In A64 both nodes used the same (wrong) geometric reading\u2014the distance to the midpoint was taken as the altitude instead of half the side\u2014and the verifier merely re-derived the solver's energy sum, so the error passed through to the final answer. In A89/A61/A60 the verifier re-ran the long hand derivation and was cut before finalizing. The root cause is in the verifier's own role: it says 'do not redo the full solution' but never tells the model HOW to check, so a 9B model defaults to re-deriving in text. The fix belongs in the self harness (verifier role) because the checking practice must hold on every problem the verifier sees, and the verifier is the final node in the dominant solver>verifier architecture (130 uses). Forcing a short, independent Python computation that is compared against the solver's number makes the verifier an actual second computation (catches setup/arithmetic errors like A64 and completes enumerations like A89) instead of a text echo.",
+    "evidence": [
+     "A64",
+     "A89",
+     "A61",
+     "A60"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "verifier",
+      "role": "Verifier. Do not re-derive the solution in text. Use Python to compute the requested value independently (a fresh setup or direct computation), then compare it with the given answer: if they agree, confirm it; if they disagree, find the mistake and give the correct value. Keep the write-up short. Put the final answer on the last line, exactly as asked, then stop."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 109825,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 6180.3,
+   "meta_cost": 3131.5,
+   "acc_hard": 0.8519,
+   "nodes": 1.96,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 38,
+    "solver[T][S],verifier[T][S]": 6,
+    "solver[T][S]>verifier[T]": 4,
+    "solver[T][S]": 2
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   4
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Geometry problems: solver misidentifies distances or the geometry_coordinates skill is too verbose, causing the 9B model to do hand computation and get wrong answers",
+    "rationale": "A64 had no geometry skill and confused the midpoint-to-vertex distance (a/2) with the altitude (\u221a3/2\u00b7a). A97, A131, A148 had geometry_coordinates but still failed (74% vs 89% baseline). The skill is 5 steps of manual technique; shortening it and forcing Python/coord_geometry for all computation addresses both the missing-skill and over-verbose-skill cases.",
+    "evidence": [
+     "A64",
+     "A97",
+     "A131",
+     "A148"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "geometry_coordinates",
+      "when": "geometry with a diagram (Asymptote code), lengths, areas, intersections, or a figure with points moved/added",
+      "text": "1. Place the figure in coordinates: a vertex at the origin, a side on the x-axis, use symmetry. If Asymptote code is given, read exact coordinates from it. 2. Use Python with coord_geometry for ALL distance, area, and intersection computations - do not compute by hand. 3. Identify exactly which region or quantity is asked. 4. Check one known length or area from the problem against your coordinates."
+     }
+    ]
+   },
+   {
+    "pattern": "Number-theory 'find the k least n' problems are solved by manual case analysis and prime checking, hitting the token limit before the answer is reached",
+    "rationale": "A89: both solvers and the verifier hand-checked dozens of primes for \u03c4(n)+\u03c4(n+1)=7, getting cut mid-enumeration; they missed n=8 and n=16. A145 similar. The divisors_primes skill describes formulas but never says 'write a Python loop'. Adding that directive makes the 5-line divisor_count loop the primary method.",
+    "evidence": [
+     "A89",
+     "A145"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "divisors_primes",
+      "when": "number or sum of divisors, gcd/lcm, prime factorization, perfect squares/cubes, least solutions involving divisor counts",
+      "text": "1. Factor n = p1^a1 ... pk^ak first (tool: number_theory factorint). 2. Number of divisors (a1+1)...(ak+1); sum of divisors prod (p^(a+1)-1)/(p-1); perfect square iff all exponents even. 3. For 'find the k least n satisfying a condition on \u03c4(n) or primality': write a Python loop using divisor_count/isprime to collect the first k solutions - do not enumerate by hand. 4. Check each solution in the original condition."
+     }
+    ]
+   },
+   {
+    "pattern": "Process/simulation problems (walking, opening, skipping, state changes) are attempted as manual step-by-step traces, causing confusion and token-limit cutoff",
+    "rationale": "A58: the solver wrote thousands of tokens of manual locker-state tracking, got confused about the turn-around rule, and was cut off; the verifier repeated the same manual simulation. A clean 20-line Python simulation would have produced the answer in one execution. The functions_sequences skill covers sequences and recursions but not process simulations.",
+    "evidence": [
+     "A58"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "functions_sequences",
+      "when": "functional equations, function iteration or inverses, arithmetic/geometric sequences, recursions, or a process that changes state step by step",
+      "text": "1. For process/simulation problems (walking, opening, skipping, state changes over time): write a Python simulation tracking state step by step and print the answer. Do not simulate by hand. 2. Functional equations: plug in special values (0, 1, -1, x=y). 3. Sequences: arithmetic a_n = a_1+(n-1)d; geometric a_1 r^(n-1). 4. Recursions: list terms with Python, find the pattern. 5. Pitfall: off-by-one in the index."
+     }
+    ]
+   },
+   {
+    "pattern": "Multi-step algebra (Vieta expansions, system solving, polynomial manipulation) is done by hand in verbose text, producing arithmetic errors or token-limit cutoff",
+    "rationale": "A60: solver and verifier both hand-expanded Vieta product formulas over thousands of tokens; the verifier found b=90 and b=-330 (correct is -33090) due to expansion errors. A118 (14 vs 11) and A130 (97 vs 20) show the same hand-algebra error pattern. algebra_manipulation is 85% when given vs 89% otherwise. Directing the solver to use sympy for all algebraic computation eliminates the expansion errors.",
+    "evidence": [
+     "A60",
+     "A118",
+     "A130"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "algebra_manipulation",
+      "when": "simplifying expressions, systems of equations, substitutions, x + 1/x type identities, Vieta / symmetric sums",
+      "text": "1. Use sympy for ALL algebraic computation: expand, factor, solve systems, substitute. Write the equations in Python and let sympy solve them - do not expand or solve by hand. 2. For x+1/x type: substitute t = x+1/x. 3. For systems: use exact_solve or sympy.solve. 4. Pitfalls: extraneous roots from squaring, domain of sqrt/log. 5. Check: substitute the result back (tool: check_answer)."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent gives 0, 3, or mismatched skills: A64 got no geometry skill for a geometry problem, A60/A129/A131 got 3 skills that diluted focus, and the verifier sometimes lacks check_answer_form",
+    "rationale": "Wrong problems show 0 skills (A80), 3 skills (A60, A129, A131), or a mismatched skill (A64 got algebra_manipulation for a geometry problem). Rule 4 'Give skills that match the problem type' is too vague for the 9B meta-agent. A concrete type\u2192skill mapping with a 1-2 skill cap fixes both the missing-skill and over-staffing cases.",
+    "evidence": [
+     "A64",
+     "A60",
+     "A129",
+     "A131"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 4,
+      "text": "Give 1-2 skills matching the problem type: geometry/figures \u2192 geometry_coordinates; counting/arrangements \u2192 counting_setup; number theory \u2192 divisors_primes; algebra \u2192 algebra_manipulation; polynomials \u2192 polynomials_vieta; sequences/processes \u2192 functions_sequences. Always give check_answer_form to the verifier."
+     }
+    ]
+   },
+   {
+    "pattern": "Integer/Diophantine problems with bounded search space are enumerated by hand instead of with a Python loop, causing token-limit cutoff or missed solutions",
+    "rationale": "A129 (99999 vs 10100) and A130 (97 vs 20) had integer_equations plus algebra_manipulation; the solver listed candidates manually. integer_equations is 79% when given vs 89% otherwise. Moving the Python enumeration directive to step 2 (right after bounding) makes it the primary method rather than a step-5 check.",
+    "evidence": [
+     "A129",
+     "A130"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "integer_equations",
+      "when": "equations or conditions in integers (Diophantine, digits, bases, floor)",
+      "text": "1. Bound the variables first (sizes, signs, digit ranges 0-9, leading digit not 0). 2. Once bounded, use Python (brute_force or a loop) to enumerate and check candidates - do not list them by hand. 3. Factor: rewrite as (ax+b)(cy+d) = N and run over divisor pairs. 4. Use parity or a modulus to cut cases. 5. Check every candidate in the original equation."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 109839,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6652.2,
+   "meta_cost": 3189.0,
+   "acc_hard": 0.9259,
+   "nodes": 1.98,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 46,
+    "solver[T][S],verifier[T][S]": 3,
+    "solver[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Solvers and verifiers write long manual derivations even with Python available, exceeding the token limit before reaching the final answer.",
+    "rationale": "All 5 traced wrong problems (A64, A58, A61, A60, A89) show both nodes cut at the token limit. The solver writes a full text derivation, then Python code, then more analysis, exceeding the budget. The verifier re-derives the entire solution instead of a quick check. Shorter, more directive roles reduce output length: 'Use Python for all computation' replaces the longer enumeration of use-cases, and 'one quick check' with 'Do not re-derive' gives the verifier a concrete action instead of the vague 'short independent check' it currently ignores.",
+    "evidence": [
+     "A64",
+     "A58",
+     "A61",
+     "A60",
+     "A89"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "solver",
+      "role": "Careful math solver. Solve concisely. Use Python for all computation. List all requested values. Final answer on the last line, exactly as asked."
+     },
+     {
+      "op": "edit_agent",
+      "name": "verifier",
+      "role": "Verifier. Check the given answer with one quick check (substitute, small case, or Python). Do not re-derive. Final answer on the last line, exactly as asked."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent gives algebra skills to problems whose setup is geometric (triangle, midpoint, distances), causing the solver to misidentify geometric quantities.",
+    "rationale": "A64 is a triangle/midpoint problem given only algebra_manipulation; the solver used the altitude instead of half the side for the midpoint-to-vertex distance, producing 1.55 instead of 10. The verifier repeated the same error. A61, A97, A148, A131 are all geometry problems with wrong answers. Rule 4 ('Give skills that match the problem type') is too vague for the 9B meta-agent to reliably identify geometry problems that also involve algebra. Making the geometry trigger explicit (named figure types) gives the meta-agent a concrete recognition cue.",
+    "evidence": [
+     "A64",
+     "A61",
+     "A97",
+     "A148",
+     "A131"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 4,
+      "text": "Give skills that match the problem type. If the problem involves a geometric figure (triangle, circle, polygon, coordinates, distances, areas, angles), include the matching geometry skill (geometry_coordinates or geometry_synthetic) and the coord_geometry tool in addition to any algebra skill."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent creates parallel solver nodes where one solver's output is never read, wasting a node and providing no verification benefit.",
+    "rationale": "A89 has the architecture a=solver(...); b=solver(...); v=verifier(a,...); return v \u2014 two parallel solvers but the verifier only reads a's work, so b's output is discarded. This architecture has 1 use and 0% accuracy in the report. The meta-agent should use one solver whose work the verifier reads. A explicit prohibition prevents this rare but catastrophic wiring error.",
+    "evidence": [
+     "A89"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Use exactly one solver (or coder) per problem; the verifier must read that solver's output. Do not create parallel solver nodes."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 109798,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 6430.3,
+   "meta_cost": 3233.5,
+   "acc_hard": 0.8519,
+   "nodes": 1.98,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 43,
+    "solver[T][S],verifier[T][S]": 4,
+    "solver[T][S]>verifier[T]": 1,
+    "solver[T][S]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   4
+  ]
+ }
+]

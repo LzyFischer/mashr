@@ -1,0 +1,110 @@
+task math: dev-A 150, dev-B 50, test 156; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc; trace budget 120000 chars, max ops 8 (annealed)
+starting organization: the seed
+<unknown>:2: SyntaxWarning: invalid escape sequence '\l'
+[cost] round 0 / dev-B eval: 3.8 min; Qwen3.5-9B: 0.25M gen + 0.30M prompt billed, 146 calls (16% cached)
+round 0 incumbent dev-B {'n': 50, 'acc': 0.88, 'cost': 6803.2, 'meta_cost': 3198.5, 'acc_hard': 0.8889, 'nodes': 1.88, 'shapes': {'solver[T][S]>verifier[T][S]': 22, 'solver[T][S]': 9, 'solver[T][S]>verifier[T]': 5, 'solver[T][S],verifier[T][S]': 5}, 'n_shapes': 12, 'fallback': 1}
+<unknown>:2: SyntaxWarning: invalid escape sequence '\m'
+[cost] round 1 / dev-A eval: 6.0 min; Qwen3.5-9B: 0.91M gen + 1.06M prompt billed, 441 calls (5% cached)
+round 1: incumbent dev-A {'n': 150, 'acc': 0.88, 'cost': 7076.4, 'meta_cost': 3243.7, 'acc_hard': 0.7927, 'nodes': 1.9, 'shapes': {'solver[T][S]>verifier[T][S]': 99, 'solver[T][S]': 23, 'solver[T][S]>verifier[T]': 10, 'solver[T][S],verifier[T][S]': 7}, 'n_shapes': 12, 'fallback': 1}
+/sfs/weka/scratch/vjd5zr/project/mashr/mashr/llm.py:84: FutureWarning: Using the future as the SamplingClient is deprecated; call .result() on it, or await it, to get the SamplingClient first
+  self._clients[model] = (s, s.get_tokenizer())
+/sfs/weka/scratch/vjd5zr/project/mashr/mashr/llm.py:140: FutureWarning: Using the future as the SamplingClient is deprecated; call .result() on it, or await it, to get the SamplingClient first
+  fut = samp.sample(prompt=types.ModelInput.from_ints(prompt_ids),
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+Request failed with non-retryable error: BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}
+[cost] round 1 / evolver proposals (27B): 0.9 min; no model calls
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/sfs/weka/scratch/vjd5zr/project/mashr/mashr/rsi.py", line 673, in <module>
+    main()
+  File "/sfs/weka/scratch/vjd5zr/project/mashr/mashr/rsi.py", line 621, in main
+    cands = list(ex.map(propose, range(a.k)))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/project/uvadm/zhenyu/miniconda3/envs/memrx/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/project/uvadm/zhenyu/miniconda3/envs/memrx/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/project/uvadm/zhenyu/miniconda3/envs/memrx/lib/python3.12/concurrent/futures/_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/project/uvadm/zhenyu/miniconda3/envs/memrx/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/project/uvadm/zhenyu/miniconda3/envs/memrx/lib/python3.12/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/project/mashr/mashr/rsi.py", line 613, in propose
+    obj, res, tries = ask_json(llm, prompt, "edit", check,
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/project/mashr/mashr/rsi.py", line 64, in ask_json
+    txt = llm.chat(BIG, msgs, thinking="high", max_tokens=max_tokens, seed=seed + attempt).text
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/project/mashr/mashr/llm.py", line 108, in chat
+    text, pt, gt = self._sample(model, messages, thinking, max_tokens, seed, temperature)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/project/mashr/mashr/llm.py", line 164, in _sample
+    ans_ids = sample(ids + gen + list(tok.encode("\n</think>\n\n", add_special_tokens=False)),
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/project/mashr/mashr/llm.py", line 142, in sample
+    out = list(fut.result(timeout=600).sequences[0].tokens)
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/backcompat_concurrent_future.py", line 48, in result
+    return self._future.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/project/uvadm/zhenyu/miniconda3/envs/memrx/lib/python3.12/concurrent/futures/_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/project/uvadm/zhenyu/miniconda3/envs/memrx/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/telemetry.py", line 423, in _awrapper
+    return await cast(Callable[..., Awaitable[R]], func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/public_interfaces/sampling_client.py", line 596, in _sample_async_with_retries
+    return await self.retry_handler.execute(_sample_async)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/retry_handler.py", line 174, in execute
+    result = await self._execute_with_retry(func, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/retry_handler.py", line 227, in _execute_with_retry
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/public_interfaces/sampling_client.py", line 582, in _sample_async
+    return await self._sample_async_impl(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/public_interfaces/sampling_client.py", line 400, in _sample_async_impl
+    untyped_future = await self.holder.execute_with_retries(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/internal_client_holder.py", line 1005, in execute_with_retries
+    raise e
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/internal_client_holder.py", line 961, in execute_with_retries
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/public_interfaces/sampling_client.py", line 372, in _send_asample_request
+    raise e
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/lib/public_interfaces/sampling_client.py", line 362, in _send_asample_request
+    return await client.sampling.asample(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/resources/sampling.py", line 35, in asample
+    return await self._post(
+           ^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/_base_client.py", line 1289, in post
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/_base_client.py", line 1084, in request
+    raise self._make_status_error_from_response(err.response) from None
+tinker.BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."}

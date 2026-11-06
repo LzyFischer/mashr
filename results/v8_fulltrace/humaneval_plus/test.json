@@ -1,0 +1,71 @@
+{
+ "org_round0": {
+  "n": 83,
+  "acc": 0.8434,
+  "cost": 3702.2,
+  "meta_cost": 1095.1,
+  "acc_hard": 0.7647,
+  "nodes": 1.55,
+  "shapes": {
+   "coder[T][S]": 37,
+   "coder[T][S]>tester[T][S]": 31,
+   "coder[T][S]>tester[T]": 15
+  },
+  "n_shapes": 3,
+  "fallback": 0
+ },
+ "org_final": {
+  "n": 83,
+  "acc": 0.8795,
+  "cost": 2767.0,
+  "meta_cost": 867.6,
+  "acc_hard": 0.7647,
+  "nodes": 1.61,
+  "shapes": {
+   "coder[T][S]": 32,
+   "coder[T][S]>tester[T][S]": 26,
+   "coder[T][S]>tester[T]": 25
+  },
+  "n_shapes": 3,
+  "fallback": 0
+ },
+ "single": {
+  "n": 83,
+  "acc": 0.8434,
+  "cost": 819.6,
+  "meta_cost": 0.0,
+  "acc_hard": 0.7647,
+  "nodes": 1.0,
+  "shapes": {
+   "coder": 83
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "coder_tools": {
+  "n": 83,
+  "acc": 0.9157,
+  "cost": 1027.8,
+  "meta_cost": 0.0,
+  "acc_hard": 0.8235,
+  "nodes": 1.0,
+  "shapes": {
+   "coder[T]": 83
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "code_test": {
+  "n": 83,
+  "acc": 0.9036,
+  "cost": 2923.7,
+  "meta_cost": 0.0,
+  "acc_hard": 0.7647,
+  "nodes": 2.0,
+  "shapes": {
+   "coder[T]>tester[T]": 83
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ }
+}

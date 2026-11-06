@@ -1,0 +1,240 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Final answer is not the exact shortest span: extra qualifiers are included, a shortened name is used instead of the full name from the entity's own paragraph, or a date/number is given instead of the entity name the question asks for.",
+    "rationale": "In A3 the decomposer and checker both output 'the Bahamian island of Great Exuma' instead of 'Great Exuma'; in A4 they output 'Claudio L\u00f3pez' instead of the full name 'Claudio Javier L\u00f3pez' found in the entity's own paragraph; in A2 the reader output '1966' instead of the entity name. The answer_span skill is given but the 9B model does not follow it reliably. Moving the shortest-span and full-name constraints into the always-on roles makes them more prominent than a skill that may be overlooked.",
+    "evidence": [
+     "A2",
+     "A3",
+     "A4"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "reader",
+      "role": "You answer multi-hop questions using only the given paragraphs: find each fact you need and give a short answer. When the question asks 'which' or 'who', answer with the entity's name as written in the question, not a date or number. The final answer is the exact shortest span from the paragraph."
+     },
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the answers you are given against the paragraphs: verify each hop, fix any error, and give the short answer you believe is correct. If the answer has extra qualifiers, trim it to the shortest span. If a name is shortened, use the full name from the entity's own paragraph. If a hop is missing, complete it."
+     }
+    ]
+   },
+   {
+    "pattern": "The decomposer skips identifying the specific entity in a multi-hop chain and answers a general property (e.g. the country) instead of the asked property of the specific person.",
+    "rationale": "In A7 the question asks about 'the member of Gujarat Legislative Assembly and parliament' (a specific person identified by two properties). The decomposer never identified that person; it jumped to 'India' as the country. The bridge skill says to find the inner entity first, but the role does not enforce step-by-step entity identification. Adding this to the always-on role makes the decomposer commit to each hop before answering.",
+    "evidence": [
+     "A7"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into single-hop sub-questions, answer each from the paragraphs (cite the paragraph), and combine them into the final short answer. For multi-hop questions, identify each entity in the chain step by step before giving the final answer. The final answer is the exact shortest span from the paragraph: no extra qualifiers, full name as written in the entity's own paragraph."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 22883,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.25,
+   "cost": 5076.8,
+   "meta_cost": 3195.6,
+   "acc_hard": 0.2857,
+   "nodes": 2.25,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 5,
+    "checker[T][S],decomposer[T][S]": 1,
+    "decomposer[T][S]>checker[S]": 1,
+    "checker[T][S],decomposer[T][S],reader[T][S],reader[T][S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Comparison questions output the compared value or both the entity and the value instead of one entity name.",
+    "rationale": "In A2 the reader wrote both release dates and then gave the earlier date as the final span. The comparison skill told the agent to write both values but did not suppress those values in the final answer, so editing the skill to require only one final span targets this failure.",
+    "evidence": [
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "comparison",
+      "text": "1. Find the compared property for each entity in its own paragraph; write both values only in your reasoning. 2. Compare carefully (earlier date = older person / earlier release). 3. In the final answer give exactly one span: for which/who comparisons give the entity name as written in the question; for both or same questions give only yes/no. Never output dates, values, or both entities."
+     }
+    ]
+   },
+   {
+    "pattern": "Final answers keep generic qualifiers, give multiple spans, or use a shortened person name from a non-entity paragraph.",
+    "rationale": "A3 answered 'the Bahamian island of Great Exuma' instead of the place name, and A4 answered 'Claudio L\u00f3pez' from a season list instead of the name form used in the person's own paragraph. The existing answer_span rule was too weak to force one exact canonical span.",
+    "evidence": [
+     "A3",
+     "A4"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "text": "Give exactly one shortest span, as it appears in the paragraphs: a name, title, date, number, or yes/no. No explanation, no 'The answer is', no extra qualifiers, and no second value. For a person, use the name form used as the subject in that person's own paragraph, not a shortened mention elsewhere. For places and titles, keep the exact name but remove only generic descriptors outside the name (articles, 'island of', 'city of', country names) unless they are part of the name."
+     }
+    ]
+   },
+   {
+    "pattern": "Questions asking what a member or representative represents are answered with the institution's country or state instead of the represented seat or area.",
+    "rationale": "In A7 the nodes extracted India from the Gujarat assembly description, but the asked property was the seat represented by the identified member, Jamnagar. The bridge skill did not specify how to handle 'represents' questions, so adding that step makes the chain target the correct property.",
+    "evidence": [
+     "A7"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "bridge",
+      "when": "an entity is described through another (a work, place, office, team, or relation)",
+      "text": "1. Find the inner entity first (the film X), from its paragraph. 2. Read the property you need (its director) and name the bridge entity exactly. 3. Find the bridge entity's own paragraph and read the asked property there. 4. The answer is about the last entity in the chain, not the first. 5. If the question asks what a member, representative, or office-holder represents, answer the exact seat, constituency, or area stated as represented in that person's paragraph, not the country or state of the institution."
+     }
+    ]
+   },
+   {
+    "pattern": "Related candidate paragraphs cause over-analysis or selection of a fact from the wrong candidate.",
+    "rationale": "A4 spent many steps comparing unrelated Argentine footballers, and A7 failed to narrow to the one person stated with both roles before extracting a broader fact. The distractors skill was given in these cases but only said to confirm entities; it did not tell the agent to choose the candidate stated with all question properties and then stop.",
+    "evidence": [
+     "A4",
+     "A7"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "distractors",
+      "when": "several paragraphs could match the same name or role",
+      "text": "Confirm the exact paragraph that states all properties in the question before using a fact. Ignore candidates missing any property and look-alike names. Once the entity is confirmed, do not re-check unrelated paragraphs."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 22897,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.375,
+   "cost": 4666.2,
+   "meta_cost": 3147.4,
+   "acc_hard": 0.4286,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 7,
+    "reader[T][S]": 1
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   0
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Final answers are not the exact requested span: they include extra qualifiers, a date instead of the compared entity, or a shortened person name.",
+    "rationale": "A2 output both the entity and the year and the final answer became the year; A3 output a locative phrase instead of the place name; A4 used a shortened name even though the person's own paragraph gives the full name. The answer_span and comparison skills do not force one exact span, and the checker does not explicitly repair span errors.",
+    "evidence": [
+     "A2",
+     "A3",
+     "A4"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "text": "Give exactly one answer span, as it appears in the paragraphs: a name, title, date, number, or yes/no. For a person, use the full name from the person's own paragraph (include middle names if present). For a place, use the place name without 'the', 'island of', 'city of', etc. For a comparison of two entities, give the entity name, not the date/value. No explanation, no extra qualifiers, no second answer."
+     },
+     {
+      "op": "edit_skill",
+      "name": "comparison",
+      "text": "1. Find the compared property for each entity and write both values in your reasoning. 2. Compare carefully (earlier date = older/earlier). 3. Final answer: for 'which/who ... first/earlier/larger' give only the entity name as written in the question; for 'do both/same' give yes/no. Do not give the date or value alone."
+     },
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the answers you are given against the paragraphs: verify each hop, fix any error, and give exactly one shortest answer span. For a person use the full name from that person's own paragraph; for a place use the place name without descriptors; for a comparison give the entity, not the date; for yes/no give yes or no."
+     }
+    ]
+   },
+   {
+    "pattern": "When an entity is identified by roles/attributes or a definite description, the agents answer a related group or fail to select the unique entity's exact property.",
+    "rationale": "A7 treated the described member as a generic group and answered the country of the assembly instead of finding the specific member and the seat named in that member's paragraph; A4 required selecting the entity that satisfies all descriptors and using its own paragraph. The bridge skill only covers chains through a named entity, and the meta rules do not clearly equip described-entity questions.",
+    "evidence": [
+     "A7",
+     "A4"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "bridge",
+      "when": "an entity is described through another entity or by roles/attributes ('the director of X', 'the member who ...', 'the person who ...')",
+      "text": "1. If the question describes an entity through another entity or by roles/attributes, first find the single entity that satisfies every descriptor; use the paragraph whose title is that entity. 2. Read the asked property from that entity's own paragraph. 3. If the question asks what a member/representative represents, use the seat/constituency named in that person's paragraph, not the country of the assembly. 4. The answer is about the last entity in the chain, not the first or a group."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "An entity described through another entity or by roles/attributes: a decomposer, then a checker that reads its work."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give answer_span to every node. Give the matching skill: comparison for comparisons, bridge for described entities, yes_no for yes/no, dates_numbers for dates/years, and distractors only for near-identical names. Give the dates tool when dates/years are compared."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 22856,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.375,
+   "cost": 4594.3,
+   "meta_cost": 3167.4,
+   "acc_hard": 0.4286,
+   "nodes": 1.75,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 4,
+    "checker[T][S]": 1,
+    "reader[T][S]": 1,
+    "decomposer[T][S]>checker[S]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   0
+  ]
+ }
+]

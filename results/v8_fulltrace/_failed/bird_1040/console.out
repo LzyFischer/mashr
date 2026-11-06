@@ -1,0 +1,10 @@
+task bird: dev-A 150, dev-B 50, test 300; delta 0.005, tau 0.1, meta-agent thinking medium, objective acc; trace budget 120000 chars, max ops 8 (annealed)
+starting organization: the seed
+[cost] round 0 / dev-B eval: 6.5 min; Qwen3.5-9B: 0.07M gen + 0.23M prompt billed, 190 calls (19% cached)
+round 0 incumbent dev-B {'n': 50, 'acc': 0.54, 'cost': 2889.4, 'meta_cost': 790.4, 'acc_hard': 0.4762, 'nodes': 1.98, 'shapes': {'writer[T][S]>checker[T][S]': 47, 'writer[T][S]': 2, 'writer[T][S],writer[T][S]>checker[T][S]': 1}, 'n_shapes': 3, 'fallback': 0}
+[cost] round 1 / dev-A eval: 6.3 min; Qwen3.5-9B: 0.20M gen + 0.79M prompt billed, 568 calls (5% cached)
+round 1: incumbent dev-A {'n': 150, 'acc': 0.5667, 'cost': 2525.3, 'meta_cost': 697.3, 'acc_hard': 0.4366, 'nodes': 1.95, 'shapes': {'writer[T][S]>checker[T][S]': 141, 'writer[T][S]': 5, 'writer[T]': 3, 'checker[T][S],writer[T][S]': 1}, 'n_shapes': 4, 'fallback': 3}
+/sfs/weka/scratch/vjd5zr/project/mashr/mashr/llm.py:84: FutureWarning: Using the future as the SamplingClient is deprecated; call .result() on it, or await it, to get the SamplingClient first
+  self._clients[model] = (s, s.get_tokenizer())
+/sfs/weka/scratch/vjd5zr/project/mashr/mashr/llm.py:140: FutureWarning: Using the future as the SamplingClient is deprecated; call .result() on it, or await it, to get the SamplingClient first
+  fut = samp.sample(prompt=types.ModelInput.from_ints(prompt_ids),

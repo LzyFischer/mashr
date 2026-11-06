@@ -1,0 +1,213 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Checker removes a filter condition that the evidence explicitly defines, treating it as redundant, which breaks an otherwise-correct query.",
+    "rationale": "In A7 the writer correctly included `time IS NOT NULL` (evidence: 'finisher refers to time != null'), but the checker deleted it, reasoning that statusId=2 already implies disqualification. The checker role says 'fix any error' with no guard against removing evidence-mandated conditions. Adding an explicit prohibition in the checker's self-role (always on) stops this class of over-simplification without needing the meta-agent to staff a new agent or skill.",
+    "evidence": [
+     "A7"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the SQL written by your teammates against the question and the evidence, fix any error, and give the query you believe is correct. Never remove a condition the evidence explicitly defines (a term mapped to a column test), even if it looks redundant. If the query already satisfies every stated condition, return it unchanged."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer misreads the evidence's extraction method or picks the wrong column among similarly-named candidates, producing an incorrect query that the checker then passes through.",
+    "rationale": "Three distinct traces show the same root: the writer does not anchor to the evidence or the question's exact wording. A8: evidence says 'first 4 strings' \u2192 use SUBSTR, but writer used strftime. A6: evidence says 'MM:SS.mmm' but writer assumed fixed 2-digit minutes (SUBSTR offsets) instead of locating the colon with INSTR. A3: question asks for 'NCES school identification number' but writer selected NCESDist (district) over NCESSchool. All three are general writer habits\u2014follow the evidence's stated method, disambiguate similar column names by meaning, and split delimited strings by delimiter position\u2014so they belong in the writer's always-on role rather than a per-question skill.",
+    "evidence": [
+     "A3",
+     "A6",
+     "A8"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "writer",
+      "role": "You write correct SQLite queries that answer questions about a database. Use the evidence's formulas, extraction methods, and value mappings exactly as stated. When several columns have similar names, choose the one whose documented meaning matches the question's phrasing. When splitting a delimited string (time, date, code), use the delimiter position (INSTR) rather than fixed character offsets."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 34074,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.625,
+   "cost": 2818.2,
+   "meta_cost": 692.9,
+   "acc_hard": 0.5,
+   "nodes": 2.0,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 8
+   },
+   "n_shapes": 1,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Checker removes a valid evidence-stated condition or keeps extra helper output columns, breaking an otherwise-correct query.",
+    "rationale": "In A7 the writer correctly included `time IS NOT NULL` per the evidence ('finisher refers to time != null'), but the checker reasoned it was redundant and removed it, flipping the answer to wrong. In A8 the writer returned three columns (two intermediate sums plus the difference) and the checker, which had output_columns, still kept all three instead of trimming to the single asked column. Root cause: check_result does not explicitly instruct the checker to (a) preserve every condition the evidence names, and (b) trim the SELECT list to exactly the asked columns. Editing the skill (always-on for checkers) fixes both without adding a new agent.",
+    "evidence": [
+     "A7",
+     "A8"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "check_result",
+      "text": "1. Re-read the question and evidence; list each condition and the asked output column(s). 2. Check the query covers each condition with the right column and value, the right joins, and the asked output columns. 3. Run it and judge the rows: count, ranges, NULLs. 4. Keep the query if it is right; otherwise fix the specific error and run the fixed query. Do not rewrite a correct query. 5. Output columns: the final SELECT must return exactly the column(s) the question asks for; remove any helper or intermediate columns. 6. Do not remove a filter condition that the evidence explicitly states, even if it appears implied by another filter\u2014evidence conditions are required, not redundant."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer assumes a data format (e.g. fixed-width time string) without sampling, because the tool the skill tells it to use was not provided.",
+    "rationale": "In A6 the writer was given the dates_text skill (which says 'Look at the stored format first (sample_rows)') but its tool list was only [run_sql, find_values]\u2014no sample_rows. It therefore assumed 'MM:SS.mmm' meant exactly two-digit minutes and used hard-coded SUBSTR offsets; the correct answer uses INSTR to locate the colon, implying variable-width minutes in the data. The checker repeated the same assumption. Root cause is on the meta-agent side: it did not ensure the tool referenced by the skill was actually handed to the agent. A meta-rule that ties tool provision to skill content fixes this class of failure.",
+    "evidence": [
+     "A6"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "If a skill you give an agent names a tool in its procedure (sample_rows, find_values, column_info), include that tool in the agent's tool list so the agent can actually follow the skill."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer selects the wrong column when the question describes it by meaning and several similarly-named columns exist.",
+    "rationale": "In A3 the question asks for the 'NCES school identification number'; the schools table has both NCESSchool and NCESDist. The writer picked NCESDist without checking column descriptions, and the checker (no column_info) did not catch it. The writer had sample_rows but not column_info, and no skill directed it to verify column semantics. A meta-rule that triggers column_info when the question uses a descriptive phrase rather than an exact column name addresses this at the staffing layer, which is where the tool was omitted.",
+    "evidence": [
+     "A3"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "When the question refers to a column by its meaning or description (e.g. 'identification number', 'total amount') rather than its exact stored name, give the writer column_info so it can confirm which column matches."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 34088,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.375,
+   "cost": 2784.1,
+   "meta_cost": 667.3,
+   "acc_hard": 0.0,
+   "nodes": 1.88,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 7,
+    "writer[T][S]": 1
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Checker removes a condition that the evidence explicitly defines, breaking an otherwise correct query.",
+    "rationale": "In A7 the writer correctly included 'time IS NOT NULL' per the evidence ('finisher refers to time != null'), but the checker reasoned it was redundant with statusId=2 and deleted it, turning a correct answer into a wrong one. Neither the checker role nor the check_result skill explicitly protects evidence-defined conditions from being 'simplified' away. Editing both makes the protection explicit and always-on for the checker.",
+    "evidence": [
+     "A7"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the SQL written by your teammates against the question and the evidence, fix any error, and give the query you believe is correct. Every condition stated in the evidence is required; do not remove one because it appears implied by another. Run the query and inspect the rows before finalizing."
+     },
+     {
+      "op": "edit_skill",
+      "name": "check_result",
+      "when": "reviewing another agent's query",
+      "text": "1. Re-read the question and evidence; list each condition and the asked output. 2. Check the query covers each condition with the right column and value, the right joins, and the asked output columns. 3. Every condition defined in the evidence (a status code, a non-null requirement, a range) is required. Do not remove a condition because it seems implied by another. 4. Run it and judge the rows: count, ranges, NULLs. 5. Keep the query if it is right; otherwise fix the specific error and run the fixed query. Do not rewrite a correct query."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer selects the wrong column among similar names, or includes extra helper columns not asked for, causing incorrect output or token overflow.",
+    "rationale": "In A3 the writer chose NCESDist over NCESSchool without verifying which column matches 'school identification number'. In A8 the writer added two helper SUM columns alongside the answer column, making the query so long it was truncated. Both stem from the writer lacking an always-on discipline about selecting exactly the right columns. Moving that discipline into the writer role and adding output_columns to the standard rule-2 team addresses both at the root.",
+    "evidence": [
+     "A3",
+     "A8"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "writer",
+      "role": "You write correct SQLite queries that answer questions about a database. Select only the columns the question asks for, in the order asked. When several columns have similar names, verify their documented meanings (column_info or a quick SELECT) before choosing."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Joins, aggregates, ratios or specific values: a writer with run_sql, find_values, and sample_rows, with output_columns skill; then a checker with run_sql."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer assumes fixed field widths for delimited date/time strings without inspecting actual stored values, producing a wrong conversion formula.",
+    "rationale": "In A6 the evidence described the format as 'MM:SS.mmm' and the writer used fixed SUBSTR positions (chars 1-2, 4-5, 7-9), but the data has variable-width minutes so the positions are off. The writer never sampled the column. The dates_text skill says 'look at the stored format first' but does not mandate it or warn about variable widths. Strengthening the skill to require actual inspection and recommend INSTR-based splitting fixes the root cause.",
+    "evidence": [
+     "A6"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "dates_text",
+      "when": "dates, years, months, ages, times, or numbers stored as text",
+      "text": "1. You MUST inspect actual stored values before writing any conversion: run sample_rows(table) or SELECT DISTINCT col FROM table LIMIT 5. Do not assume field widths from the evidence description alone. 2. For delimited formats (a time string with a colon separator, a decimal with a dot), use INSTR(col, delimiter) to split dynamically; do not use fixed SUBSTR positions unless you verified every value has the same width. 3. Year: strftime('%Y', col) = '2012' or SUBSTR(col, 1, 4); compare text with text. 4. Ranges: col BETWEEN '2012-01-01' AND '2012-12-31'. 5. Age from birthday: use the year difference the evidence defines. 6. Numbers stored as text: CAST(col AS REAL) before comparing or averaging."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 34047,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.5,
+   "cost": 2833.3,
+   "meta_cost": 767.3,
+   "acc_hard": 0.0,
+   "nodes": 2.0,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 8
+   },
+   "n_shapes": 1,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   1
+  ]
+ }
+]

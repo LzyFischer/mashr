@@ -1,0 +1,160 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Task agents with tools perform long manual exact algebra and are cut off before a reliable final answer.",
+    "rationale": "In A6 both the solver and verifier had python/polynomial tools but hand-expanded conjugate products and both hit the token limit. Role-level instructions to use available tools for exact computation or checking and to keep the work short are general for any solver/verifier that receives tools, and they force the computation to be done by code rather than by a long manual derivation.",
+    "evidence": [
+     "A6"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "solver",
+      "role": "You are a careful math solver. Reason step by step, but keep the work short. If a tool can compute or check the needed exact result, use it instead of long hand algebra. End with a clear final answer."
+     },
+     {
+      "op": "edit_agent",
+      "name": "verifier",
+      "role": "You check the solutions you are given. First test the claimed answer against the problem's conditions, using tools for exact checks when available. Only re-derive if the check fails or is inconclusive. If the input is cut or incomplete, solve the problem directly. Keep the work short and end with the answer you believe is correct."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 37478,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 1.0,
+   "cost": 7225.3,
+   "meta_cost": 3260.1,
+   "acc_hard": 1.0,
+   "nodes": 2.0,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 4,
+    "solver[T][S],verifier[T][S]": 1,
+    "solver[T][S]>verifier[T]": 1,
+    "solver[T][S]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   0
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Minimal-polynomial-of-radical problems are solved by long hand expansion of conjugates, causing token cuts and lost correct intermediate polynomials.",
+    "rationale": "In A6 both the solver and verifier manually expanded the conjugate product for a sum of square roots, ran out of tokens before evaluating the final value, and the solver even had the correct polynomial before becoming confused. The root cause is that the exact symbolic computation was not delegated to Python/sympy. A residual tool plus skill makes the computation one call, and editing the heavy-computation staffing rule directs the meta-agent to use a coder with Python for this recognizable class.",
+    "evidence": [
+     "A6"
+    ],
+    "ops": [
+     {
+      "op": "add_tool",
+      "name": "minimal_poly",
+      "doc": "minimal_poly(expr, x='x') -> monic minimal polynomial over Q of the algebraic number expr, as a string. expr may contain sqrt, Rational, pi, E, I.",
+      "code": "def minimal_poly(expr, x='x'):\n    import sympy as sp\n    X = sp.Symbol(x)\n    loc = {x: X, 'x': X, 'sqrt': sp.sqrt, 'Rational': sp.Rational, 'pi': sp.pi, 'E': sp.E, 'I': sp.I}\n    e = sp.sympify(expr, locals=loc)\n    p = sp.minimal_polynomial(e, X)\n    p = sp.Poly(p, X).monic()\n    return str(sp.expand(p.as_expr()))",
+      "test": "assert minimal_poly('sqrt(2)', 'x') == 'x**2 - 2'\nassert minimal_poly('sqrt(2)+sqrt(3)', 'x') == 'x**4 - 10*x**2 + 1'"
+     },
+     {
+      "op": "add_skill",
+      "name": "radical_minpoly",
+      "when": "the problem asks for the monic polynomial with rational coefficients having a radical expression (sum/product of square roots or nested radicals) as a root, or for P(k) of that polynomial",
+      "text": "1. Do not expand conjugates by hand. 2. In one python block: import sympy as sp; p = minimal_poly('<radical expression>', 'x'); P = sp.sympify(p). 3. If asked for P(k), compute P.subs(sp.Symbol('x'), k) exactly. 4. Check P(alpha)=0 and leading coefficient 1. 5. If minimal_poly errors, enumerate all independent sign changes of the square roots and multiply (x - r) with sympy. 6. Report only the final exact value/polynomial."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Heavy computation, counting/search, or a minimal polynomial of a radical expression: a coder with python and minimal_poly (and skill radical_minpoly for radical minimal polynomials), then a verifier with python and check_answer."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 37492,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.875,
+   "cost": 8012.3,
+   "meta_cost": 3291.2,
+   "acc_hard": 0.75,
+   "nodes": 2.0,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 6,
+    "solver[T][S]": 1,
+    "coder[T][S],solver[T][S],verifier[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   0
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Problems requiring a polynomial computed from its roots (e.g. minimal polynomial of a sum of radicals) are assigned to a solver who attempts long hand algebra, overflows the token limit, and produces a wrong answer.",
+    "rationale": "In A6 the meta-agent chose a solver (role: 'reason step by step') for a degree-8 polynomial. The solver had python but wrote a multi-step hand derivation, was cut at the token limit, and answered 1369. The verifier also attempted hand algebra, was cut, and answered 2. A coder (role: 'computes with short, correct Python') would write a 5-line sympy script to expand the product over all 8 conjugates and evaluate at x=1, getting -71 in well under the limit. Two fixes: (1) edit rule 3 so the meta-agent routes 'polynomial from roots' problems to a coder; (2) add a skill giving the exact Python procedure so the coder does not waste tokens exploring the algebra by hand.",
+    "evidence": [
+     "A6"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Heavy computation, counting, search, or computing a polynomial from its roots (expanding a product of 4+ linear factors): a coder with python, then a verifier."
+     },
+     {
+      "op": "add_skill",
+      "name": "polynomial_from_roots",
+      "when": "When asked to find, expand, or evaluate a polynomial given its roots or the conditions its roots satisfy",
+      "text": "1. Identify all roots explicitly. For conjugates of a radical expression with k independent square roots, flip each sign to generate all 2^k conjugates. 2. Use Python (sympy): x = sp.Symbol('x'); build the list of roots; P = sp.expand(sp.prod([x - r for r in roots])). 3. Evaluate at the requested point: ans = P.subs(x, value). 4. Do NOT expand the product by hand for 4+ factors; it is error-prone and wastes tokens. 5. Quick check: P.subs(x, one_given_root) should equal 0."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 37451,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.75,
+   "cost": 6967.0,
+   "meta_cost": 3252.0,
+   "acc_hard": 0.75,
+   "nodes": 1.88,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 4,
+    "solver[S]>verifier[T]": 1,
+    "solver[T][S]>verifier[T]": 1,
+    "solver[T][S],verifier[T][S]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   0
+  ]
+ }
+]

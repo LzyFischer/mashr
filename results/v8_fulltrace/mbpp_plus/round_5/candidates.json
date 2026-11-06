@@ -1,0 +1,211 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Model raises exceptions or crashes on edge cases (single element, empty input, all-equal elements, non-integer input) instead of returning the value the specification implies",
+    "rationale": "In A49 the model raises ValueError for a single-element array instead of returning 0; in A59 it crashes with IndexError on an empty array with n>0; in A62 it returns the same value instead of None when all elements are equal; in A52 it crashes on a float input because math.isqrt requires an integer. The one-sentence coder role gives no guidance on edge case behavior, so the 9B model defaults to raising, crashing, or returning an unexamined value. Adding a brief instruction to return the spec's implied value instead of raising or crashing targets this pattern at the self-harness layer, since graceful edge case handling is needed on every problem the coder sees.",
+    "evidence": [
+     "A49",
+     "A52",
+     "A59",
+     "A62"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "You write correct, complete Python functions that meet the specification exactly. Do not raise or crash on edge cases; return the value the spec implies."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146515,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 2005.7,
+   "meta_cost": 1003.2,
+   "acc_hard": 0.75,
+   "nodes": 1.04,
+   "shapes": {
+    "coder[T][S]": 46,
+    "coder[T][S]>tester[T]": 2,
+    "coder[T]": 2
+   },
+   "n_shapes": 3,
+   "fallback": 2
+  },
+  "flip_b": [
+   2,
+   4
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Model wastes all 3 tool calls re-pasting the function definition with no output instead of calling run_examples(), and the preloaded tool code consumes prompt budget that could be used for the function body.",
+    "rationale": "In A34, A68, and A86 the model had run_examples as a tool but made 3 identical python calls that just re-paste the function with '(no output)'. The residual stats show 73% accuracy with run_examples vs 83% without (10-point drop across 75 nodes). The tool code adds ~1500 tokens to the prompt, shrinking the output budget for the function itself. Removing it from the default template in rule 2 reduces prompt size and eliminates the wasted tool-call pattern. The meta-agent can still assign run_examples explicitly when it judges it useful, but it will no longer be the automatic default for every tricky problem.",
+    "evidence": [
+     "A34",
+     "A68",
+     "A86"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Tricky specification or many edge cases: one coder with python, with at most 2 skills. Add a tester only when the problem needs comparing two implementations (e.g. fast vs brute-force)."
+     }
+    ]
+   },
+   {
+    "pattern": "Function raises an exception or crashes on edge cases (single element, empty input, length parameter mismatch) instead of returning the value the specification implies.",
+    "rationale": "In A49 the model raised ValueError for a single-element array instead of returning 0; in A59 it got an IndexError when n=1 but the array was empty; in A62 it returned a value instead of None for all-equal elements. The current edge_cases skill is a 10-item checklist that the 9B model reads but does not act on (72% with vs 78% without). Replacing the checklist with a 2-line action (call with empty and single-element input; replace any raise with the spec-implied value) and narrowing the 'when' to problems where empty/short input is plausible makes the instruction actionable and reduces over-application to problems where it adds no value.",
+    "evidence": [
+     "A49",
+     "A59",
+     "A62"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "edge_cases",
+      "when": "inputs are lists, strings, or numbers that can be empty or single-element, or include a length parameter",
+      "text": "Before answering, call your function with empty input and with one element. If it raises an exception, replace the raise with the value the spec implies (0, None, or an empty container). Do not add logic for cases the spec does not mention."
+     }
+    ]
+   },
+   {
+    "pattern": "Model enters a repeated fix-or-analysis loop after a test failure, cycling through the same reasoning or re-deriving the solution until the token budget is exhausted with no final function.",
+    "rationale": "In A98 the model wrote a correct LPS function but then looped on the same example analysis for thousands of tokens, producing None. In A61 it re-derived the polar-to-rectangular conversion multiple times before running out of budget. The current examples_check skill says 'fix the specific wrong line and re-run' which encourages a loop. Changing to 'fix and submit without re-running' stops the cycle and preserves the function that was already written.",
+    "evidence": [
+     "A98",
+     "A61"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "examples_check",
+      "when": "the problem statement contains examples",
+      "text": "Run run_examples once after writing the function. If all pass, submit. If one fails, fix that line and submit. Do not re-run or re-derive."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146529,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.82,
+   "cost": 1976.5,
+   "meta_cost": 966.2,
+   "acc_hard": 0.875,
+   "nodes": 1.12,
+   "shapes": {
+    "coder[T][S]": 44,
+    "coder[T][S]>tester[T]": 6
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   4,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Functions crash or return wrong values on edge cases: empty input, single element, float input, heterogeneous lists, non-numeric elements",
+    "rationale": "The edge_cases skill is a 10-item checklist the 9B model does not follow effectively (72% with vs 78% without). In A49 the model raises ValueError for a single element instead of returning 0; in A52 it uses math.isqrt which fails on float input 3.14; in A62 it raises ValueError for [2,2] instead of returning None; in A74 max() crashes on a heterogeneous list; in A88 it does not skip non-numeric elements. A shorter, action-oriented skill that says 'test these inputs and make sure it does not crash' is more likely to be followed by a 9B model than a 10-item enumeration.",
+    "evidence": [
+     "A49",
+     "A52",
+     "A59",
+     "A62",
+     "A68",
+     "A74",
+     "A88"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "edge_cases",
+      "when": "inputs are lists, strings or numbers whose size or sign can vary",
+      "text": "Before submitting, test your function on empty input, one element, and the edge cases mentioned in the spec. Make sure it does not crash and returns the type shown in the examples."
+     }
+    ]
+   },
+   {
+    "pattern": "Model renames the function from the assert line or treats a parenthesized single value like ('abc') as a tuple return type",
+    "rationale": "In A58 the assert says Split(...) but the model names the function split despite having assert_signature. In A86 the assert shows ('216.8.94.196') which is a string in grouping parens, but the model returns a tuple of four strings. The current skill says 'match its type (tuple vs list vs set, int vs float, bool)' but does not explicitly state that a single parenthesized value is not a tuple, nor does it emphasize using the exact name verbatim. Making both points explicit targets the two observed failure modes directly.",
+    "evidence": [
+     "A58",
+     "A86"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "assert_signature",
+      "when": "the problem gives an assert line (the MBPP style)",
+      "text": "Use the function name exactly as written in the assert; do not rename it. Match the return type exactly: a single value in parentheses like ('abc') is a string, not a tuple. Match int vs float, list vs tuple as shown in the example."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent gives 3 skills to a single node, exceeding the 2-skill limit, which shrinks the output token budget and contributes to None answers",
+    "rationale": "In A13 (3 skills), A61 (3 skills), A67 (3 skills), and A98 (3 skills) the coder was given 3 skills despite rule 2 saying 'at most 2 skills'. Each extra skill adds prompt tokens that reduce the budget available for the model to write and test its function, contributing to the 8 None/token-limit failures. Adding '(never 3 or more)' makes the limit more salient to the 9B meta-agent without adding a new rule.",
+    "evidence": [
+     "A13",
+     "A61",
+     "A67",
+     "A98"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Tricky specification or many edge cases: one coder with python and run_examples, with at most 2 skills (never 3 or more). Add a tester only for comparing two implementations."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146488,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.72,
+   "cost": 2340.1,
+   "meta_cost": 1221.9,
+   "acc_hard": 0.625,
+   "nodes": 1.2,
+   "shapes": {
+    "coder[T][S]": 40,
+    "coder[T][S]>tester[T]": 6,
+    "coder[T][S]>tester[T][S]": 4
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   4
+  ]
+ }
+]

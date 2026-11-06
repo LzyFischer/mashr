@@ -1,0 +1,9 @@
+[job] vLLM port 35132
+udc-ba07-35
+name, memory.total [MiB]
+NVIDIA A40, 46068 MiB
+[vllm] ready Fri Nov  6 10:46:41 EST 2026
+[hotpotqa] smoke start Fri Nov  6 10:46:41 EST 2026
+[hotpotqa] smoke ok Fri Nov  6 10:55:23 EST 2026; full run start
+[hotpotqa] DONE Fri Nov  6 13:20:42 EST 2026: TEST: {"org_round0": {"n": 500, "acc": 0.648, "cost": 4282.6, "meta_cost": 3150.7, "acc_hard": 0.6304, "nodes": 1.81, "shapes": {"decomposer[T][S]>checker[T][S]": 312, "reader[T][S]": 94, "checker[T][S],decomposer[T][S]": 41, "decomposer[T][S]>checker[S]": 29}, "n_shapes": 14, "fallback": 9}, "org_f
+[job] all tasks finished Fri Nov  6 13:20:42 EST 2026

@@ -1,0 +1,122 @@
+[
+ {
+  "round": 0,
+  "accepted": true,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 4422.6,
+   "meta_cost": 3150.3,
+   "acc_hard": 0.7381,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 32,
+    "reader[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 5,
+    "decomposer[T][S]>checker[S]": 5
+   },
+   "n_shapes": 6,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 1,
+  "accepted": false,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 4422.6,
+   "meta_cost": 3150.3,
+   "acc_hard": 0.7381,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 32,
+    "reader[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 5,
+    "decomposer[T][S]>checker[S]": 5
+   },
+   "n_shapes": 6,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 2,
+  "accepted": false,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 4422.6,
+   "meta_cost": 3150.3,
+   "acc_hard": 0.7381,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 32,
+    "reader[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 5,
+    "decomposer[T][S]>checker[S]": 5
+   },
+   "n_shapes": 6,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 3,
+  "accepted": false,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 4422.6,
+   "meta_cost": 3150.3,
+   "acc_hard": 0.7381,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 32,
+    "reader[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 5,
+    "decomposer[T][S]>checker[S]": 5
+   },
+   "n_shapes": 6,
+   "fallback": 1
+  }
+ },
+ {
+  "round": 4,
+  "accepted": true,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 4400.2,
+   "meta_cost": 3151.2,
+   "acc_hard": 0.7619,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 37,
+    "reader[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 5,
+    "decomposer[T][S]>checker[S]": 2
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 5,
+  "accepted": false,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 4400.2,
+   "meta_cost": 3151.2,
+   "acc_hard": 0.7619,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 37,
+    "reader[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 5,
+    "decomposer[T][S]>checker[S]": 2
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  }
+ }
+]

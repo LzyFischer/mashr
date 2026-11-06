@@ -1,0 +1,41 @@
+{
+ "org_round0": {
+  "n": 8,
+  "acc": 0.875,
+  "cost": 9812.4,
+  "meta_cost": 1975.2,
+  "acc_hard": 0.0,
+  "nodes": 2.0,
+  "shapes": {
+   "planner[S]>actor[T][S]": 8
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "org_final": {
+  "n": 8,
+  "acc": 0.875,
+  "cost": 9812.4,
+  "meta_cost": 1975.2,
+  "acc_hard": 0.0,
+  "nodes": 2.0,
+  "shapes": {
+   "planner[S]>actor[T][S]": 8
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ },
+ "react": {
+  "n": 8,
+  "acc": 0.375,
+  "cost": 13313.5,
+  "meta_cost": 0.0,
+  "acc_hard": 0.0,
+  "nodes": 1.0,
+  "shapes": {
+   "actor[T]": 8
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ }
+}

@@ -1,0 +1,272 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Actor repeats the same failed command 10-30 times (examine, inventory, done, go-to, open, clean) or re-does an already-completed task, exhausting all 40 steps without progress",
+    "rationale": "In A124 (examine shelf 2 \u00d730), A3 (go to cabinet 13 \u00d714), A20 (go to cabinet 9 \u00d714), A48 (clean with bathtubbasin \u00d730), A34 (done \u00d730 after successful placement), A89 (inventory \u00d77), A53 (open cabinet 4 \u00d74), A44/A76 (re-heats and re-places an already-placed mug) the actor loops on one command or undoes finished work. The actor role has no anti-looping rule, no warning that 'done' is not a command, and no completion signal. The previous round-2 task-agent-only attempt at a longer role hurt because the skills were still teaching 'put'; now that skills correctly teach 'move' and appliance-while-holding, the remaining damage is purely looping and post-completion churn. Three short always-on rules in the role target exactly these failures without adding length that confuses the 9B model.",
+    "evidence": [
+     "A124",
+     "A3",
+     "A20",
+     "A48",
+     "A34",
+     "A89",
+     "A53",
+     "A44",
+     "A76"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "actor",
+      "role": "You act in a household text environment. Each turn: 'Think: <one short sentence>' then 'Action: <one command>'. Never repeat a command that returned 'Nothing happens'\u2014immediately try a different one. There is no 'done' command; once all objects are placed at the target with the correct state, use only 'look' for remaining turns and never take the object back. Object names in commands must exactly match the task text (cup\u2260mug, handtowel\u2260towel, cloth\u2260towel)."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 137671,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.8,
+   "cost": 8556.8,
+   "meta_cost": 1711.3,
+   "acc_hard": 0.7297,
+   "nodes": 1.86,
+   "shapes": {
+    "planner[S]>actor[T][S]": 24,
+    "actor[T][S],planner[S]": 13,
+    "actor[T][S]": 7,
+    "planner[T][S]>actor[T][S]": 5
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   4,
+   6
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Agent repeats the same failed command (go-to, examine, inventory, done, clean) 15-40 times after 'Nothing happens', exhausting all 40 steps",
+    "rationale": "The stuck_recovery skill is given to only 1 of 270 nodes. In A3 (go cabinet 13 x18), A20 (go cabinet 9 x18), A34 (done x30 after successful placement), A48 (clean bathtubbasin x30), A124 (examine shelf 2 x30), A89 (inventory x7+) the agent loops on one command with no per-step anti-looping instruction. A meta-rule ensures the skill is always given; editing the skill adds explicit stop-after-completion guidance to prevent 'done' loops.",
+    "evidence": [
+     "A3",
+     "A20",
+     "A34",
+     "A48",
+     "A124",
+     "A89"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Give the actor the stuck_recovery skill on every task."
+     },
+     {
+      "op": "edit_skill",
+      "name": "stuck_recovery",
+      "when": "every task",
+      "text": "If a command returns 'Nothing happens' twice, STOP repeating it. Check inventory, then go to a new unvisited place. After the final successful placement ('You move the X to the Y'), the task is done: do not type 'done' or any further command."
+     }
+    ]
+   },
+   {
+    "pattern": "Agent picks a similar-but-wrong object (mug for cup, towel for cloth or handtowel) and/or types 'go to X while holding Y' as a literal command that fails",
+    "rationale": "The appliance skills say 'Find and take the object' without exact-type warning, and 'go to microwave 1 while holding it' is misread as a literal command (A58: 'go to microwave 1 while holding plate 2' -> Nothing happens). A44/A76: mug for cup. A48/A63: towel for cloth. A112/A141: towel for handtowel. Adding exact-object warnings and clarifying that the command is just 'go to microwave 1' fixes both issues.",
+    "evidence": [
+     "A44",
+     "A48",
+     "A58",
+     "A63",
+     "A76",
+     "A112",
+     "A141"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "heat_task",
+      "when": "put a hot or heated object somewhere",
+      "text": "1. Find and take the EXACT object type named in the task (a mug is not a cup). 2. go to microwave 1 (the command is just 'go to microwave 1'; you must already be holding the object), then 'heat {obj} with microwave 1'. Do NOT open the microwave or move the object inside. 3. Go to the target, open it if needed, move the object there."
+     },
+     {
+      "op": "edit_skill",
+      "name": "cool_task",
+      "when": "put a cool or cold object somewhere",
+      "text": "1. Find and take the EXACT object type named in the task (a mug is not a cup, a towel is not a cloth). 2. go to fridge 1 (the command is just 'go to fridge 1'; you must already be holding the object), then 'cool {obj} with fridge 1'. Do NOT open the fridge or move the object inside. 3. Go to the target, open it if needed, move the object there. If the target is the fridge itself this is a plain placement."
+     },
+     {
+      "op": "edit_skill",
+      "name": "clean_task",
+      "when": "put a clean object somewhere",
+      "text": "1. Find and take the EXACT object type named in the task (a towel is not a cloth, a handtowel is not a cloth). 2. go to sinkbasin 1 (the command is just 'go to sinkbasin 1'; you must already be holding the object), then 'clean {obj} with sinkbasin 1'. Do NOT move the object into the sink. 3. Go to the target, open it if needed, move the object there."
+     }
+    ]
+   },
+   {
+    "pattern": "Agent visits closed cabinets/drawers without opening them, missing objects inside; searches towelholder when task requires handtowelholder",
+    "rationale": "A53: agent visits cabinets 7-16 (all closed) but only opens 1-6, never finding the second kettle. A89: cabinet 4 closed, open fails, agent gives up. A112/A141: task says 'handtowel' but agent goes to towelholder (towel 1) instead of handtowelholder (handtowel 1). The search_order skill lists 'towels/soap -> towelholder' without handtowelholder and the open instruction is not imperative enough for the 9B model.",
+    "evidence": [
+     "A53",
+     "A89",
+     "A112",
+     "A141"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "search_order",
+      "when": "the target object is not in view (most tasks)",
+      "text": "Search likely places first and never revisit a checked place. When you arrive at a closed receptacle, your next action MUST be 'open {recep}'. Typical: food -> fridge, countertop, diningtable, sinkbasin, garbagecan; dishes -> countertop, cabinet, diningtable, sinkbasin, shelf, drawer; small items -> desk, drawer, sidetable, dresser, shelf; towels/cloths -> handtowelholder, towelholder, countertop, toilet, cabinet; books/laptops -> desk, bed, sofa, sidetable."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 137685,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.88,
+   "cost": 9882.7,
+   "meta_cost": 2851.3,
+   "acc_hard": 0.8649,
+   "nodes": 1.82,
+   "shapes": {
+    "planner[S]>actor[T][S]": 27,
+    "actor[T][S]": 9,
+    "planner[T][S]>actor[T][S]": 5,
+    "actor[T][S],planner[S]": 5
+   },
+   "n_shapes": 7,
+   "fallback": 0
+  },
+  "flip_b": [
+   5,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Actor types 'go to microwave 1 while holding X' as a single command (the 'while holding' phrase is parsed as part of the command syntax), getting 'Nothing happens' and then looping.",
+    "rationale": "In A58 the actor literally types 'go to microwave 1 while holding plate 2' which is not a valid command; the valid command is just 'go to microwave 1'. The skill text 'go to microwave 1 while holding it' causes the 9B model to copy the descriptive phrase into the command. Removing 'while holding it' from the command line and making it a separate note prevents this. The same risk exists for cool_task and clean_task.",
+    "evidence": [
+     "A58",
+     "A17",
+     "A48"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "heat_task",
+      "when": "put a hot or heated object somewhere",
+      "text": "1. Find and take the object. 2. Go to microwave 1. Then type: heat {obj} with microwave 1. You must be holding the object when you type heat. Do NOT open the microwave or move the object inside. 3. Go to the target, open it if needed, move the object there."
+     },
+     {
+      "op": "edit_skill",
+      "name": "cool_task",
+      "when": "put a cool or cold object somewhere",
+      "text": "1. Find and take the object. 2. Go to fridge 1. Then type: cool {obj} with fridge 1. You must be holding the object when you type cool. Do NOT open the fridge or move the object inside. 3. Go to the target, open it if needed, move the object there. If the target is the fridge itself this is a plain placement."
+     },
+     {
+      "op": "edit_skill",
+      "name": "clean_task",
+      "when": "put a clean object somewhere",
+      "text": "1. Find and take the object. 2. Go to sinkbasin 1. Then type: clean {obj} with sinkbasin 1. You must be holding the object when you type clean. Do NOT move the object into the sink. 3. Go to the target, open it if needed, move the object there."
+     }
+    ]
+   },
+   {
+    "pattern": "Actor repeats the same failed command (examine, go-to, inventory, done, clean) 20-40 times after 'Nothing happens', exhausting all 40 steps without completing the task.",
+    "rationale": "Traces A124 (examine shelf 2 x30), A3 (go to cabinet 13 x18), A20 (go to cabinet 9 x18), A34 (done x30), A48 (clean towel with bathtubbasin x30), A89 (inventory x8), A53 (open cabinet 4 x4) all show the same loop. The actor role has no anti-looping instruction. Adding a concise rule to never repeat a command 3+ times forces the actor to try alternatives or move to a new location, preserving steps for task completion.",
+    "evidence": [
+     "A124",
+     "A3",
+     "A20",
+     "A34",
+     "A48",
+     "A89",
+     "A53"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "actor",
+      "role": "You act in a household text environment to complete the task. Each turn, write one short line 'Think: ...' and then 'Action: <one command>'. If a command returns 'Nothing happens', do not repeat it; try a different command or go to a new place. Never repeat the same command 3 or more times."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent gives pick_place instead of clean_task when the task says 'put a clean X in Y' (adjective form of 'clean').",
+    "rationale": "In A34 the task is 'put a clean pan in stoveburner' but the actor receives skills=['pick_place','search_order'] with no clean_task. The actor then moves the pan to the stoveburner without cleaning it, and the grader fails. The current rule says 'clean X'\u2192clean_task which the 9B meta-agent does not match against 'a clean X'. Rewording to 'task mentions clean' covers both verb and adjective forms.",
+    "evidence": [
+     "A34"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give the actor the skill matching the task type: 'look at X under lamp'\u2192look_in_light; 'hot/heat X'\u2192heat_task; 'cool/cold X'\u2192cool_task; task mentions 'clean' (e.g. 'a clean X')\u2192clean_task; 'two X'\u2192pick_two; other placement\u2192pick_place. Also give search_order if the target object is not initially in view."
+     }
+    ]
+   },
+   {
+    "pattern": "Actor picks a similar-but-wrong object type (towel for handtowel, mug for cup) because the planner's plan points to a location with the wrong object, and the actor does not verify the name matches the task.",
+    "rationale": "In A112/A141 the task says 'handtowel' but the actor takes 'towel 1' from towelholder 1 (the handtowel is at handtowelholder 1). Subsequent move commands fail because the object type is wrong. In A44 the task says 'cup' but the actor picks 'mug 1'. The pick_place skill mentions the pitfall but the 9B model still makes the error. Adding 'A handtowel is NOT a towel' and making the verification step more explicit ('Only take if the name matches the task word exactly') should reduce this error.",
+    "evidence": [
+     "A112",
+     "A141",
+     "A44"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "pick_place",
+      "when": "put an object in/on a receptacle",
+      "text": "1. Find the EXACT object type named in the task. A cup is NOT a mug. A cloth is NOT a towel. A handtowel is NOT a towel. Only take the object if its name matches the task word exactly; otherwise keep searching. 2. Go to the target receptacle; open it if closed. 3. move {obj} to {recep}. The task is done when the object is placed."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 137644,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.8,
+   "cost": 11176.0,
+   "meta_cost": 1983.1,
+   "acc_hard": 0.7297,
+   "nodes": 1.9,
+   "shapes": {
+    "planner[S]>actor[T][S]": 22,
+    "planner[T][S]>actor[T][S]": 13,
+    "actor[T][S]": 5,
+    "actor[T][S],planner[S]": 5
+   },
+   "n_shapes": 6,
+   "fallback": 0
+  },
+  "flip_b": [
+   4,
+   6
+  ]
+ }
+]

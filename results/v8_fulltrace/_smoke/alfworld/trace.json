@@ -1,0 +1,38 @@
+[
+ {
+  "round": 0,
+  "accepted": true,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.75,
+   "cost": 9189.2,
+   "meta_cost": 2248.2,
+   "acc_hard": 0.8,
+   "nodes": 1.88,
+   "shapes": {
+    "planner[S]>actor[T][S]": 7,
+    "actor[T][S]": 1
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 1,
+  "accepted": false,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.75,
+   "cost": 9189.2,
+   "meta_cost": 2248.2,
+   "acc_hard": 0.8,
+   "nodes": 1.88,
+   "shapes": {
+    "planner[S]>actor[T][S]": 7,
+    "actor[T][S]": 1
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  }
+ }
+]

@@ -1,0 +1,9 @@
+[job] vLLM port 35131
+udc-ba07-35
+name, memory.total [MiB]
+NVIDIA A40, 46068 MiB
+[vllm] ready Fri Nov  6 10:46:41 EST 2026
+[humaneval_plus] smoke start Fri Nov  6 10:46:41 EST 2026
+[humaneval_plus] smoke ok Fri Nov  6 10:56:27 EST 2026; full run start
+[humaneval_plus] DONE Fri Nov  6 12:10:36 EST 2026: TEST: {"org_round0": {"n": 83, "acc": 0.8434, "cost": 3702.2, "meta_cost": 1095.1, "acc_hard": 0.7647, "nodes": 1.55, "shapes": {"coder[T][S]": 37, "coder[T][S]>tester[T][S]": 31, "coder[T][S]>tester[T]": 15}, "n_shapes": 3, "fallback": 0}, "org_final": {"n": 83, "acc": 0.8795, "cost": 2767.0, "meta
+[job] all tasks finished Fri Nov  6 12:10:36 EST 2026

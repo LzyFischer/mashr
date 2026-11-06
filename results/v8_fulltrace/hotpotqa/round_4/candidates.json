@@ -1,0 +1,159 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Inputless checker nodes are returned as final, but the checker role only describes checking a given answer, so they underperform direct answerers.",
+    "rationale": "In A19, A36, A40, A42 and A68 the returned checker has no input; the report shows no-input checkers are correct only 44% while readers are 59%. The checker role has no fallback for the no-input case, so the model treats the task as checking nothing. Adding a direct-answer fallback to the checker role makes it behave like a reader when the meta-agent omits input, without changing with-input checker behavior.",
+    "evidence": [
+     "A19",
+     "A36",
+     "A40",
+     "A42",
+     "A68"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the answers you are given against the paragraphs: verify each hop, fix any error, and give the short answer you believe is correct. If you are given no input answer, answer the question directly from the paragraphs."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 155130,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.72,
+   "cost": 4453.5,
+   "meta_cost": 3157.0,
+   "acc_hard": 0.7381,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 32,
+    "reader[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 4,
+    "decomposer[T][S]>checker[S]": 3
+   },
+   "n_shapes": 7,
+   "fallback": 2
+  },
+  "flip_b": [
+   2,
+   3
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "The distractors skill is applied too broadly to ordinary related-entity questions, causing distractor-focused or overly long reasoning and sometimes wrong entity/span selection.",
+    "rationale": "The residual table shows distractors is the only skill that lowers node accuracy when given, and its current trigger includes broad related-entity cases. Traces show nodes given distractors spending long on look-alike checks or producing distractor-focused fragments, while the skill is genuinely needed only for same/similar-name disambiguation. Narrowing the skill's stated trigger is a residual library edit that can reduce over-application without changing the core answer-span instruction.",
+    "evidence": [
+     "A4",
+     "A14",
+     "A19",
+     "A132"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "distractors",
+      "when": "two or more entities have the same or very similar names, or the question requires choosing one of several same-name entities using a disambiguating description",
+      "text": "Confirm the exact entity by its title and description (dates, profession, country, or other qualifier) before using a fact from its paragraph. Ignore facts about same-name or near-name look-alikes. Do not treat ordinary related entities as distractors."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 155144,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 4400.2,
+   "meta_cost": 3151.2,
+   "acc_hard": 0.7619,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 37,
+    "reader[T][S]": 6,
+    "checker[T][S],decomposer[T][S]": 5,
+    "decomposer[T][S]>checker[S]": 2
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "The distractors skill is over-applied to ordinary multi-hop questions (68 nodes, 50% correct vs 60% without) because its trigger 'paragraphs about related entities' matches almost every bridge/comparison question.",
+    "rationale": "The residual-harness table shows distractors is the only skill that lowers node accuracy. The broad 'when' clause causes the 9B meta-agent to attach it to most nodes, where it steers the model into disambiguation reasoning that is not needed and corrupts the final span (A3 kept 'the Bahamian island of', A44/A76 kept 'County', A107 kept 'm', A58/A59/A131/A137/A144/A146 shortened full names, A31/A71/A91/A140 added extra words). Restricting the trigger to exact same-name collisions prevents over-application without removing the skill or touching any rule or role, minimizing regression risk.",
+    "evidence": [
+     "A3",
+     "A31",
+     "A44",
+     "A58",
+     "A59",
+     "A67",
+     "A71",
+     "A76",
+     "A91",
+     "A107",
+     "A131",
+     "A137",
+     "A140",
+     "A144",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "distractors",
+      "when": "two or more distinct entities in the paragraphs share the exact same name and the question could refer to either"
+     }
+    ]
+   }
+  ],
+  "repairs": 1,
+  "prompt_chars": 155103,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.72,
+   "cost": 4384.3,
+   "meta_cost": 3155.0,
+   "acc_hard": 0.7143,
+   "nodes": 1.92,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 36,
+    "reader[T][S]": 7,
+    "checker[T][S],decomposer[T][S]": 4,
+    "decomposer[T][S]>checker[S]": 1
+   },
+   "n_shapes": 6,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   2
+  ]
+ }
+]

@@ -1,0 +1,5 @@
+udc-ba07-35
+name, memory.total [MiB]
+NVIDIA A40, 46068 MiB
+[2026-11-06T10:10:39.310] error: *** JOB 22554254 ON udc-ba07-35 CANCELLED AT 2026-11-06T10:10:39 DUE to SIGNAL Terminated ***
+/var/spool/slurm/slurmd/job22554254/slurm_script: line 1: 169608 Terminated              sleep 5

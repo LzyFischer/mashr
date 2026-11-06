@@ -1,0 +1,83 @@
+{
+ "agents": {
+  "writer": {
+   "role": "You write correct SQLite queries that answer questions about a database. Use the evidence's formulas, extraction methods, and value mappings exactly as stated. When several columns have similar names, choose the one whose documented meaning matches the question's phrasing. When splitting a delimited string (time, date, code), use the delimiter position (INSTR) rather than fixed character offsets."
+  },
+  "checker": {
+   "role": "You check the SQL written by your teammates against the question and the evidence, fix any error, and give the query you believe is correct. Never remove a condition the evidence explicitly defines (a term mapped to a column test), even if it looks redundant. If the query already satisfies every stated condition, return it unchanged."
+  }
+ },
+ "rules": [
+  "Simple question: one writer with run_sql.",
+  "Joins, aggregates, ratios or specific values: a writer with run_sql and find_values, then a checker with run_sql.",
+  "Give skills that match the question."
+ ],
+ "skills": {
+  "evidence_first": {
+   "when": "the question comes with evidence (formulas, value mappings)",
+   "text": "1. Read the evidence before writing SQL: it defines formulas (rate = A / B), value codes ('F' means female) and which column a phrase refers to. 2. Use the evidence literally: the same columns, the same constants, the same formula. 3. Pitfall: replacing an evidence formula with your own interpretation. 4. Check that every part of the evidence appears in the query."
+  },
+  "value_matching": {
+   "when": "the question names a specific value (a name, a place, a category, a code)",
+   "text": "1. Values in the data may differ from the question in case, spelling or format ('Alameda' vs 'ALAMEDA', 'F' vs 'Female'). 2. Look them up with find_values(table, column, text) or a SELECT DISTINCT before filtering. 3. Use = with the exact stored value; use LIKE only when the question asks for 'contains'. 4. Pitfall: a filter on a misspelled value returns 0 rows; if a query returns nothing, check the values first."
+  },
+  "join_paths": {
+   "when": "the answer needs columns from more than one table",
+   "text": "1. Find the key columns that link the tables (same name or documented as an id). 2. Join along the shortest path; alias tables (T1, T2). 3. Pitfalls: joining on the wrong id column, a join that multiplies rows (then COUNT needs DISTINCT), mixing up columns with the same name in two tables (always prefix with the alias). 4. Run the query and check that the row count is plausible."
+  },
+  "ratio_percentage": {
+   "when": "rates, ratios, percentages, averages computed by division",
+   "text": "1. Integer division truncates in SQLite: write CAST(x AS REAL) / y. 2. Percentage = CAST(part AS REAL) * 100 / total; check whether the question or evidence wants a ratio or a percentage. 3. Conditional counts: SUM(CASE WHEN cond THEN 1 ELSE 0 END) or COUNT(CASE WHEN cond THEN 1 END). 4. Pitfall: dividing counts taken over different row sets. Check the value lies in a sensible range."
+  },
+  "top_k_ties": {
+   "when": "highest, lowest, most, least, top N, the first/last",
+   "text": "1. ORDER BY col DESC LIMIT 1 returns one row; if ties are possible and the question asks for all of them, use WHERE col = (SELECT MAX(col) ...). 2. Exclude NULLs before ordering (ORDER BY puts NULL first in ASC). 3. 'Most frequent': GROUP BY then ORDER BY COUNT(*) DESC LIMIT 1. 4. Return the column the question asks for (the name, not the count), unless both are asked."
+  },
+  "counting": {
+   "when": "how many, number of, count",
+   "text": "1. Decide what is counted: rows, distinct entities (COUNT(DISTINCT id)) or a sum of a count column. 2. After a join, entities can repeat: use COUNT(DISTINCT key). 3. Conditions on related tables go in WHERE after the join, or in EXISTS. 4. Pitfall: COUNT(col) skips NULLs, COUNT(*) does not."
+  },
+  "dates_text": {
+   "when": "dates, years, months, ages, times, or numbers stored as text",
+   "text": "1. Look at the stored format first (sample_rows): 'YYYY-MM-DD', 'YYYY', timestamps, or text. 2. Year: strftime('%Y', col) = '2012' or SUBSTR(col, 1, 4); compare text with text. 3. Ranges: col BETWEEN '2012-01-01' AND '2012-12-31'. 4. Age from birthday: use the year difference the evidence defines. 5. Numbers stored as text: CAST(col AS REAL) before comparing or averaging."
+  },
+  "null_empty": {
+   "when": "missing values, 'not null', 'has a', 'without'",
+   "text": "1. 'Has a value' means col IS NOT NULL (and maybe col != ''). 2. NULLs are skipped by AVG/SUM/COUNT(col) and sort first in ascending order. 3. 'Without X' across tables: NOT EXISTS or LEFT JOIN ... WHERE right.key IS NULL. 4. Check with a quick count of NULLs when the result looks off."
+  },
+  "output_columns": {
+   "when": "before the final query of any question",
+   "text": "1. Select exactly what the question asks, in its order: the asked attribute(s), not extra ids or helper columns. 2. Don't add DISTINCT, LIMIT or ORDER BY unless the question implies them ('list' may need DISTINCT when entities repeat). 3. If several values are asked ('name and age'), return them as separate columns. 4. Run the final query once and look at the rows."
+  },
+  "subquery_vs_join": {
+   "when": "conditions that refer to an aggregate (above average, the one with the max) or to another table",
+   "text": "1. Compare with an aggregate via a scalar subquery: WHERE x > (SELECT AVG(x) FROM t). 2. 'The X of the Y with the most Z': find Y in a subquery (ORDER BY ... LIMIT 1), then select its X. 3. IN (subquery) for membership; EXISTS for 'has at least one'. 4. Pitfall: aggregating in WHERE (use HAVING after GROUP BY)."
+  },
+  "explore_then_write": {
+   "when": "unfamiliar schema, ambiguous column choice, or several similar columns",
+   "text": "1. Before writing the query, spend one tool run on exploration: column_info for the tables involved, sample_rows for formats. 2. Pick columns by their documented meaning, not just their names. 3. Write the query, run it, inspect the rows. 4. If the result is empty or implausible, find which filter removes the rows and fix it."
+  },
+  "check_result": {
+   "when": "reviewing another agent's query",
+   "text": "1. Re-read the question and evidence; list each condition and the asked output. 2. Check the query covers each condition with the right column and value, the right joins, and the asked output columns. 3. Run it and judge the rows: count, ranges, NULLs. 4. Keep the query if it is right; otherwise fix the specific error and run the fixed query. Do not rewrite a correct query."
+  }
+ },
+ "tools": {
+  "run_sql": {
+   "doc": "run_sql(query, limit=20) -> prints the result rows (at most limit) and the row count of a read-only SQLite query on this database.",
+   "code": "\nimport sqlite3\ndef run_sql(query, limit=20):\n    con = sqlite3.connect(f\"file:{DB}?mode=ro\", uri=True)\n    try:\n        rows = con.execute(query).fetchall()\n    except Exception as e:\n        print(\"SQL error:\", e); return\n    finally:\n        con.close()\n    print(f\"{len(rows)} rows\"); [print(r) for r in rows[:limit]]\n"
+  },
+  "find_values": {
+   "doc": "find_values(table, column, text, limit=20) -> prints distinct values of table.column that contain text (case-insensitive), to match the exact spelling used in the data.",
+   "code": "\nimport sqlite3\ndef find_values(table, column, text, limit=20):\n    con = sqlite3.connect(f\"file:{DB}?mode=ro\", uri=True)\n    try:\n        rows = con.execute(f'SELECT DISTINCT \"{column}\" FROM \"{table}\" WHERE \"{column}\" LIKE ? LIMIT ?',\n                           (f\"%{text}%\", limit)).fetchall()\n    except Exception as e:\n        print(\"error:\", e); return\n    finally:\n        con.close()\n    print([r[0] for r in rows] or \"no match\")\n"
+  },
+  "sample_rows": {
+   "doc": "sample_rows(table, n=3) -> prints n rows of the table with column names, to see value formats (dates, codes, units).",
+   "code": "\nimport sqlite3\ndef sample_rows(table, n=3):\n    con = sqlite3.connect(f\"file:{DB}?mode=ro\", uri=True)\n    try:\n        cur = con.execute(f'SELECT * FROM \"{table}\" LIMIT ?', (n,))\n        print([d[0] for d in cur.description]); [print(r) for r in cur.fetchall()]\n    except Exception as e:\n        print(\"error:\", e)\n    finally:\n        con.close()\n"
+  },
+  "column_info": {
+   "doc": "column_info(table) -> prints the documented meaning and value descriptions of the table's columns (from the database's description files).",
+   "code": "\nimport csv, os\ndef column_info(table):\n    path = os.path.join(DESC, f\"{table}.csv\")\n    if not os.path.exists(path):\n        print(\"no description for\", table); return\n    with open(path, encoding=\"utf-8-sig\", errors=\"replace\") as f:\n        for r in csv.DictReader(f):\n            line = f\"{r.get('original_column_name', '').strip()}: {r.get('column_description', '').strip()}\"\n            if (r.get(\"value_description\") or \"\").strip():\n                line += f\" | values: {r['value_description'].strip()[:300]}\"\n            print(line)\n"
+  }
+ }
+}

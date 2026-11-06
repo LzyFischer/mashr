@@ -1,0 +1,264 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "The checker (the returned node) accepts a teammate query that deviates from the question/evidence\u2014dropping a branch of a defined condition, using a denormalized or wrong column, adding an extra filter, or returning extra/all columns\u2014because it reasons about the query instead of running it and comparing the query text literally.",
+    "rationale": "In the 8 regressions and many other wrong traces the writer produced a query that is close but off (A22 used only weight_kg IS NULL instead of the evidence's '=0 OR IS NULL'; A78 used position=1 instead of the evidence's time-format champion; A36 returned the denormalized owner-name column instead of the joined user's name column; A138 returned SELECT *; A98 added an IS NOT NULL filter that changed the ASC top-1; A9/A28/A104 had wrong/extra output columns). In every case the checker is the returned node and it either said 'no changes needed' or mis-transcribed the query (A9 checker wrote 'Street, City, State, Zip' while the query was 'Street, City, Zip, State') and never ran it. The checker is net-positive (60% vs writer 56%) but under-corrects: ~50 wrong answers are accepted unchanged. Because the checker is the final gate and is always present, an always-on role that forces it to (1) run the query, (2) verify every condition is present AND complete, and (3) verify the SELECT list is exactly the asked columns, with an explicit do-not-touch-correct-query guard, directly targets this acceptance failure at the layer that controls the returned answer. This is the self layer because the verification discipline applies to every question the checker sees.",
+    "evidence": [
+     "A22",
+     "A78",
+     "A36",
+     "A138",
+     "A98",
+     "A9",
+     "A28",
+     "A104"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You are the final reviewer; the query you return is the answer. First run the teammate's query with run_sql and read the actual rows. Then verify the query text against the question and evidence: (1) every stated condition is present and complete, including every OR branch and every value inside a defined condition; (2) the SELECT list is exactly the columns the question asks for, in that order, with nothing added or dropped. If both hold, return the query unchanged. If one is wrong, fix only that part and rerun. Do not add any filter, DISTINCT, LIMIT, or subquery that the question and evidence do not require."
+     }
+    ]
+   },
+   {
+    "pattern": "The writer's first query already violates output/evidence discipline (returns a similar or denormalized column, returns extra or all columns, or applies an evidence condition only partially), which the checker then lets through.",
+    "rationale": "The writer is the source of many of the same deviations the checker fails to catch: A36 selected the posts owner-name column instead of the joined user's name column; A138 returned SELECT *; A22 applied only the IS NULL half of the evidence's '=0 OR IS NULL'; A78 ignored the evidence's time-format champion definition; A98 added an unrequested IS NOT NULL filter. The current writer role ('You write correct SQLite queries that answer questions about a database.') gives no method, so the model relies on conditionally-given skills and defaults to a plausible-but-off query. Making the three always-true disciplines (exact SELECT list, complete literal evidence conditions, run-and-sanity-check) part of the writer's role reduces the error rate reaching the checker and is safe on every question the writer works on. This is the self layer because these three practices hold for all writer questions.",
+    "evidence": [
+     "A36",
+     "A138",
+     "A22",
+     "A78",
+     "A98",
+     "A3",
+     "A28"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "writer",
+      "role": "You write the SQLite query that answers the question. Before finalizing: (1) make the SELECT list exactly the columns the question asks for, in that order, using the correct table's column and no extras; (2) include every condition from the question and evidence, using evidence values literally and completely (all OR branches); (3) run the query with run_sql and confirm the rows are non-empty and plausible. Do not add filters, DISTINCT, or LIMIT the question and evidence do not require."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 143345,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.58,
+   "cost": 3449.2,
+   "meta_cost": 961.4,
+   "acc_hard": 0.5238,
+   "nodes": 2.0,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 50
+   },
+   "n_shapes": 1,
+   "fallback": 0
+  },
+  "flip_b": [
+   6,
+   6
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Meta-agent does not give evidence_first when the question includes evidence, so the writer substitutes its own interpretation for evidence-defined conditions",
+    "rationale": "In A22 the evidence defines 'missing weight' as weight_kg=0 OR IS NULL but the writer used only IS NULL; in A78 the evidence defines the champion by a time format but the writer used position=1; in A29 the evidence implies a join through postHistory but the writer used posts.OwnerUserId. In all three cases evidence_first was not given to the writer. Adding it to rule 3 ensures the skill is present whenever evidence exists, closing the gap where the meta-agent's 'fewest skills' heuristic skips it.",
+    "evidence": [
+     "A22",
+     "A29",
+     "A78"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give the fewest skills that match the question. Always give check_result to a checker and output_columns to the node whose query is returned. When the question includes evidence, give evidence_first to the writer node."
+     }
+    ]
+   },
+   {
+    "pattern": "Even when evidence_first is given, the model simplifies or substitutes evidence conditions with its own interpretation instead of copying them verbatim",
+    "rationale": "In A10 the evidence formula was replaced with DISTINCT subqueries; in A12 COUNT(DISTINCT) was used instead of the evidence's simple COUNT. The current skill says 'use evidence values literally' but the model still rephrases. Rewriting point 1 as an explicit 'copy verbatim, do not simplify or substitute' directive and merging the old point 5 into it makes the instruction unambiguous and shorter.",
+    "evidence": [
+     "A10",
+     "A12",
+     "A22"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "evidence_first",
+      "when": "the question comes with evidence (formulas, value mappings)",
+      "text": "1. The evidence is the spec: copy its SQL conditions, column names, and formulas verbatim into the query. Do not simplify, rephrase, or substitute any part with your own interpretation. 2. If a query returns 0 rows, verify the stored spelling with find_values, but keep the evidence's logic unchanged. 3. If evidence maps a phrase to a computed value or status, return that computed value, not the raw column. 4. If evidence gives a formula, compute it in one expression."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer uses SELECT * or picks a denormalized column from a related table instead of the entity's own column",
+    "rationale": "In A138 the writer returned SELECT * instead of the specific column asked for, and the checker did not catch it; in A36 it used posts.OwnerDisplayName instead of joining to users.DisplayName. The output_columns skill says 'select exactly the attributes' but does not explicitly forbid SELECT * or address denormalized columns. Adding both makes the rule concrete and actionable for the 9B model.",
+    "evidence": [
+     "A138",
+     "A36"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "output_columns",
+      "when": "before the final query of any question",
+      "text": "1. Select exactly the attributes the question asks for, in that order. Never use SELECT *. 2. If it asks for an entity's attribute, take it from the entity's own table, not a denormalized copy in a related table. 3. Do not add columns used only for filtering, sorting, or checking, and do not add DISTINCT, LIMIT, or ORDER BY unless implied. 4. Run the final query once; if rows contain extra or missing columns, fix only the SELECT list."
+     }
+    ]
+   },
+   {
+    "pattern": "Checker accepts queries that drop or alter parts of an evidence condition, such as keeping only one side of an OR",
+    "rationale": "In A22 the checker accepted weight_kg IS NULL when the evidence required weight_kg=0 OR IS NULL; in A78 it accepted position=1 when the evidence defined the champion by a time pattern. The check_result skill says 'list each condition' but does not require expanding compound conditions into their individual parts and verifying each one is present. Making this explicit forces the checker to catch partial or altered conditions.",
+    "evidence": [
+     "A22",
+     "A78"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "check_result",
+      "when": "reviewing another agent's query",
+      "text": "1. List every condition from the question and evidence, expanding each OR/AND into its individual parts, plus the asked output columns. 2. Run the teammate's query. Verify each listed part appears in the query with the same operators and values. 3. If every part is present and the output columns match, keep it unchanged. 4. Never delete a condition or add DISTINCT, LIMIT, subqueries, tie handling, or extra columns unless the question/evidence explicitly requires them. 5. If a part, join, value, or output column is wrong or missing, fix only that part and rerun."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 143359,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.54,
+   "cost": 2785.6,
+   "meta_cost": 926.2,
+   "acc_hard": 0.5714,
+   "nodes": 1.96,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 46,
+    "writer[T][S]": 2,
+    "writer[T][S],writer[T][S]>checker[T][S]": 1,
+    "writer[T]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 1
+  },
+  "flip_b": [
+   4,
+   6
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Checker accepts queries that drop part of an evidence expression, use the wrong output column, or add an unnecessary filter, because the checker role gives no explicit verification procedure.",
+    "rationale": "In A22 the checker said 'correctly filters for missing weight data (IS NULL)' while the evidence requires '= 0 OR IS NULL'. In A78 the checker endorsed position=1 over the evidence's time-format condition. In A138 it accepted SELECT *. In A98 it missed an extra IS NOT NULL. The role is a single generic sentence; the 9B model never enumerates evidence expressions or checks the SELECT list. Moving the verification steps into the always-on role guarantees they are present regardless of which skills the meta-agent attaches.",
+    "evidence": [
+     "A22",
+     "A78",
+     "A138",
+     "A98"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You verify a teammate's SQL. Check each evidence expression appears literally in the query. Check the SELECT list matches the asked outputs exactly. Fix only errors; keep the rest unchanged."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer drops or simplifies a compound evidence SQL expression, keeping only one branch of an OR condition or substituting its own interpretation for the evidence-defined predicate.",
+    "rationale": "A22: evidence says 'weight_kg = 0 OR weight_kg = NULL' but the writer wrote only IS NULL. A78: evidence defines the champion by a time-format LIKE pattern but the writer used position = 1. The current 5-point evidence_first skill dilutes the critical instruction; shortening to 3 points with a concrete compound-condition example makes the literal-copy rule salient for the 9B model.",
+    "evidence": [
+     "A22",
+     "A78"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "evidence_first",
+      "when": "the question comes with evidence (formulas, value mappings)",
+      "text": "1. Copy every evidence SQL expression exactly into the query. Do not simplify or drop any part (e.g. 'x = 0 OR x IS NULL' means both conditions, not just IS NULL). 2. If evidence maps a phrase to a value or test and the question asks for that status, return the mapped text/value, not the raw column. 3. If a query returns 0 rows, verify the stored spelling with find_values."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer returns SELECT * or picks a denormalized helper column instead of the specific attribute the question names.",
+    "rationale": "A138: question asks for 'names' but the writer returned SELECT *. A36: writer selected the denormalized OwnerDisplayName from posts instead of DisplayName from users. Adding an explicit 'Never use SELECT *' and shortening the skill reduces the chance the 9B model skips the column-mapping step.",
+    "evidence": [
+     "A138",
+     "A36"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "output_columns",
+      "when": "before the final query of any question",
+      "text": "1. Select exactly the attributes the question asks for, in that order. Never use SELECT *. 2. If it asks for entities without naming an attribute, return the entity's identifier column, not a name or helper column. 3. Do not add columns used only for filtering, sorting, or checking. 4. Run the final query once; if columns are wrong, fix only the SELECT list."
+     }
+    ]
+   },
+   {
+    "pattern": "check_result skill overlaps the new checker role and is too long, causing the 9B model to skip the verification steps.",
+    "rationale": "With the verification steps now in the always-on checker role, the skill only needs to add the run-the-query step and the no-unnecessary-change guard. Shortening from ~400 to ~230 chars reduces token cost and avoids conflicting instructions.",
+    "evidence": [
+     "A22",
+     "A78",
+     "A138"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "check_result",
+      "when": "reviewing another agent's query",
+      "text": "1. Run the teammate's query. 2. Verify each evidence expression appears in the query. 3. Verify the SELECT list matches asked outputs. 4. Never add or remove conditions, DISTINCT, LIMIT, or columns unless the question or evidence requires it. 5. Fix only the wrong part and rerun."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 143318,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.54,
+   "cost": 3200.8,
+   "meta_cost": 1100.8,
+   "acc_hard": 0.619,
+   "nodes": 1.94,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 46,
+    "writer[T]": 2,
+    "checker[T][S],writer[T][S]": 1,
+    "writer[T][S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 2
+  },
+  "flip_b": [
+   5,
+   7
+  ]
+ }
+]

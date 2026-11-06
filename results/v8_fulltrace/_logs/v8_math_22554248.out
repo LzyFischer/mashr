@@ -1,0 +1,8 @@
+udc-aw37-14
+name, memory.total [MiB]
+NVIDIA RTX PRO 6000 Blackwell Server Edition, 97887 MiB
+[vllm] ready Fri Nov  6 10:12:02 EST 2026
+[math] smoke start Fri Nov  6 10:12:02 EST 2026
+[math] smoke ok Fri Nov  6 10:25:50 EST 2026; full run start
+[math] FULL RUN FAILED Fri Nov  6 10:36:34 EST 2026:   File "/sfs/weka/scratch/vjd5zr/envs/mashr/lib/python3.12/site-packages/tinker/_base_client.py", line 1084, in request     raise self._make_status_error_from_response(err.response) from None tinker.BadRequestError: Error code: 400 - {'detail': "Prompt length plus max_tokens exceeds the model's context window: 65539 prompt tokens + 12000 max_tokens > 65536."} 
+[job] all tasks finished Fri Nov  6 10:36:34 EST 2026

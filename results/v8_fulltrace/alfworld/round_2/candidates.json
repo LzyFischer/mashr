@@ -1,0 +1,304 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Actor loops the same failed or post-completion command (examine, inventory, go-to, look, done, help) 20-40 times after 'Nothing happens', exhausting all steps; separately it picks a similar-but-wrong object type (mug for cup, towel for cloth).",
+    "rationale": "In 12+ traces (A41 examine-shelf\u00d730, A2 inventory\u00d730, A3 go-cabinet13\u00d714, A16 go-cabinet14\u00d78, A17 help\u00d7many, A19 examine-countertop\u00d7many, A20 go-cabinet9\u00d7many, A46 move-laptop\u00d7many, A48 examine-sink\u00d7many, A56 go-cabinet2\u00d730, A124 look-shelf2\u00d730) the actor repeats one command after 'Nothing happens' until 40 steps run out, never trying a different action. In A45/A44 (mug for cup), A19/A2/A48 (towel/handtowel for cloth) the actor grabs a similar object instead of the exact type. The actor role currently has no anti-looping rule and no exact-type instruction. Round 1's comprehensive actor edit broke 6 held-out problems by adding a conflicting 'move' placement command (clashes with the action_syntax skill that says 'put') and an invalid 'done' command; this minimal two-sentence addition avoids both conflicts while targeting the two dominant failure modes. The sentences are general (apply to every task), short enough for a 9B model to follow, and do not overlap any skill.",
+    "evidence": [
+     "A41",
+     "A2",
+     "A3",
+     "A16",
+     "A17",
+     "A19",
+     "A20",
+     "A46",
+     "A48",
+     "A56",
+     "A124",
+     "A45",
+     "A44"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "actor",
+      "role": "You act in a household text environment to complete the task. Each turn, write one short line 'Think: ...' and then 'Action: <one command>'. Never repeat a command that returned 'Nothing happens'; choose a different action. Use the exact object type named in the task, not a similar one."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 133816,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.76,
+   "cost": 11549.9,
+   "meta_cost": 1456.0,
+   "acc_hard": 0.7027,
+   "nodes": 1.88,
+   "shapes": {
+    "planner[S]>actor[T][S]": 23,
+    "planner[T][S]>actor[T][S]": 13,
+    "actor[T][S]": 6,
+    "actor[T][S],planner[S]": 5
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   4,
+   6
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Agent uses non-existent 'put {obj} in/on {recep}' command (taught by action_syntax skill) instead of the correct 'move {obj} to {recep}', causing placement to fail and the agent to loop on the same failing command or a substitute (inventory, examine, done) for 20-40 steps.",
+    "rationale": "The environment help output (visible in A17) shows only 'move (object) to (receptacle): place an object in or on a receptacle'. Traces A2 (put\u2192Nothing happens\u2192inventory\u00d730), A18 (put\u2192Nothing happens\u2192move to wrong place), A46 (put\u2192Nothing happens\u2192move to wrong place), A45 (move works correctly) confirm 'move' is the only valid placement verb. The action_syntax skill is given to 127/195 nodes and is the primary source of the wrong command. Fixing it here plus adding an explicit anti-repeat rule addresses both the wrong command and the resulting loop in one edit.",
+    "evidence": [
+     "A2",
+     "A18",
+     "A46",
+     "A45",
+     "A41",
+     "A56",
+     "A124"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "action_syntax",
+      "when": "any task (exact command forms)",
+      "text": "Commands: go to {recep}; open {recep}; close {recep}; take {obj} from {recep}; move {obj} to {recep}; clean {obj} with {sinkbasin}; heat {obj} with {microwave}; cool {obj} with {fridge}; use {lamp}; examine {obj or recep}; inventory; look. Use exact names with numbers ('mug 1', 'countertop 2'). You hold one object; be at a receptacle to take or move. 'Nothing happens' = invalid: NEVER repeat the same command; try a different command or go to a new place."
+     }
+    ]
+   },
+   {
+    "pattern": "On heat/cool/clean tasks the agent opens the appliance, moves the object inside, closes it, and then the heat/cool/clean command fails because the object is no longer in hand; or the agent moves the object into the sink instead of running the clean command while holding it.",
+    "rationale": "A21: agent opens microwave, moves potato inside, closes, 'heat potato 3 with microwave 1'\u2192Nothing happens (potato is inside, not in hand). A44: same with mug. A38: agent moves pan into fridge, takes it out, never runs 'cool' while holding at fridge. A19: agent moves handtowel to sinkbasin, takes it back, can't clean. A48: clean fails, loops on examine. The current skills say 'no need to open or put inside' but this is too weak \u2014 agents still do it. Making the prohibition explicit and adding 'while HOLDING it' before the command, plus fixing 'put'\u2192'move' in the placement step, addresses the root cause in each skill.",
+    "evidence": [
+     "A21",
+     "A44",
+     "A38",
+     "A19",
+     "A48",
+     "A17"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "heat_task",
+      "when": "put a hot or heated object somewhere",
+      "text": "1. Find and take the exact object type named in the task. 2. While HOLDING it, go to microwave 1, then 'heat {obj} with microwave 1'. Do NOT open the microwave. Do NOT put the object inside. 3. Go to target, open if closed, 'move {obj} to {recep}'. If a command fails, do not repeat it."
+     },
+     {
+      "op": "edit_skill",
+      "name": "cool_task",
+      "when": "put a cool or cold object somewhere",
+      "text": "1. Find and take the exact object type named in the task. 2. While HOLDING it, go to fridge 1, then 'cool {obj} with fridge 1'. Do NOT open the fridge. Do NOT put the object inside. 3. Go to target, open if closed, 'move {obj} to {recep}'. If target is the fridge, just 'move {obj} to fridge 1'. If a command fails, do not repeat it."
+     },
+     {
+      "op": "edit_skill",
+      "name": "clean_task",
+      "when": "put a clean object somewhere",
+      "text": "1. Find and take the exact object type named in the task (towel is not a cloth; handtowel is not a cloth). 2. While HOLDING it, go to sinkbasin 1, then 'clean {obj} with sinkbasin 1'. Do NOT move the object into the sink. 3. Go to target, open if closed, 'move {obj} to {recep}'. If a command fails, do not repeat it."
+     }
+    ]
+   },
+   {
+    "pattern": "Agent picks a similar-but-different object type (mug for cup, towel for cloth) and places it at the target, so the grader finds the wrong object and marks the task failed.",
+    "rationale": "A45: task says 'cup', agent picks 'mug 1' from diningtable, heats it, places it on countertop \u2014 grader fails because it's a mug not a cup. A44: task says 'cup', agent first picks mug 1, wastes steps. A19: task says 'cloth', agent picks handtowel 1. A2: task says 'cloth', agent picks towel 1. The pick_place skill mentions the pitfall in one trailing sentence but it is not prominent enough for a 9B model. Moving the exact-type requirement to step 1 and making it a bold prohibition, plus fixing 'put'\u2192'move', should prevent the substitution.",
+    "evidence": [
+     "A45",
+     "A44",
+     "A19",
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "pick_place",
+      "when": "put an object in/on a receptacle",
+      "text": "1. Find the EXACT object type named in the task. A mug is NOT a cup. A towel is NOT a cloth. A pan is NOT a pot. If you find a similar but different type, keep searching. 2. Take it. Go to target; open if closed. 3. 'move {obj} to {recep}'. Task done when placed. If a command fails, do not repeat it\u2014try a different command or location."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent fails to give the look_in_light skill for 'look at X under/with lamp' tasks, so the actor finds the object and the lamp but never learns to hold the object while using the lamp, and loops on examine or look.",
+    "rationale": "A41: actor gets search_order+action_syntax but NOT look_in_light \u2192 finds pencil on shelf, loops on 'examine shelf 1' \u00d730. A124: actor gets only search_order \u2192 finds desklamp on shelf 2, turns it on WITHOUT holding the pillow, then loops on 'look shelf 2' \u00d730. A148: actor gets only action_syntax \u2192 takes laptop, puts it on desk, uses desklamp without holding it. Rule 3 currently says only 'Give the skill for the task type' which is too vague for the 9B meta-agent to reliably map 'look at X under lamp' \u2192 look_in_light. Making the mapping explicit in the rule fixes the staffing error.",
+    "evidence": [
+     "A41",
+     "A124",
+     "A148"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give the actor the skill matching the task type: 'look at X under/with lamp'\u2192look_in_light; 'clean X and put'\u2192clean_task; 'hot/heat X'\u2192heat_task; 'cool/cold X'\u2192cool_task; 'two X'\u2192pick_two; 'put X in/on'\u2192pick_place. Also give search_order when the target object is not visible in the initial room description. Give stuck_recovery to every actor."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent gives tools (memory, goal_reminder, valid_actions) to the planner node, which has no effect on its plan quality but adds tokens and correlates with worse architecture performance (planner[T]>actor 62% vs planner[S]>actor 80%).",
+    "rationale": "Architecture table: planner[T][S]>actor[T][S] = 24 uses, 62% acc; planner[S]>actor[T][S] = 96 uses, 80% acc. Traces A2 (planner tools=['goal_reminder']), A3 (planner tools=['memory','goal_reminder']), A16 (planner tools=['valid_actions','memory']), A20 (planner tools=['memory','goal_reminder']) all show the planner receiving tools it cannot use (it does not act in the environment). The planner's only job is to read the task text and write a plan. Removing tools from the planner simplifies the meta-agent's output and avoids the 62%-accuracy architecture.",
+    "evidence": [
+     "A2",
+     "A3",
+     "A16",
+     "A20",
+     "A56"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Do not give the planner any tools. It only reads the task text and writes a short plan for the actor."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 133830,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.7,
+   "cost": 15401.3,
+   "meta_cost": 2857.5,
+   "acc_hard": 0.5946,
+   "nodes": 1.9,
+   "shapes": {
+    "planner[S]>actor[T][S]": 20,
+    "planner>actor[T][S]": 12,
+    "actor[T][S],planner": 11,
+    "actor[T][S]": 5
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   5,
+   10
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Agent uses non-existent 'put' command to place objects, causing placement failures and stuck loops on the same failed command",
+    "rationale": "The environment help (A17) shows only 'move (object) to (receptacle)' as placement. Successful placements in traces use 'move' (A21: move potato to diningtable works; A3: move spatula to drawer works). All six skills teach 'put {obj} in/on {recep}' which returns 'Nothing happens', then agents loop 20-30 times (A2: inventory\u00d730, A46: move\u00d730, A18: put\u00d73). Fixing all skills to 'move' eliminates the root cause.",
+    "evidence": [
+     "A2",
+     "A18",
+     "A46",
+     "A45",
+     "A38",
+     "A3"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "action_syntax",
+      "when": "any task (exact command forms)",
+      "text": "Commands: go to {recep}; open {recep}; close {recep}; take {obj} from {recep}; move {obj} to {recep}; clean {obj} with {sinkbasin}; heat {obj} with {microwave}; cool {obj} with {fridge}; use {lamp}; examine {obj or recep}; inventory; look. Use the exact names with numbers as they appear ('mug 1', 'countertop 2'). You can hold one object; you must be at a receptacle to take from or move to it. 'Nothing happens' means the command was invalid: change it, do not repeat it."
+     },
+     {
+      "op": "edit_skill",
+      "name": "pick_place",
+      "when": "put an object in/on a receptacle",
+      "text": "1. Find the exact object type named in the task (a cup is not a mug, a cloth is not a towel), take it. 2. Go to the target receptacle; open it if closed. 3. move {obj} to {recep}. The task is done when the object is placed."
+     },
+     {
+      "op": "edit_skill",
+      "name": "pick_two",
+      "when": "put two objects of a type in/on a receptacle",
+      "text": "1. Find the first object, take it, move it to the target. 2. Go back to searching for the second one (it may be elsewhere; remember where you saw others). 3. Move the second to the same target. You can carry only one object at a time."
+     }
+    ]
+   },
+   {
+    "pattern": "Agent puts object inside appliance (microwave/fridge/sink) instead of running heat/cool/clean while holding it, so the process never actually happens",
+    "rationale": "A21: agent moves potato INTO microwave, closes it, then 'heat potato 3 with microwave 1' \u2192 Nothing happens (object not in hand). A38: agent moves pan into fridge, takes it out, never runs 'cool' while holding \u2192 pan not cool. A44: same microwave pattern with mug. A19/A48: agent moves object to sink instead of cleaning. Skills say 'no need to put inside' but agents ignore it. Adding 'while holding it' and explicit 'Do NOT open or move inside' prevents this.",
+    "evidence": [
+     "A21",
+     "A44",
+     "A38",
+     "A19",
+     "A48"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "heat_task",
+      "when": "put a hot or heated object somewhere",
+      "text": "1. Find and take the object. 2. go to microwave 1 while holding it, then 'heat {obj} with microwave 1'. Do NOT open the microwave or move the object inside. 3. Go to the target, open it if needed, move the object there."
+     },
+     {
+      "op": "edit_skill",
+      "name": "cool_task",
+      "when": "put a cool or cold object somewhere",
+      "text": "1. Find and take the object. 2. go to fridge 1 while holding it, then 'cool {obj} with fridge 1'. Do NOT open the fridge or move the object inside. 3. Go to the target, open it if needed, move the object there. If the target is the fridge itself this is a plain placement."
+     },
+     {
+      "op": "edit_skill",
+      "name": "clean_task",
+      "when": "put a clean object somewhere",
+      "text": "1. Find and take the object. 2. go to sinkbasin 1 while holding it, then 'clean {obj} with sinkbasin 1'. Do NOT move the object into the sink. 3. Go to the target, open it if needed, move the object there."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent fails to give look_in_light skill for 'look at X under lamp' tasks, so actor searches but never learns to hold the object while using the lamp",
+    "rationale": "A41: actor gets search_order+action_syntax, NOT look_in_light \u2192 finds pencil, loops on examine\u00d730. A124: actor gets only search_order \u2192 finds lamp, uses it without holding pillow, gets lost. A148: actor gets only action_syntax \u2192 finds laptop, puts it down, uses lamp without holding it. Rule 3 ('Give the skill for the task type') is too vague so the meta-agent defaults to search_order. Making the task-type\u2192skill mapping explicit ensures look_in_light is given.",
+    "evidence": [
+     "A41",
+     "A124",
+     "A148"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give the actor the skill matching the task type: 'look at X under lamp'\u2192look_in_light; 'hot/heat X'\u2192heat_task; 'cool/cold X'\u2192cool_task; 'clean X'\u2192clean_task; 'two X'\u2192pick_two; other placement\u2192pick_place. Also give search_order if the target object is not initially in view."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 133789,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.84,
+   "cost": 10914.0,
+   "meta_cost": 2800.6,
+   "acc_hard": 0.7838,
+   "nodes": 1.86,
+   "shapes": {
+    "planner[S]>actor[T][S]": 32,
+    "actor[T][S]": 7,
+    "planner[T][S]>actor[T][S]": 5,
+    "actor[T][S],planner[S]": 4
+   },
+   "n_shapes": 6,
+   "fallback": 0
+  },
+  "flip_b": [
+   5,
+   3
+  ]
+ }
+]

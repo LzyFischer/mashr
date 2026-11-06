@@ -1,0 +1,65 @@
+{
+ "agents": {
+  "reader": {
+   "role": "You answer multi-hop questions using only the given paragraphs: find each fact you need and give a short answer."
+  },
+  "decomposer": {
+   "role": "You split the question into single-hop sub-questions, answer each from the paragraphs (cite the paragraph), and combine them into the final short answer."
+  },
+  "checker": {
+   "role": "You check the answers you are given against the paragraphs: verify each hop, fix any error, and output exactly one shortest answer span. For a person use the full name from the person's own paragraph; for a place use the place name without locative qualifiers; for a comparison output the entity, not the value; for yes/no output yes or no."
+  }
+ },
+ "rules": [
+  "Comparison or yes/no question: one reader.",
+  "An entity described through another: a decomposer, then a checker that reads its work.",
+  "Give answer_span to every node. Give bridge whenever an entity is described through another entity or identified by roles, attributes, or a definite description. Give comparison plus dates_numbers and the dates tool when dates, years, ages, or order are compared. Give distractors only when the question or paragraphs contain near-identical names or multiple entities with the same name."
+ ],
+ "skills": {
+  "bridge": {
+   "when": "an entity is described through another one, or identified by roles, attributes, or a definite description ('the director of film X', 'the member who ...', 'the person who ...')",
+   "text": "1. Find the single entity that satisfies every descriptor in the question, using the paragraph whose title or description matches it. 2. Read the asked property from that entity's own paragraph, not from a group, country, or related entity. 3. If the question asks what a member or representative represents, use the seat or constituency named in that person's paragraph. 4. The final answer is about the last entity in the chain, not the first."
+  },
+  "comparison": {
+   "when": "two entities are compared (which / who is older, earlier, larger; do both ...; same ...)",
+   "text": "1. Find the compared property for each entity in its own paragraph and write both values in your reasoning. 2. Compare them carefully. 3. For 'which/who ... first/earlier/larger', output only the entity name as written in the question. For 'do both' or 'same' questions, output only yes or no. Do not output the date, number, or value as the final answer."
+  },
+  "yes_no": {
+   "when": "a yes/no question (Is / Are / Were / Do / Did ... ?)",
+   "text": "Answer only 'yes' or 'no'. For 'both' questions, check the property for each entity separately; 'same nationality' needs both nationalities written down first."
+  },
+  "relations": {
+   "when": "family or other relations (grandfather, mother-in-law, spouse, child of the director ...)",
+   "text": "Compose relations one step at a time: paternal grandfather = father's father; mother-in-law = spouse's mother; 'the director's child' = find the director, then that person's child. Write each step with the paragraph that states it."
+  },
+  "dates_numbers": {
+   "when": "dates, ages, years, counts or quantities",
+   "text": "1. Copy dates exactly as written. 2. 'Who died first / was born first' compares full dates, not only years. 3. Age at an event = event year - birth year (minus one if the birthday comes later in that year). 4. Give a number or date in the form the paragraph uses."
+  },
+  "answer_span": {
+   "when": "any question",
+   "text": "Give exactly one answer span, with no explanation or extra line. Use the exact span that fully names the requested entity or value. For a person, use the full name as written in that person's own paragraph, including middle names if present. For a place, use the place name without locative qualifiers such as 'the', 'island of', or 'city of'. For a comparison of two entities, output the entity name, not the compared date or value."
+  },
+  "distractors": {
+   "when": "similar names, several people with one name, or paragraphs about related entities",
+   "text": "Most paragraphs are distractors. Confirm each entity by its exact title and description (dates, profession, country) before using a fact from its paragraph; ignore facts about look-alike names."
+  }
+ },
+ "tools": {
+  "python": {
+   "doc": "Run Python (standard library) with CONTEXT (the paragraphs as a list of [title, sentences]) defined, to search, count or compute.",
+   "code": "",
+   "test": "assert isinstance(CONTEXT, list)"
+  },
+  "search": {
+   "doc": "search(text) -> prints every sentence that contains text (case-insensitive), with its paragraph number, title and sentence number.",
+   "code": "\ndef search(text):\n    n = 0\n    for i, (title, sents) in enumerate(CONTEXT, 1):\n        for j, s in enumerate(sents):\n            if text.lower() in s.lower() or text.lower() in title.lower():\n                print(f\"[{i}] {title} ({j}): {s.strip()}\"); n += 1\n    print(f\"{n} sentences\")\n",
+   "test": "import io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    search('paris')\nassert '1 sentences' in buf.getvalue(), buf.getvalue()"
+  },
+  "dates": {
+   "doc": "dates(i=None) -> prints every date or year in paragraph i (all paragraphs if None), with the sentence it is in; useful for comparisons of age, time or order.",
+   "code": "\ndef dates(i=None):\n    import re\n    pat = re.compile(r\"\\b(?:\\d{1,2} )?(?:January|February|March|April|May|June|July|August|September|\"\n                     r\"October|November|December)?(?: \\d{1,2},)? ?\\b(?:1[0-9]|20)\\d\\d\\b\")\n    for k, (title, sents) in enumerate(CONTEXT, 1):\n        if i is not None and k != i:\n            continue\n        for j, s in enumerate(sents):\n            found = [m.group().strip() for m in pat.finditer(s)]\n            if found:\n                print(f\"[{k}] {title} ({j}): {', '.join(found)} | {s.strip()[:200]}\")\n",
+   "test": "import io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    dates()\nassert '1889' in buf.getvalue(), buf.getvalue()"
+  }
+ }
+}

@@ -1,0 +1,139 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "The always-on coding roles do not explicitly require exact example matching, no print/input, tool-based verification, and code-only output.",
+    "rationale": "These practices are useful for every function-writing problem, so they belong in the self roles rather than relying on the meta-agent to select the matching skills each time. Concise numbered checklists should make the 9B task agents consistently verify examples and edge cases and emit usable code. The reviewer role is unused in the current architectures and is not referenced by the current meta rules, so removing it shortens the prompt without removing a supported capability.",
+    "evidence": [],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "1. Write a complete Python function with the required name and signature. 2. Match the specification and examples exactly, including return type. 3. Return the value; do not print or read input. 4. Use run_examples if available; if python is available, also test likely edge cases, and fix the underlying rule rather than special-casing examples. 5. Output only the final function."
+     },
+     {
+      "op": "edit_agent",
+      "name": "tester",
+      "role": "1. Check the given function against the specification and examples. 2. Use run_examples if available; if python is available, also test likely edge cases. If a test fails, fix the underlying rule in the code, not the expected output. 3. Keep the required name and signature. 4. Output only the corrected complete function."
+     },
+     {
+      "op": "remove_agent",
+      "name": "reviewer"
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 14761,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.75,
+   "cost": 1318.5,
+   "meta_cost": 523.5,
+   "acc_hard": 1.0,
+   "nodes": 1.0,
+   "shapes": {
+    "coder[T][S]": 8
+   },
+   "n_shapes": 1,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "A correct-but-slow solution passes the small visible examples yet fails a hidden large-input test with a time limit, because no node is ever equipped to check performance.",
+    "rationale": "The residual-harness table lists 'Never given: timed, efficiency', and the only category is mbpp_plus (large inputs, time limits) \u2014 exactly what the efficiency skill's 'when' text and the timed tool target. So even when a solution is correct, nothing verifies it is fast on a large input, which is the most plausible held-out failure. The efficiency skill and the timed tool already exist in the library; the only missing piece is the meta-agent handing them out. A meta-harness rule that equips the solution node with both for large-input/algorithmic problems closes the gap, and because it only triggers on such problems it cannot regress the simple ones that already pass. (No dev-A wrong-problem labels exist to cite \u2014 dev-A is 100% \u2014 so the evidence list is empty and the justification rests on the report's residual-harness table and category.)",
+    "evidence": [],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "If inputs can be large or the task is algorithmic (primes, divisors, subsequences, dynamic programming, nested loops), give the solution node the efficiency skill and the timed tool, and require it to check speed on a large input before answering."
+     }
+    ]
+   }
+  ],
+  "repairs": 1,
+  "prompt_chars": 14775,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.875,
+   "cost": 2569.5,
+   "meta_cost": 1259.4,
+   "acc_hard": 1.0,
+   "nodes": 1.25,
+   "shapes": {
+    "coder[T][S]": 6,
+    "coder[T][S]>tester[T][S]": 1,
+    "coder[T][S]>tester[T]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   0
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "The coder and tester are under-equipped to verify solutions: simple coders lack run_examples, and testers lack python to test edge cases beyond the problem's examples.",
+    "rationale": "The current rules give simple coders only python and testers only run_examples, despite the coder role needing to meet examples exactly and the tester role needing to derive and run test cases. Giving every coder run_examples and every tester python lets them verify examples and hidden corners, which should reduce failures on held-out problems.",
+    "evidence": [],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 1,
+      "text": "Simple, clearly specified function: one coder with python and run_examples."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Tricky specification or many edge cases: a coder with python and run_examples, then a tester with python and run_examples that reads its work."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 14734,
+  "fail": null,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.875,
+   "cost": 3486.3,
+   "meta_cost": 1154.7,
+   "acc_hard": 1.0,
+   "nodes": 1.38,
+   "shapes": {
+    "coder[T][S]": 5,
+    "coder[T][S]>tester[T]": 2,
+    "coder[T][S]>tester[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   0
+  ]
+ }
+]

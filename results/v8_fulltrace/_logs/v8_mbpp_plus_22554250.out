@@ -1,0 +1,8 @@
+udc-aw37-6
+name, memory.total [MiB]
+NVIDIA RTX PRO 6000 Blackwell Server Edition, 97887 MiB
+[vllm] ready Fri Nov  6 10:12:02 EST 2026
+[mbpp_plus] smoke start Fri Nov  6 10:12:03 EST 2026
+[mbpp_plus] smoke ok Fri Nov  6 10:20:08 EST 2026; full run start
+[mbpp_plus] DONE Fri Nov  6 10:59:18 EST 2026: TEST: {"org_round0": {"n": 227, "acc": 0.7313, "cost": 2811.2, "meta_cost": 899.2, "acc_hard": 0.5172, "nodes": 1.4, "shapes": {"coder[T][S]": 133, "coder[T][S]>tester[T][S]": 50, "coder[T][S]>tester[T]": 41, "coder[T]": 3}, "n_shapes": 4, "fallback": 3}, "org_final": {"n": 227, "acc": 0.7313, "cost
+[job] all tasks finished Fri Nov  6 10:59:18 EST 2026

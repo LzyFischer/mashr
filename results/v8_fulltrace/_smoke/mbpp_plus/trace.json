@@ -1,0 +1,40 @@
+[
+ {
+  "round": 0,
+  "accepted": true,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.875,
+   "cost": 2071.5,
+   "meta_cost": 924.0,
+   "acc_hard": 1.0,
+   "nodes": 1.38,
+   "shapes": {
+    "coder[T][S]": 5,
+    "coder[T][S]>tester[T]": 2,
+    "coder[T][S]>tester[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  }
+ },
+ {
+  "round": 1,
+  "accepted": false,
+  "dev_b": {
+   "n": 8,
+   "acc": 0.875,
+   "cost": 2071.5,
+   "meta_cost": 924.0,
+   "acc_hard": 1.0,
+   "nodes": 1.38,
+   "shapes": {
+    "coder[T][S]": 5,
+    "coder[T][S]>tester[T]": 2,
+    "coder[T][S]>tester[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  }
+ }
+]

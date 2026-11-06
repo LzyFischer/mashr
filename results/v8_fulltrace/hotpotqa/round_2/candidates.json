@@ -1,0 +1,263 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Task agents produce long, unfocused reasoning that gets cut off or leads to a final answer that is not the single property the question asks for.",
+    "rationale": "Traces show decomposer/reader/checker outputs cut before a clean answer (A14, A19, A37, A42, A61, A84, A120, A132) and final answers that are intermediate entities or adjacent facts (A7, A30, A49, A65, A113). The current self roles encourage detailed sub-question work but do not bound reasoning length or require one final answer focused on the asked property. Editing the answering and checking agents' roles adds general brevity and question-focus constraints without question-specific knowledge.",
+    "evidence": [
+     "A2",
+     "A7",
+     "A14",
+     "A19",
+     "A30",
+     "A37",
+     "A42",
+     "A49",
+     "A61",
+     "A65",
+     "A84",
+     "A113",
+     "A120",
+     "A132"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "reader",
+      "role": "You answer multi-hop questions using only the given paragraphs. Keep reasoning to at most 5 short lines, then end with exactly one short final answer that directly answers the question."
+     },
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into sub-questions, find each fact in the paragraphs, and end with exactly one short final answer. Keep reasoning to at most 5 short lines; answer the property the question asks for, not an intermediate entity."
+     },
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the answers you are given against the paragraphs: verify each hop, fix any error, and end with exactly one short final answer you believe is correct. Keep reasoning to at most 5 short lines."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 155976,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.66,
+   "cost": 4116.8,
+   "meta_cost": 3159.0,
+   "acc_hard": 0.6429,
+   "nodes": 2.02,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 30,
+    "reader[T][S]": 6,
+    "decomposer[T][S]>checker[S]": 5,
+    "checker[T][S],decomposer[T][S]": 4
+   },
+   "n_shapes": 9,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   6
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Final answer uses wrong span form: person names are shortened to a form from the question or a reference paragraph instead of the full name in the person's own paragraph, and place/number answers include extra qualifiers (County, units, descriptors) the grader does not expect.",
+    "rationale": "The answer_span skill says 'shortest span', which the 9B model interprets as 'use the shortest available name', producing 'Hank Azaria' instead of 'Henry Albert Hank Azaria' (A58, A59, A131, A137, A144, A146, A4, A53, A67, A122) and 'Alachua County' instead of 'Alachua' (A44, A76), '552 m' instead of '552' (A107), 'the Bahamian island of Great Exuma' instead of 'Great Exuma' (A3). Replacing 'shortest span' with 'exact span' plus explicit per-type rules (full name from own paragraph, place name only, number only) targets both directions of the error. This is a library-layer fix because the span-form rule is question-agnostic and belongs in the skill every node receives.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A18",
+     "A29",
+     "A44",
+     "A53",
+     "A58",
+     "A59",
+     "A67",
+     "A71",
+     "A76",
+     "A102",
+     "A106",
+     "A107",
+     "A110",
+     "A122",
+     "A123",
+     "A131",
+     "A137",
+     "A140",
+     "A144",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "text": "Give the exact span from the paragraphs that answers the question. Person names: use the full name as written in that person's own paragraph (not a short form from the question or another paragraph). Places: give only the place name (drop 'County', 'State', country). Numbers: give only the number (drop units like m, km, miles). Titles and phrases: copy the exact words from the text. No explanation, no extra words."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent over-applies the distractors skill (68 nodes, 50% correct vs 60% without) while under-applying high-value skills: comparison (74% vs 56%) is given to only 23 of 32 comparison questions, and the dates tool (76% vs 54%) is given to only 51 nodes.",
+    "rationale": "Rule 3 ('Give skills that match the question') is too vague, so the 9B meta-agent attaches distractors to most bridge/comparison nodes (interpreting 'related entities' broadly) and misses comparison and dates skills. The residual-harness table shows distractors is the only skill that lowers accuracy, while comparison and dates are among the highest-value. Making rule 3 explicit about which skill to add per question type and restricting distractors to true name-collision cases targets the root cause at the meta-agent layer.",
+    "evidence": [
+     "A19",
+     "A35",
+     "A36",
+     "A37",
+     "A84",
+     "A93",
+     "A119",
+     "A139"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give answer_span to every node. Add the one skill matching the question type: bridge (entity described via another), comparison (two entities compared), dates_numbers (dates, ages, years, counts), relations (family or role chains), or yes_no (yes/no question). Give the dates tool whenever the question involves dates or years. Give distractors only when multiple paragraphs describe entities with the same or nearly identical name."
+     }
+    ]
+   },
+   {
+    "pattern": "On comparison questions the agent outputs the compared date/value as the final answer instead of the entity name, or lists both entities when only one satisfies the condition.",
+    "rationale": "In A2 the reader wrote both dates and the grader picked up '1966' instead of the entity name; in A93 the reader listed both universities when only one is in the US. The comparison skill says 'Answer with the entity's name' but does not explicitly forbid including the compared values in the final answer line, and does not address the 'which' (singular) case. Clarifying that the final answer is the entity name (not the value) and that 'which' questions require a single entity fixes both failure modes at the library layer.",
+    "evidence": [
+     "A2",
+     "A93",
+     "A139"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "comparison",
+      "text": "1. Find the compared property for each entity in its own paragraph; write both values. 2. Compare carefully (earlier date = older / earlier release). 3. The final answer is the entity's name as written in the question, not the date or value. If the question asks 'which' (singular), give only the entity that satisfies the condition. For 'both' or 'same' questions, answer yes or no."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 155990,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.66,
+   "cost": 4181.4,
+   "meta_cost": 3166.0,
+   "acc_hard": 0.6667,
+   "nodes": 1.8,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 28,
+    "reader[T][S]": 8,
+    "decomposer[T][S]>checker[S]": 5,
+    "checker[T][S],decomposer[T][S]": 5
+   },
+   "n_shapes": 6,
+   "fallback": 3
+  },
+  "flip_b": [
+   1,
+   5
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Comparison questions often end with the compared value, both entities, or a non-answer summary instead of the single requested entity or yes/no.",
+    "rationale": "In A2 the node output both the entity and the year and the final answer became the year; in A93 it listed both colleges; in A35, A53, A122 and A21 the comparison reasoning was present but the final span was not the required entity form. The comparison skill is the residual place for this question class, so tightening its final-answer rule targets the pattern without changing bridge behavior.",
+    "evidence": [
+     "A2",
+     "A93",
+     "A35",
+     "A53",
+     "A122",
+     "A21"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "comparison",
+      "when": "two entities are compared (which / who is older, earlier, larger; do both ...; same ...)",
+      "text": "1. Find the compared property for each entity in its own paragraph; write both values only in reasoning. 2. Compare them carefully (earlier date = older person / earlier release). 3. Final answer only the entity that satisfies the question, or yes/no for 'both' and 'same' questions. Do not output dates, values, both entities, or explanations in the final answer."
+     }
+    ]
+   },
+   {
+    "pattern": "The meta-agent sometimes creates a checker with no input, so it cannot verify the node it is supposed to check and may change a correct answer to a wrong one.",
+    "rationale": "The architecture table shows checker,decomposer parallel use at 42% and inputless checker answers at 44%, while checker with inputs is better. Traces A19, A36, A40, A42 and A68 have checker nodes with no input; in A36 it changed the correct span to a worse one. Making the checker wiring explicit in the meta-harness fixes the root cause at the staffing layer.",
+    "evidence": [
+     "A19",
+     "A36",
+     "A40",
+     "A42",
+     "A68"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "An entity described through another: a = decomposer(...); c = checker(a, ...); return c. The checker must take the node it checks as input; do not create a checker with no input."
+     }
+    ]
+   },
+   {
+    "pattern": "Task agents write long reasoning and are cut off before giving a clean final answer, or give multiple final-answer lines.",
+    "rationale": "Traces A14, A19, A37, A42, A61, A84, A120 and A132 show verbose output, token-limit cuts, missing final spans, or multiple #### lines. The decomposer role currently encourages splitting and citing, which contributes to verbosity. A concise role rule is always on for that agent and directly targets the output-format failure.",
+    "evidence": [
+     "A14",
+     "A19",
+     "A37",
+     "A42",
+     "A61",
+     "A84",
+     "A120",
+     "A132"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into the few sub-facts needed, find each in the paragraphs, and give one short final answer. Keep reasoning to at most three short lines, then end with exactly one line: #### answer."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 155949,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.64,
+   "cost": 4181.8,
+   "meta_cost": 3149.3,
+   "acc_hard": 0.619,
+   "nodes": 1.84,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 35,
+    "reader[T][S]": 8,
+    "decomposer[T][S]>checker[S]": 4,
+    "checker[T][S],decomposer[T][S]": 3
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   6
+  ]
+ }
+]

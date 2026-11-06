@@ -1,0 +1,320 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Final answer adds extra surrounding words (descriptors, units, 'County', 'the \u2026 of') or shortens a name from its paragraph form, instead of being the exact span copied from the text",
+    "rationale": "In A3 the answer is 'the Bahamian island of Great Exuma' instead of 'Great Exuma'; in A44 'Alachua County' instead of 'Alachua'; in A107 '552 m' instead of '552'; in A4 the name 'Claudio Javier L\u00f3pez' is shortened to 'Claudio L\u00f3pez'; in A58 'Henry Albert \"Hank\" Azaria' becomes 'Hank Azaria'; in A137 'Hillary Rodham Clinton' becomes 'Hillary Clinton'. The answer_span skill already says 'shortest span \u2026 as it appears in the paragraphs' but the 9B model does not follow it reliably when the instruction is only in a residual skill. Moving the verbatim-span discipline into the always-on role gives it higher salience on every question. Applied to both decomposer and reader because both architectures (decomposer>checker and reader alone) show the same span errors.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A18",
+     "A29",
+     "A40",
+     "A44",
+     "A53",
+     "A58",
+     "A59",
+     "A67",
+     "A71",
+     "A76",
+     "A88",
+     "A91",
+     "A99",
+     "A102",
+     "A106",
+     "A107",
+     "A122",
+     "A123",
+     "A131",
+     "A137",
+     "A140",
+     "A144",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into single-hop sub-questions, answer each from the paragraphs (cite the paragraph), and combine them into one final answer: the exact span from the paragraphs, copied verbatim. Do not shorten a name or add words that surround the span but are not part of it."
+     },
+     {
+      "op": "edit_agent",
+      "name": "reader",
+      "role": "You answer multi-hop questions using only the given paragraphs: find each fact you need and give one final answer as the exact span from the paragraphs, copied verbatim. Do not shorten names or add surrounding words."
+     }
+    ]
+   },
+   {
+    "pattern": "Checker rubber-stamps the decomposer's wrong span instead of re-reading the paragraph sentences and correcting the answer to the exact text form",
+    "rationale": "In every traced wrong question that has a checker (A3, A4, A18, A29, A44, A71, A76, A107, A144, A146), the checker says 'the teammate's answer is correct' and repeats the identical wrong span. The current role says 'verify each hop, fix any error' but the 9B model treats this as a confirmation step. The role must explicitly require re-reading the cited sentences and correcting the span to the exact form in the paragraph, so the checker acts as a real second pass rather than an echo.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A18",
+     "A29",
+     "A44",
+     "A71",
+     "A76",
+     "A107",
+     "A144",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the answers you are given against the paragraphs: re-read the cited sentences yourself to verify each hop. Fix the answer to the exact span from the paragraph (no extra surrounding words, no shortened names). Give one corrected answer."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 147978,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.66,
+   "cost": 4535.9,
+   "meta_cost": 3165.6,
+   "acc_hard": 0.6667,
+   "nodes": 1.9,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 33,
+    "decomposer[T][S]>checker[S]": 6,
+    "reader[T][S]": 5,
+    "checker[T][S],decomposer[T][S]": 5
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   5
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Answer span does not match the grader's expected span: too long (includes descriptors, type words, units), too short (missing middle names or qualifiers), or wrong form",
+    "rationale": "The current answer_span skill says 'shortest span' which is ambiguous. Traces show the model includes descriptive phrases (A3: 'the Bahamian island of Great Exuma'), omits full names (A4: 'Claudio L\u00f3pez' vs 'Claudio Javier L\u00f3pez'), includes type words already in the question (A44: 'Alachua County' for 'what county'), or omits necessary qualifiers (A68: '28,776' vs '28,776 at the 2010 census'). Editing the skill with explicit rules for each pattern fixes the root cause at the library layer where the answer format is defined.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A18",
+     "A29",
+     "A44",
+     "A76",
+     "A107",
+     "A144",
+     "A146",
+     "A68",
+     "A102",
+     "A106"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the exact span from the paragraphs that answers the question. Person names: use the full name as written in that person's own paragraph, not a shortened form. If the question already states the type or unit ('what county', 'how many meters'), omit that word from the answer. For 'where' questions, give the place name without descriptive phrases. Include a qualifier (e.g. 'at the 2010 census') only when the text presents it as part of the answer. Reason in at most 3 short steps, then write '#### [answer]' and stop. No explanation, no 'The answer is'."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent over-applies the distractors skill (68 nodes, 50% correct vs 60% without) because rule 3 gives no guidance on when to include or exclude it",
+    "rationale": "Rule 3 ('Give skills that match the question') is too vague, so the meta-agent attaches distractors to most bridge and comparison nodes. The residual-harness table shows distractors is the only skill that lowers accuracy (50% vs 60%). Making rule 3 explicit about which skill to add and restricting distractors to near-identical-name cases removes the harmful over-application at the meta-agent layer where staffing decisions are made.",
+    "evidence": [
+     "A12",
+     "A37",
+     "A58",
+     "A65",
+     "A71",
+     "A86",
+     "A91",
+     "A92",
+     "A99",
+     "A131"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give answer_span to every node. Add exactly one more skill matching the question type: bridge (entity described via another), comparison (two entities compared), yes_no (yes/no question), dates_numbers (dates, ages, counts), or relations (family or other relations). Give distractors only when two candidate entity names are nearly identical."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent generates invalid team code (unknown agent name, bad return target, syntax errors), causing 10 fallbacks to the degraded single-agent-no-tools mode",
+    "rationale": "The 9B meta-agent sometimes writes 'agent' instead of a valid agent name, returns an undefined variable, or produces a syntax error. Each fallback loses all tools and skills. A concise rule restating the three valid agent names and the required line format directly targets these code-generation errors at the meta-agent layer.",
+    "evidence": [
+     "A21",
+     "A142"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Use only these agent names: reader, decomposer, checker. Each line must be: x = agent_name(tools=[...], skills=[...]) or x = agent_name(inputs, tools=[...], skills=[...]). The return statement must name a node defined on a previous line."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 147992,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.7,
+   "cost": 4154.7,
+   "meta_cost": 3171.6,
+   "acc_hard": 0.6905,
+   "nodes": 1.88,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 34,
+    "reader[T][S]": 8,
+    "checker[T][S],decomposer[T][S]": 7,
+    "checker[T][S],decomposer[T][S],decomposer[T][S],decomposer[T][S]": 1
+   },
+   "n_shapes": 4,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   4
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Agents give a shortened person name (e.g. 'Alan Turing') instead of the full name from the entity's own paragraph, and add unnecessary qualifiers to place/number answers, because the 'shortest span' instruction pushes them to over-trim.",
+    "rationale": "In 13+ traces (A4, A40, A53, A58, A59, A67, A122, A131, A137, A144, A146) the agent found the entity but used the short name from the question or a reference paragraph instead of the full name in the entity's own first sentence. In A3, A44, A76, A102, A106, A107 the agent included extra qualifiers. The root cause is the answer_span skill's 'shortest span' + 'no extra qualifiers' wording, which makes the 9B model prefer the shorter surface form over the full name that the grader expects. Removing 'shortest' and adding an explicit full-name rule fixes the dominant name-format pattern.",
+    "evidence": [
+     "A4",
+     "A40",
+     "A53",
+     "A58",
+     "A59",
+     "A67",
+     "A122",
+     "A131",
+     "A137",
+     "A144",
+     "A146",
+     "A3",
+     "A44",
+     "A76",
+     "A102",
+     "A106",
+     "A107"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "text": "Give the span that answers the question, as it appears in the paragraphs: a name, a title, a date, a number or yes/no. For a person's name, use the full name exactly as written in the first sentence of that person's own paragraph. No explanation, no 'The answer is'; keep the original spelling."
+     }
+    ]
+   },
+   {
+    "pattern": "Decomposer outputs exceed the token limit with long step-by-step reasoning and never reach the final answer line, producing cut-off or missing answers.",
+    "rationale": "In A14, A37, A42, A61, A120, A132 the decomposer wrote 400\u2013600+ words of reasoning and was cut before writing the '####' answer line, so the grader received a fragment. The current role says 'split into single-hop sub-questions, answer each (cite the paragraph)' which encourages verbose output. Limiting reasoning to 3 lines in the role ensures the answer is always written.",
+    "evidence": [
+     "A14",
+     "A37",
+     "A42",
+     "A61",
+     "A120",
+     "A132"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into sub-questions, find each fact in the paragraphs, and give a short final answer. Keep reasoning to at most 3 lines, then give the answer."
+     }
+    ]
+   },
+   {
+    "pattern": "The checker receives fewer skills than the node it checks (often only answer_span), so it cannot re-derive the hops and simply passes through the input answer unchanged.",
+    "rationale": "In A3, A4, A40 and many others the checker's skill list is just ['answer_span'] while the decomposer has bridge/distractors/relations. The checker stats confirm: only 6% of outputs changed, 1 to correct, 0 to wrong. Giving the checker the same skills as the node it checks (via a meta-harness rule) lets it independently verify each hop and catch wrong-entity or wrong-hop errors.",
+    "evidence": [
+     "A3",
+     "A4",
+     "A40",
+     "A7",
+     "A14"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give each node skills that match the question. The checker must receive the same skills as the node it checks."
+     }
+    ]
+   },
+   {
+    "pattern": "The meta-agent writes invalid team code (unknown agent name 'agent', undefined variables, missing lines, syntax errors), causing 9 fallbacks to the single-reader default.",
+    "rationale": "The report lists 9 meta-agent output problems: 3\u00d7 unknown agent 'agent', 2\u00d7 return names undefined node, 2\u00d7 no node, 1\u00d7 syntax, 1\u00d7 undefined input, 1\u00d7 missing comma. The 9B meta-agent does not consistently follow the code template. An explicit rule stating the line format, single-letter variable names, and that agent names must come from the available list reduces these errors.",
+    "evidence": [
+     "A21",
+     "A142"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Write one line per agent: x = agent_name(inputs, tools=[...], skills=[...]). Variable names are single letters (a, b, c). Agent names must be from the available agents. End with return x where x is a variable defined above."
+     }
+    ]
+   },
+   {
+    "pattern": "In comparison questions the agent gives the compared date/value instead of the entity name, or lists both entities instead of the single one that satisfies the condition.",
+    "rationale": "A2: agent wrote both 'Hey Pa!\u2026' and '1966' and the grader picked up '1966'. A93: agent said both universities are in the US and listed both, when only one qualifies. The comparison skill says 'answer with the entity's name' but does not forbid including the compared values in the final answer. Adding 'Give exactly one answer\u2026 Do not include dates or values' makes the output unambiguous.",
+    "evidence": [
+     "A2",
+     "A93"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "comparison",
+      "text": "1. Find the compared property for each entity in its own paragraph; write both values. 2. Compare them carefully (earlier date = older person / earlier release). 3. Give exactly one answer: the entity's name as written in the question, or yes/no. Do not include dates or values in the final answer."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 147951,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.66,
+   "cost": 4368.7,
+   "meta_cost": 3171.9,
+   "acc_hard": 0.6667,
+   "nodes": 1.86,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 27,
+    "checker[T][S],decomposer[T][S]": 13,
+    "reader[T][S]": 8,
+    "checker[S],decomposer[T][S],reader[T][S]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   5
+  ]
+ }
+]

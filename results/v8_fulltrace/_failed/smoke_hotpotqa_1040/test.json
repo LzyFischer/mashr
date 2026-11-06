@@ -1,0 +1,44 @@
+{
+ "org_round0": {
+  "n": 8,
+  "acc": 0.625,
+  "cost": 4526.9,
+  "meta_cost": 3145.9,
+  "acc_hard": 0.625,
+  "nodes": 1.88,
+  "shapes": {
+   "decomposer[T][S]>checker[T][S]": 7,
+   "reader[T][S]": 1
+  },
+  "n_shapes": 2,
+  "fallback": 0
+ },
+ "org_final": {
+  "n": 8,
+  "acc": 0.625,
+  "cost": 4275.3,
+  "meta_cost": 3165.6,
+  "acc_hard": 0.625,
+  "nodes": 1.88,
+  "shapes": {
+   "decomposer[T][S]>checker[T][S]": 6,
+   "reader[T][S]": 1,
+   "decomposer[T][S]>checker[S]": 1
+  },
+  "n_shapes": 3,
+  "fallback": 0
+ },
+ "single": {
+  "n": 8,
+  "acc": 0.625,
+  "cost": 453.1,
+  "meta_cost": 0.0,
+  "acc_hard": 0.625,
+  "nodes": 1.0,
+  "shapes": {
+   "reader": 8
+  },
+  "n_shapes": 1,
+  "fallback": 0
+ }
+}

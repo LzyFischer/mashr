@@ -1,0 +1,215 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "The model hits the token limit while writing extensive analysis and manual tracing, producing no final function (None answer)",
+    "rationale": "In A61, A67, A83 and A98 the node spent its entire token budget on long derivations, re-interpretation loops and manual example tracing, so the complete function was never emitted (final answer None). The one-sentence coder role gives no guidance on output order, so the 9B model writes paragraphs of reasoning before any code and runs out of budget. Instructing it to emit the complete function first and only then test/fix guarantees the function exists even if later work is cut, and frees budget for the fix loop; this is consistent with the existing read_spec/examples_check skills (write then run) and targets a pattern shared by 4 wrong problems rather than a single case.",
+    "evidence": [
+     "A61",
+     "A67",
+     "A83",
+     "A98"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "coder",
+      "role": "You write correct, complete Python functions that meet the specification exactly. Emit the complete function first, then test it with your tools and fix only the failing parts. Keep analysis to a few short lines."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 137752,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.72,
+   "cost": 1612.0,
+   "meta_cost": 609.6,
+   "acc_hard": 0.5,
+   "nodes": 1.04,
+   "shapes": {
+    "coder[T][S]": 48,
+    "coder[T][S]>tester[T]": 1,
+    "coder[T][S]>tester[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   5
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Model misreads the assert line: renames the function (A57, A58) or treats parenthesized single value as a tuple (A86, A96), producing wrong name or wrong return type",
+    "rationale": "In A57 the assert says max_sum but the model names it max_sum_bitonic; in A58 the assert says Split but the model names it split_odd_numbers; in A86 the assert shows ('216.8.94.196') which is a plain string (parens are grouping) but the model returns a tuple; in A96 the assert shows ('pYTHON') which is a string but the model returns a tuple of chars. The current assert_signature skill says 'match its type' but does not explicitly warn that single-value parentheses are grouping, not a tuple, and does not strongly enough emphasize using the exact name. Editing the skill to spell out both distinctions fixes the root cause at the library layer where the knowledge belongs.",
+    "evidence": [
+     "A57",
+     "A58",
+     "A86",
+     "A96"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "assert_signature",
+      "when": "the problem gives an assert line (the MBPP style)",
+      "text": "The assert fixes the function name (use it exactly as written, do not rename), argument order, and return value. Parentheses around a single value are grouping, not a tuple: ('abc') is the string 'abc', not ('abc',). Match the exact type shown: str not tuple, int not float, list not set. If the assert wraps the result in set(...), element order does not matter; otherwise it does."
+     }
+    ]
+   },
+   {
+    "pattern": "run_examples tool is counterproductive (69% with vs 87% without) because the model wastes its 3 tool calls re-pasting the function definition instead of calling the preloaded run_examples()",
+    "rationale": "In A34, A68, and A86 the model has run_examples as a tool but makes 3 identical python calls that just re-paste the function with '(no output)'; it never actually calls run_examples(). In A27 the tester writes its own run_examples function. The tool adds prompt tokens and confuses the 9B model into treating it as something to define rather than call. Restricting run_examples to problems with 2+ examples (where it is most likely to add value) reduces exposure to this failure mode. The round-2 candidate that included this restriction was rejected as a 4-change bundle; isolating it with the other high-confidence changes here avoids that confound.",
+    "evidence": [
+     "A27",
+     "A34",
+     "A68",
+     "A86"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Tricky specification or many edge cases: one coder with python, with at most 2 skills. Give run_examples only when the problem statement contains 2 or more examples to verify. Add a tester only when the problem needs comparing two implementations (e.g. fast vs brute-force)."
+     },
+     {
+      "op": "edit_skill",
+      "name": "examples_check",
+      "when": "the problem statement contains examples",
+      "text": "After defining the function in a python block, call run_examples() in the next python block. It is preloaded; do not define or re-define it. If all pass, submit. If one fails, fix that specific line and re-run run_examples(). Do not re-derive the solution."
+     }
+    ]
+   },
+   {
+    "pattern": "Division and rounding problems are not given numeric_rules, so the model picks the wrong operator (int(a/b) truncates toward zero instead of a//b which floors) or the wrong return type",
+    "rationale": "A31: spec says 'rounded down to the nearest integer' but the model writes int(a/b); for input (-1,2) this gives 0 instead of -1. The numeric_rules skill explicitly states '// and % with negative numbers round towards minus infinity in Python' and scores 100% when given (8 nodes) vs 73% without, but is only given to 8/100 problems because no rule tells the meta-agent to include it. Adding the trigger to rule 3 ensures the meta-agent gives numeric_rules for the class of problems (division, rounding, floor/ceiling, number formatting) where it is decisive.",
+    "evidence": [
+     "A31"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give skills that match the problem. If the problem contains an assert line, always include assert_signature in the coder's skills. If the problem involves division, rounding, floor/ceiling, or integer vs float arithmetic, include numeric_rules."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 137766,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.74,
+   "cost": 2509.0,
+   "meta_cost": 1638.7,
+   "acc_hard": 0.5,
+   "nodes": 1.06,
+   "shapes": {
+    "coder[T][S]": 46,
+    "coder[T][S]>tester[T]": 3,
+    "coder[T]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 1
+  },
+  "flip_b": [
+   0,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Model misreads the assert line: renames the function to a more descriptive name (A57, A58) or treats single-value parentheses like ('abc') as a tuple return type (A86, A96)",
+    "rationale": "In A57 the assert says max_sum but the model named it max_sum_bitonic; in A58 the assert says Split but the model named it split_odd_numbers. In A86 the assert shows ('216.8.94.196') which is a string in grouping parens, but the model returned a tuple. In A96 the assert shows ('pYTHON') but the model returned a tuple of chars. The current assert_signature skill says 'match its type' but does not explicitly state that single-value parens are grouping (not a tuple) or that the name must not be renamed. The 9B model defaults to creating descriptive names and interpreting parens as tuple syntax.",
+    "evidence": [
+     "A57",
+     "A58",
+     "A86",
+     "A96"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "assert_signature",
+      "when": "the problem gives an assert line (the MBPP style)",
+      "text": "Use the function name exactly as written in the assert; do not rename it. Match the return type exactly: parentheses around a single value in the assert like ('abc') are grouping, not a tuple \u2014 return the value itself. If the call is wrapped in set(...), element order does not matter; otherwise it does."
+     }
+    ]
+   },
+   {
+    "pattern": "Model's function handles the main case correctly but fails on edge cases: empty input returns wrong shape (A27, A55), duplicate elements cause a crash or wrong return (A62)",
+    "rationale": "In A27 the empty list returns [] but the spec implies [[]]; in A55 the empty string with s.split() returns [] but the spec implies ['']; in A62 the list [2,2] raises ValueError but the spec implies returning None. The current edge_cases skill is a 4-line checklist of 10+ corner cases that the 9B model cannot process effectively (67% accuracy with it vs 79% without). The model does not actually test any of these cases. Shortening to 3 focused, actionable instructions (test empty, test all-equal, handle not-found) targets the exact failure patterns seen in the traces.",
+    "evidence": [
+     "A27",
+     "A55",
+     "A62"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "edge_cases",
+      "when": "inputs are lists, strings or numbers whose size or sign can vary",
+      "text": "Before finalizing, call your function with empty input and with all-equal elements, and check the result matches what the specification implies. If the function searches for a value, return None when it is not found. Ensure it does not crash on these inputs."
+     }
+    ]
+   },
+   {
+    "pattern": "Model enters a repeated fix-or-analysis loop after a test failure, cycling through the same reasoning or re-deriving the solution, and exhausts the token budget with no final function (A98 looped on the same palindrome trace for the entire budget)",
+    "rationale": "In A98 the model wrote a correct LPS function, ran it, got no useful output, and then entered a loop repeatedly writing 'TENTEN' and re-analyzing the same example until the token limit was hit, producing None. The current examples_check skill says 'fix the specific wrong line and re-run' but sets no limit on attempts, so the 9B model can loop indefinitely. Adding a hard 2-attempt cap forces the model to submit its best version rather than burning the entire budget on a single failed example. This also protects A61-type problems where the model is stuck interpreting the spec: it will at least emit a function.",
+    "evidence": [
+     "A98",
+     "A61"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "examples_check",
+      "when": "the problem statement contains examples",
+      "text": "Run run_examples after writing the function. If all pass, submit. If one fails, fix one line and re-run. After 2 failed re-runs, submit your best version. Do not re-derive the whole solution."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 137725,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.7,
+   "cost": 2056.4,
+   "meta_cost": 998.2,
+   "acc_hard": 0.5,
+   "nodes": 1.1,
+   "shapes": {
+    "coder[T][S]": 45,
+    "coder[T][S]>tester[T]": 4,
+    "coder[T][S]>tester[T][S]": 1
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   0,
+   4
+  ]
+ }
+]

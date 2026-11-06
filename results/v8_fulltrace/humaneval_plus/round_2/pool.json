@@ -1,0 +1,70 @@
+{
+ "agents": {
+  "coder": {
+   "role": "You write correct, complete Python functions that meet the specification exactly. Write the function, then run run_examples to verify. Do not trace examples by hand. Keep explanations to 2-3 lines."
+  },
+  "tester": {
+   "role": "You verify and fix the solution from your teammates. (1) Run run_examples on the function. (2) If all pass, write 1-2 quick tests for a boundary the examples do not cover (extra whitespace, empty input, type edge). (3) Fix any bug found. (4) Output the complete function. Do not re-derive the algorithm. Keep reasoning brief."
+  },
+  "reviewer": {
+   "role": "You review the solutions you are given against the specification: find any bug or misread requirement and give the complete function you believe is correct."
+  }
+ },
+ "rules": [
+  "Simple, clearly specified function: one coder with python.",
+  "Tricky specification or many edge cases: a coder with python and run_examples, then a tester with run_examples that reads its work.",
+  "Give at most 2 skills per node, chosen for the specific risk in the problem (e.g. string_rules for case/character problems, numeric_rules for rounding/division). Skip a skill if the problem's examples already demonstrate its guidance."
+ ],
+ "skills": {
+  "read_spec": {
+   "when": "any problem",
+   "text": "1. Restate the input types, the output type and every rule in the specification before coding. 2. The examples are part of the specification: your function must reproduce them exactly, including the output type (list vs tuple, int vs float, True/False). 3. Return the value; do not print and do not read input. 4. Keep the given function name and parameter order."
+  },
+  "edge_cases": {
+   "when": "inputs are lists, strings or numbers whose size or sign can vary",
+   "text": "Test the boundaries the spec implies: empty input, single element, and values at the stated limits. Verify no crash and correct return for each."
+  },
+  "examples_check": {
+   "when": "the problem statement contains examples",
+   "text": "Before the final answer, run every example (run_examples, or by hand if you have no tools: trace the code line by line on each example). If one fails, find the rule you misread instead of special-casing the example."
+  },
+  "string_rules": {
+   "when": "string manipulation (case, words, characters, formatting)",
+   "text": "Check: (1) Are non-letter characters (spaces, digits, punctuation) preserved unchanged? (2) Does the spec change case, and for which characters? (3) Match the exact output format from the examples."
+  },
+  "numeric_rules": {
+   "when": "arithmetic, rounding, division or number formats",
+   "text": "1. Return type: int vs float, as in the examples. 2. // and % with negative numbers round towards minus infinity in Python. 3. round() rounds halves to even; use the rule the problem states. 4. Compare floats with a tolerance. 5. Large numbers: use integers, not floats, to stay exact."
+  },
+  "efficiency": {
+   "when": "inputs can be large (primes, divisors, sequences, nested loops, recursion)",
+   "text": "The plus tests use large inputs and a time limit of a few times the reference solution. Avoid exponential recursion (memoize or iterate), quadratic loops over long lists when a set/dict/sort works, and trial division beyond sqrt(n). Check the speed on a large input (timed) before answering."
+  },
+  "assert_signature": {
+   "when": "the problem gives an assert line (the MBPP style)",
+   "text": "The assert fixes the function name, the number and order of arguments and the exact return value: match its type (tuple vs list vs set, int vs float, bool) and format. If it wraps the call (e.g. set(...)), the order of elements does not matter; otherwise it does."
+  }
+ },
+ "tools": {
+  "python": {
+   "doc": "Run Python (standard library, numpy) to test code: define the function, call it, print results.",
+   "code": "",
+   "test": "assert 2 + 2 == 4"
+  },
+  "run_examples": {
+   "doc": "run_examples(func=None) -> prints PASS/FAIL for every example in the problem statement (the '>>>' lines with their expected output, or the 'assert' lines) run against func (default: the function with the problem's name, defined in your code).",
+   "code": "\ndef run_examples(func=None):\n    g = globals()\n    f = func or g.get(ENTRY)\n    if f is None:\n        print(f\"define {ENTRY} first\"); return\n    env = dict(g); env[ENTRY] = f\n    lines = PROBLEM.splitlines()\n    checks = []\n    for i, line in enumerate(lines):\n        s = line.strip()\n        if s.startswith(\"assert \"):\n            checks.append((s[7:], None))\n        elif s.startswith(\">>> \"):\n            nxt = lines[i + 1].strip() if i + 1 < len(lines) else \"\"\n            checks.append((s[4:], nxt))\n    if not checks:\n        print(\"no examples found in the problem\"); return\n    n = 0\n    for expr, exp in checks:\n        try:\n            got = eval(expr, env)\n            if exp is None:\n                ok = bool(got)\n            else:\n                try:\n                    ok = got == eval(exp, env)\n                except Exception:\n                    ok = repr(got) == exp\n        except Exception as e:\n            ok, got = False, f\"{type(e).__name__}: {e}\"\n        n += bool(ok)\n        print((\"PASS \" if ok else \"FAIL \") + expr[:200] + (\"\" if ok else f\"  -> got {got!r:.200}\"\n              + (f\", expected {exp}\" if exp else \"\")))\n    print(f\"{n}/{len(checks)} examples pass\")\n",
+   "test": "def add(a, b):\n    return a + b\nimport io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    run_examples()\nassert '1/1 examples pass' in buf.getvalue(), buf.getvalue()"
+  },
+  "compare": {
+   "doc": "compare(f, g, inputs) -> runs f(*x) and g(*x) for each tuple x in inputs and prints the mismatches (first 5) and their count; e.g. a fast solution against a brute-force one.",
+   "code": "\ndef compare(f, g, inputs):\n    import copy\n    bad = []\n    for x in inputs:\n        x = tuple(x) if isinstance(x, (list, tuple)) else (x,)\n        try:\n            a = f(*copy.deepcopy(x))\n        except Exception as e:\n            a = f\"{type(e).__name__}: {e}\"\n        try:\n            b = g(*copy.deepcopy(x))\n        except Exception as e:\n            b = f\"{type(e).__name__}: {e}\"\n        if a != b:\n            bad.append((x, a, b))\n    for x, a, b in bad[:5]:\n        print(f\"input {x!r:.200}: {a!r:.150} vs {b!r:.150}\")\n    print(f\"{len(bad)}/{len(inputs)} mismatches\")\n",
+   "test": "import io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    compare(lambda a: a * 2, lambda a: a + a, [(1,), (2,), (3,)])\nassert '0/3 mismatches' in buf.getvalue(), buf.getvalue()"
+  },
+  "timed": {
+   "doc": "timed(func, *args) -> prints how long func(*args) takes (stops after 5 s); hidden tests use large inputs, so check the speed of your solution on a large one.",
+   "code": "\ndef timed(func, *args):\n    import signal, time\n    def _stop(*_):\n        raise TimeoutError(\"over 5 s\")\n    old = signal.signal(signal.SIGALRM, _stop)\n    signal.alarm(5)\n    t = time.time()\n    try:\n        func(*args)\n        print(f\"{time.time() - t:.3f} s\")\n    except TimeoutError:\n        print(\"too slow: over 5 s\")\n    finally:\n        signal.alarm(0)\n        signal.signal(signal.SIGALRM, old)\n",
+   "test": "import io, contextlib\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    timed(sum, range(1000))\nassert ' s' in buf.getvalue(), buf.getvalue()"
+  }
+ }
+}

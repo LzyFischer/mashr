@@ -1,0 +1,207 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Solver derives the correct answer but then spends tokens on extra manual analysis (achievability checks, edge cases), hitting the token limit before outputting the answer.",
+    "rationale": "In A143 the solver correctly derived S = K^2 - 2K and found the minimum -1 at K=1, but then spent thousands of tokens manually analyzing whether K=1 is achievable with real coefficients (trying conjugate-pair constructions, checking discriminants), getting cut at the token limit before outputting the answer. The solver had python available but did not use it for this verification step. The current role says 'Use available Python/tools for computation, enumeration, exact algebra, or checking instead of manual arithmetic' but the model treated the achievability analysis as a logical/mathematical task outside the scope of 'arithmetic' and did it by hand. Broadening the tool-use instruction to cover 'any verification' and adding an explicit stop-after-answer instruction should prevent the solver from burning its token budget on post-answer analysis.",
+    "evidence": [
+     "A143"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "solver",
+      "role": "Careful math solver. Solve concisely. Use available Python/tools for any computation, enumeration, algebra, or verification instead of doing it by hand. Once you have a complete answer, put it on the last line exactly as asked and stop; do not add further analysis. List all requested values."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 103832,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.9,
+   "cost": 6087.6,
+   "meta_cost": 3161.7,
+   "acc_hard": 0.8519,
+   "nodes": 1.88,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 31,
+    "solver[T][S]": 6,
+    "solver[T][S],verifier[T][S]": 5,
+    "solver[T][S]>verifier[T]": 5
+   },
+   "n_shapes": 7,
+   "fallback": 0
+  },
+  "flip_b": [
+   1,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Counting or combinatorial-geometry problems are solved by long hand derivation without executable enumeration, and the verifier cannot recompute, so both nodes repeat the same wrong count or are cut off.",
+    "rationale": "A23 and A61 show solvers given counting_setup but no Python; A23 needed a small-case enumeration check and A61 needed grid counting. A145 was given integer_equations/counting_setup but no matching executable tool. The residual meta-harness should staff these problems with a coder/verifier that has Python and a skill that forces small-case enumeration as the primary check, not only a final optional check.",
+    "evidence": [
+     "A23",
+     "A61",
+     "A145"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Heavy computation, counting, search, enumeration, or counting geometry: use a coder with python or a matching tool, then a verifier with python."
+     },
+     {
+      "op": "edit_skill",
+      "name": "counting_setup",
+      "when": "any counting problem (arrangements, selections, paths, distributions, regions formed by lines or grids)",
+      "text": "1. Decide what one object is and when two objects count as the same: are the items distinguishable, does order matter, are rotations/reflections identified, may boxes be empty? Write these answers down first. 2. Choose one method: direct product rule, combinations, stars and bars (k identical into n distinct: C(k+n-1, n-1)), or casework. 3. If Python is available, verify the smallest nontrivial case by explicit enumeration before applying the general formula. 4. Pitfalls: counting ordered pairs when unordered are asked, forgetting the empty/zero case, double counting when cases overlap. 5. Final check: recount a small version by listing all objects or with brute_force and compare."
+     }
+    ]
+   },
+   {
+    "pattern": "Optimization or coefficient-constrained root problems are reduced to a formula but then the attainability of the extremum is decided by hand, causing the wrong minimum or maximum.",
+    "rationale": "A143 derived S = K^2 - 2K and minimized at K=1, but then spent the remaining budget hand-checking whether real/complex roots exist for that K and was cut, finally giving 2 instead of -1. The missing general practice is to test attainability computationally by constructing feasible variables or sampling nearby integer/real values. This belongs in the inequalities_extrema skill, which is already given to such problems.",
+    "evidence": [
+     "A143"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "inequalities_extrema",
+      "when": "maximum or minimum, inequalities, optimization",
+      "text": "1. Find the candidate extremum: AM-GM (equality when the terms are equal), completing the square, Cauchy-Schwarz, or calculus (derivative 0, plus endpoints). 2. Show it is attained: give explicit values of the variables where equality holds and check they satisfy all constraints (integer, positive, distinct, real coefficients, existence of roots...). 3. For integer variables test the integers next to the real optimum. 4. If Python is available, verify attainability by constructing a feasible example or sampling nearby values; do not accept a bound you cannot exhibit. 5. Pitfall: a bound that cannot be attained is not the answer. 6. Check numerically by evaluating many points."
+     }
+    ]
+   },
+   {
+    "pattern": "Number-theory questions requiring the least several solutions are solved by hand factoring and prime checking, get cut off, and miss or misorder the required set.",
+    "rationale": "A89 had number_theory but used it only sporadically, hand-checking many primes and divisor counts until the token limit; the verifier then repeated the incomplete list. A58 similarly had number_theory for a modular/integer-equation counting problem but no Python for exhaustive checking. The residual skill should require the available number_theory helpers to be used inside a bounded search whenever the answer asks for the least k solutions or a sum of them.",
+    "evidence": [
+     "A89",
+     "A58"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "divisors_primes",
+      "when": "number or sum of divisors, gcd/lcm, prime factorization, perfect squares/cubes, least solutions involving divisor counts",
+      "text": "1. Factor n = p1^a1 ... pk^ak first (tool: number_theory factorint). 2. Number of divisors (a1+1)...(ak+1); sum of divisors prod (p^(a+1)-1)/(p-1); n is a perfect square iff all exponents are even. 3. gcd takes the minimum exponents, lcm the maximum; gcd * lcm = a * b. 4. If the problem asks for the least k positive solutions or a sum of solutions, run a bounded Python search using factorint/isprime/divisors until k valid values are found; do not hand-check long prime lists. 5. Pitfalls: 1 and n are divisors; 'proper' divisors exclude n; 'positive' vs all integer divisors (x2). 6. Check small cases by listing divisors."
+     }
+    ]
+   }
+  ],
+  "repairs": 1,
+  "prompt_chars": 103846,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.92,
+   "cost": 6361.4,
+   "meta_cost": 3215.5,
+   "acc_hard": 0.963,
+   "nodes": 1.9,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 37,
+    "solver[T][S]": 6,
+    "coder[T][S],verifier[T][S]": 2,
+    "solver[T][S]>verifier[T]": 2
+   },
+   "n_shapes": 7,
+   "fallback": 1
+  },
+  "flip_b": [
+   1,
+   1
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Meta-agent staffs the solver with a domain tool (number_theory) or no tools at all instead of python, so the solver must do long manual arithmetic or enumeration and gets cut or wrong.",
+    "rationale": "In A23 the solver had zero tools and hand-derived a binomial coefficient; in A61 it had no tools and was cut mid-derivation; in A89 it had number_theory but no python and hand-checked dozens of primes; in A58 it had number_theory but no python. In every case the solver could have finished in a few lines of python. The meta-agent treats 'a matching tool' as a substitute for python rather than a complement. A rule that python is always present and domain tools are additive fixes the staffing gap at the root.",
+    "evidence": [
+     "A23",
+     "A58",
+     "A61",
+     "A89"
+    ],
+    "ops": [
+     {
+      "op": "add_rule",
+      "text": "Always include python in the tools list for every solver, coder, and verifier node. Add a domain tool (number_theory, coord_geometry, polynomial, counting, exact_solve, brute_force) in addition to python when it matches the problem; never use a domain tool as a replacement for python."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent classifies a multi-step L5 problem as 'easy' and returns a single solver with no verifier, so there is no second chance to catch an error.",
+    "rationale": "A148 is a Geometry L5 problem (counting regions formed by lines) but the meta-agent returned only a = solver(tools=['python']); return a, with no verifier. The solver answered 3 instead of 51 and nothing checked it. Rule 1 ('Easy problem: one solver') has no guard against misclassification; tightening it to require at least one arithmetic step and no multi-step reasoning makes the bar explicit so L4/L5 problems fall through to rule 2.",
+    "evidence": [
+     "A148"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 1,
+      "text": "Trivial problem (answer is one arithmetic step or a direct lookup, no multi-step reasoning): one solver with python. Every other problem: solver + verifier."
+     }
+    ]
+   },
+   {
+    "pattern": "Solver with python performs a long manual case-analysis to show a parameter value is attainable, instead of constructing an explicit example in a few lines of code, and gets cut before reaching the answer.",
+    "rationale": "In A143 the solver correctly derived S = K^2 - 2K and identified K=1 as the unconstrained minimum, then spent the remaining token budget in a manual existence proof (trying conjugate-pair structures, checking discriminants) instead of writing 5 lines of python to pick four complex numbers with sum 1 and pairwise-sum 1 and verify. The inequalities_extrema skill step 2 says 'give the values\u2026 and check' but does not direct the model to use python for the construction. Making step 2 explicitly code-based closes the gap between 'knowing to verify attainability' and 'doing it quickly enough'.",
+    "evidence": [
+     "A143"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "inequalities_extrema",
+      "when": "maximum or minimum, inequalities, optimization",
+      "text": "1. Find the candidate extremum: AM-GM (equality when the terms are equal), completing the square, Cauchy-Schwarz, or calculus (derivative 0, plus endpoints). 2. Show it is attained: use python to assign values to free variables, solve for the rest, and verify every constraint is satisfied; a bound with no explicit example is not the answer. 3. For integer variables test the integers next to the real optimum. 4. Pitfall: a bound that cannot be attained is not the answer. 5. Check numerically by evaluating many points (python)."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 103805,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.94,
+   "cost": 6575.4,
+   "meta_cost": 3190.8,
+   "acc_hard": 0.9259,
+   "nodes": 2.02,
+   "shapes": {
+    "solver[T][S]>verifier[T][S]": 43,
+    "solver[T][S],verifier[T][S]": 4,
+    "coder[T][S],solver[T][S]>verifier[T]": 1,
+    "coder[T][S],solver[T][S],verifier[T][S]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   1
+  ]
+ }
+]

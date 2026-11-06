@@ -1,0 +1,318 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Writer selects wrong or extra output columns, returns helper inputs instead of computed values, or filters on the wrong column or non-exact stored value.",
+    "rationale": "Traces show the writer choosing a similarly named identifier, adding extra columns, selecting a raw input instead of the evidence-defined computed label, filtering a foreign key by a related table's name, and using a non-exact stored value. These are recurring output and filter discipline failures, so an always-on writer role that forces exact asked columns, literal evidence use, related-table filtering, and stored-value verification is the right layer.",
+    "evidence": [
+     "A3",
+     "A8",
+     "A16",
+     "A17",
+     "A27",
+     "A28",
+     "A35",
+     "A80"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "writer",
+      "role": "You write correct SQLite queries. List exact asked columns and conditions first. Use evidence literally as the spec. Choose columns by meaning, not similar names. Filter related-entity attributes via joins, not foreign keys; verify exact stored spellings and formats with tools when available. Return exactly the requested columns in order; for computed answers return the computed value, not helper inputs; add DISTINCT/LIMIT/ORDER BY only when the question requires them. Run the final query when possible and fix only the specific error."
+     }
+    ]
+   },
+   {
+    "pattern": "Checker accepts queries with wrong output columns and also rewrites correct queries into wrong ones.",
+    "rationale": "In A7 and A14 the checker changed a correct writer query, dropping an evidence-required condition or replacing a correct top-k query with a max-subquery, while in A3, A8, and A16 it accepted wrong output columns. The checker role needs an always-on conservative checking loop: verify exact output and evidence, run the query, preserve correct queries, and fix only specific errors.",
+    "evidence": [
+     "A7",
+     "A14",
+     "A3",
+     "A8",
+     "A16"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check teammate SQL against the question and evidence. List exact asked columns and conditions. Verify joins, filter columns/values, literal evidence, and exact output columns/order, including computed values rather than helper inputs. Run the query when possible. If it already satisfies the question, output it unchanged; never drop evidence conditions or add DISTINCT/LIMIT/ORDER BY unless the question requires them. If wrong, fix only the specific error."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146968,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.52,
+   "cost": 2652.3,
+   "meta_cost": 849.3,
+   "acc_hard": 0.619,
+   "nodes": 2.0,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 46,
+    "writer[T][S],writer[T][S]>checker[T][S]": 2,
+    "writer[T][S]": 2
+   },
+   "n_shapes": 3,
+   "fallback": 0
+  },
+  "flip_b": [
+   7,
+   8
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Checkers sometimes remove correct evidence filters or add unnecessary tie handling and subqueries.",
+    "rationale": "A7 removed a correct time IS NOT NULL filter, A14 changed a correct top-one query into an unnecessary max-subquery, and A21 shows the checker can alter a query without fixing the real parse issue. The check_result skill needs a stronger keep-if-correct rule and a no-unnecessary-change rule.",
+    "evidence": [
+     "A7",
+     "A14",
+     "A21"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "check_result",
+      "when": "reviewing another agent's query",
+      "text": "1. List each condition in the question/evidence and the asked output columns. 2. Run the teammate's query. If every condition is present and the output columns match, keep it unchanged. 3. Never delete a condition from the evidence and never add DISTINCT, LIMIT, subqueries, tie handling, or extra columns unless the question/evidence explicitly requires them. 4. If one condition, join, value, or output column is wrong, fix only that part and rerun."
+     }
+    ]
+   },
+   {
+    "pattern": "Final queries return wrong, missing, or extra columns, often choosing a similar column or keeping helper columns used for filtering or sorting.",
+    "rationale": "A3 selected a similar identifier column, A28/A80/A104/A105/A109 show extra or wrong entity columns, and A72 returned a helper aggregate. output_columns must make the SELECT list match the asked entities/attributes exactly, with identifier columns preferred when no display attribute is asked.",
+    "evidence": [
+     "A3",
+     "A28",
+     "A39",
+     "A55",
+     "A104",
+     "A105",
+     "A109",
+     "A72",
+     "A80"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "output_columns",
+      "when": "before the final query of any question",
+      "text": "1. Select exactly the attributes the question asks for, in that order. 2. If it asks for entities without naming an attribute, return the entity's identifier column, such as the primary key or the id/link column named by evidence, not a name or helper column. 3. Do not add columns used only for filtering, sorting, or checking, and do not add DISTINCT, LIMIT, or ORDER BY unless implied. 4. Run the final query once; if rows contain extra or missing columns, fix only the SELECT list."
+     }
+    ]
+   },
+   {
+    "pattern": "Date and time values stored as text are parsed with fixed positions or strftime on non-ISO formats.",
+    "rationale": "A6 and A21 failed on time strings by assuming fixed positions, while A101/A128/A76 involve non-standard date text where strftime or fixed substrings are unsafe. The dates_text skill must require sampling and format-dependent extraction.",
+    "evidence": [
+     "A6",
+     "A21",
+     "A101",
+     "A128",
+     "A76"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "dates_text",
+      "when": "dates, years, months, ages, times, or numbers stored as text",
+      "text": "1. sample_rows the date/time column first. 2. For YYYY-MM-DD or YYYYMM text, use SUBSTR(col,1,4) for year; use the sample to choose month positions. 3. Use strftime only on ISO date strings. 4. For times with colons, parse with INSTR(col,':'), not fixed positions. 5. Compare ranges as text only for fixed-width lexicographic formats; otherwise extract parts. 6. Use evidence-defined expressions."
+     }
+    ]
+   },
+   {
+    "pattern": "Ratio and percentage queries use mismatched row sets, unnecessary DISTINCT, GROUP BY, or extra output values.",
+    "rationale": "A10, A75, A131, and A141 show denominators/numerators taken over different row sets or per-group queries when one aggregate was asked. ratio_percentage must enforce one shared row set and a single aggregate unless grouping is explicitly requested.",
+    "evidence": [
+     "A10",
+     "A75",
+     "A131",
+     "A141"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "ratio_percentage",
+      "when": "rates, ratios, percentages, averages computed by division",
+      "text": "1. Build one joined row set and put all base filters in WHERE so numerator and denominator use the same rows. 2. percentage = CAST(SUM(CASE WHEN cond THEN 1 ELSE 0 END) AS REAL)*100/COUNT(*) on that row set. 3. Do not use COUNT(DISTINCT), GROUP BY, or separate subqueries unless the question asks for distinct entities or per-group results. 4. Return one value unless groups are asked; check 0-100."
+     }
+    ]
+   },
+   {
+    "pattern": "Evidence mappings and formulas are ignored, replaced by assumptions, or not converted into the requested output.",
+    "rationale": "A16 required returning the evidence-mapped status rather than the raw column, A8 required one difference value rather than helper columns, and A79 required the evidence formula over the same driver/races. evidence_first must make evidence conditions and formulas literal and output-relevant.",
+    "evidence": [
+     "A16",
+     "A8",
+     "A79"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "evidence_first",
+      "when": "the question comes with evidence (formulas, value mappings)",
+      "text": "1. Read evidence before SQL; every mapped phrase, value, and formula must appear in the query. 2. Use evidence values literally, but if a query returns 0 rows, verify the stored spelling with find_values. 3. If evidence maps a phrase to a test and asks for that status, return the mapped text/value, not the raw column. 4. If evidence gives a formula, compute it in one expression and return only that unless other outputs are asked. 5. Do not replace an evidence condition with your own interpretation."
+     }
+    ]
+   },
+   {
+    "pattern": "The returned node does not reliably receive the output and checking skills needed to catch final-query errors.",
+    "rationale": "Several wrong teams gave the checker only output_columns or the writer no final-output skill, so column and condition errors survived. Rule 3 should mandate the minimum final skills without over-staffing every question.",
+    "evidence": [
+     "A14",
+     "A3",
+     "A35",
+     "A59",
+     "A126"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Give the fewest skills that match the question. Always give check_result to a checker and output_columns to the node whose query is returned."
+     }
+    ]
+   }
+  ],
+  "repairs": 1,
+  "prompt_chars": 146982,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.58,
+   "cost": 2895.2,
+   "meta_cost": 837.4,
+   "acc_hard": 0.5238,
+   "nodes": 1.96,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 48,
+    "writer[T][S]": 2
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   4,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Checker rewrites correct queries (removing valid conditions, swapping ORDER BY for subqueries) and fails to catch missing conditions or wrong columns in incorrect queries",
+    "rationale": "In A7 the checker removed the evidence-mandated time IS NOT NULL filter; in A14 it replaced a correct ORDER BY DESC LIMIT 1 with a MAX subquery. In A9, A17, A18, A35, A67, A80 the checker declared wrong queries correct without verifying each condition. Root cause: the checker role says 'fix any error' encouraging changes, and the check_result skill lacks explicit instructions to preserve correct queries and verify each condition individually. Editing both the role and the skill addresses over-correction and under-correction simultaneously.",
+    "evidence": [
+     "A7",
+     "A14",
+     "A9",
+     "A17",
+     "A18",
+     "A35",
+     "A67",
+     "A80"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You verify a teammate's SQL against the question and evidence. If every condition and output column is correct, return the query unchanged. Only modify the query to fix a specific missing condition or wrong column."
+     },
+     {
+      "op": "edit_skill",
+      "name": "check_result",
+      "when": "reviewing another agent's query",
+      "text": "1. List every condition from the question and evidence: each filter, join, formula, and the exact output columns requested. 2. Check each condition appears in the query with the right column and value. Add any missing one. 3. Check the SELECT list: exactly the columns the question asks for, in order, no extras. 4. Run the query. If it errors or returns 0 rows when data should exist, fix the broken filter. 5. If every condition is present and columns match, return the query unchanged. Never restructure a correct query: do not swap ORDER BY LIMIT for a MAX/MIN subquery, do not add GROUP BY, do not re-alias tables, do not remove a filter you think is redundant."
+     }
+    ]
+   },
+   {
+    "pattern": "Writer selects wrong columns, adds extra columns, or omits requested columns in the final SELECT",
+    "rationale": "A3 picked NCESDist instead of NCESSchool; A28 returned name instead of id; A87, A104, A105 added extra columns; A55, A63 omitted requested columns. The current output_columns skill says 'select exactly what the question asks' but gives no guidance on how to map question phrases to the correct column when multiple columns partially match. The 9B model picks a plausible-sounding column instead of the exact one. Adding explicit column-matching guidance and the entity-id default addresses this.",
+    "evidence": [
+     "A3",
+     "A28",
+     "A39",
+     "A55",
+     "A63",
+     "A67",
+     "A80",
+     "A87",
+     "A104",
+     "A105"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "output_columns",
+      "when": "before the final query of any question",
+      "text": "1. Map each attribute the question asks to return to its exact column in the schema. When several columns partially match, choose the one whose name most closely matches the question's wording. 2. If the question asks to list an entity without naming a specific attribute, return the entity's id or primary key column. 3. Select only those columns, in the order the question lists them. No extra columns, no helper ids, no counts unless explicitly asked. 4. Do not add DISTINCT, LIMIT, or ORDER BY unless the question requires them. 5. Run the query and verify the output columns are exactly what was asked."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent produces invalid team code (unknown agent names, missing return, undefined node references) causing fallback to a bare single writer",
+    "rationale": "18 format errors in the report: 'unknown agent agent' (3), 'return must name a node defined above' (5), 'no return' (3), 'no node' (3), 'using the last node' (3), wrong syntax (1). The current rules describe staffing in prose ('one writer with run_sql') without showing the exact code template, so the 9B meta-agent invents variable names like 'agent' or omits the return. Giving the exact code template in each rule eliminates the formatting ambiguity. A27, A54, A76 are the 3 fallback cases that got a bare writer with no skills.",
+    "evidence": [
+     "A27",
+     "A54",
+     "A76"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 1,
+      "text": "Single table, no join, no aggregation: write exactly `a = writer(tools=[\"run_sql\"], skills=[...])` on one line, then `return a` on the next line. Give 1-2 skills."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "Joins, specific values, aggregation, or ratios: write `a = writer(tools=[\"run_sql\", \"find_values\"], skills=[...])` then `c = checker(a, tools=[\"run_sql\"], skills=[\"check_result\"])` then `return c`. Give the writer 2-3 skills."
+     },
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Always give output_columns to the final node. Give value_matching when the question names a value to filter on. Give join_paths when tables must be joined. Give counting for 'how many'. Give ratio_percentage for rates or percentages. Give top_k_ties for highest, lowest, or top-N. Give dates_text for date or year filtering. Give evidence_first when evidence is provided. Do not give more than 3 skills to any node."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146941,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.46,
+   "cost": 3387.4,
+   "meta_cost": 1305.6,
+   "acc_hard": 0.4286,
+   "nodes": 1.92,
+   "shapes": {
+    "writer[T][S]>checker[T][S]": 46,
+    "writer[T][S]": 4
+   },
+   "n_shapes": 2,
+   "fallback": 0
+  },
+  "flip_b": [
+   3,
+   7
+  ]
+ }
+]

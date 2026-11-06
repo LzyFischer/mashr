@@ -1,0 +1,305 @@
+[
+ {
+  "layers": [
+   "task-agent"
+  ],
+  "changes": [
+   {
+    "pattern": "Agents copy a compound location span ('City, State' or 'Place, Country') as the answer when the grader expects a single place name",
+    "rationale": "In traces A46, A50, A53, A60, A77, A88, A92, A96, A114, A139, A142 the decomposer/checker output 'Hollis, Queens', 'Akershus Fortress, Oslo', 'Rabat, Morocco', 'New York, New York', etc. The text contains the two-part string and the model copies it wholesale despite answer_span saying 'shortest span'. Reinforcing the single-place-name rule in both the decomposer (producer) and checker (final gate) roles makes the constraint always-on rather than relying on the skill alone.",
+    "evidence": [
+     "A46",
+     "A50",
+     "A53",
+     "A60",
+     "A77",
+     "A88",
+     "A92",
+     "A96",
+     "A114",
+     "A139",
+     "A142"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "decomposer",
+      "role": "You split the question into single-hop sub-questions, answer each from the paragraphs (cite the paragraph), and combine them into the final short answer. The final answer is the shortest span from the text that answers the question: one place name for a location (not a 'City, State' or 'Place, Country' pair), a person's name without extra titles or parentheticals. If the exact fact is not stated verbatim, give the most relevant entity from the paragraphs; never answer 'not mentioned' or 'unknown'."
+     },
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "You check the answers you are given against the paragraphs: verify each hop, fix any error, and give the short answer you believe is correct. If the teammate answered 'not mentioned' or 'unknown', re-search the paragraphs for the relevant entity before accepting that. The final answer is the shortest span from the text: one place name for a location (not a 'City, State' pair), a person's name without extra qualifiers."
+     }
+    ]
+   },
+   {
+    "pattern": "Agents answer 'not mentioned' or 'unknown' when a relevant entity exists in the paragraphs but is not labelled with the exact fact word (birthplace, deathplace, burial)",
+    "rationale": "In traces A5, A14, A29, A39, A43, A45, A104, A128, A130, A140 the decomposer finds a location or entity in the text (e.g. 'Born in Los Angeles', 'exiled him to Rangoon', 'count of N\u00e1jera') but rejects it because the text does not use the exact phrase 'place of death/burial/birth'. The checker then rubber-stamps 'not mentioned'. The root cause is an over-strict reading of 'answer from the paragraphs': the model requires the exact fact label rather than accepting the most prominent associated entity. Putting 'never answer not mentioned' in the decomposer role and 're-search before accepting' in the checker role forces both nodes to commit to the best available span.",
+    "evidence": [
+     "A2",
+     "A5",
+     "A14",
+     "A29",
+     "A39",
+     "A43",
+     "A45",
+     "A104",
+     "A128",
+     "A130",
+     "A140"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "reader",
+      "role": "You answer multi-hop questions using only the given paragraphs: find each fact you need and give a short answer. For yes/no questions, answer 'yes' or 'no' decisively after checking each entity; do not hedge or explain. For locations, give one place name, not a 'City, State' pair. If the exact fact is not stated, give the most relevant entity from the paragraphs; never answer 'not mentioned' or 'unknown'."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146609,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.7,
+   "cost": 4338.5,
+   "meta_cost": 3190.5,
+   "acc_hard": 0.6585,
+   "nodes": 1.8,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 32,
+    "reader[T][S]": 9,
+    "checker[T][S],decomposer[T][S]": 6,
+    "decomposer[T][S]>checker[S]": 1
+   },
+   "n_shapes": 6,
+   "fallback": 1
+  },
+  "flip_b": [
+   3,
+   4
+  ]
+ },
+ {
+  "layers": [
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Agents copy the full text span (City, State; Title Name; Compound-Nationality) instead of the normalized short form the grader expects",
+    "rationale": "answer_span says 'as it appears in the paragraphs', so the agent reproduces 'Hollis, Queens' / 'Count Gaston IV of Foix' / 'German-American' verbatim. The grader wants a single place name, the name without honorifics, and a single nationality. Editing the skill to give explicit normalization rules fixes every over-specific answer in one place, since answer_span is given to nearly every node.",
+    "evidence": [
+     "A46",
+     "A53",
+     "A77",
+     "A96",
+     "A114",
+     "A88",
+     "A60",
+     "A40",
+     "A79",
+     "A146",
+     "A76",
+     "A1",
+     "A6",
+     "A10"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question: a name, a title, a date, a number, or yes/no. No explanation, no 'The answer is'. Keep original spelling. Keep your reasoning to at most 3 sentences. (1) Never answer 'not mentioned', 'unknown', 'unanswerable', or 'cannot be determined'\u2014always give the best span found in the text. (2) For a place, give one place name: from 'City, State/Country' give only the city (e.g. 'Queens', 'Rabat', 'New York', 'Dallas'). (3) For a person's name, drop honorifics (King, Queen, Count, Prince, Duke) and parentheticals unless the question itself includes them. (4) For a nationality, give one word (e.g. 'American', 'French'), not a hyphenated compound."
+     }
+    ]
+   },
+   {
+    "pattern": "The distractors skill makes agents over-verify entities and doubt available facts, contributing to 'not mentioned' answers and token exhaustion",
+    "rationale": "41% accuracy when given vs 61% otherwise. Traces (A10, A5, A14) show agents spending most of their output re-checking whether they have the right entity, then either concluding 'not mentioned' or running out of tokens. The skill should confirm the right paragraph quickly and then use its facts directly, including locations that are not explicitly labeled as birth/death/burial.",
+    "evidence": [
+     "A10",
+     "A5",
+     "A14",
+     "A2"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "distractors",
+      "when": "similar names, several people with one name, or paragraphs about related entities",
+      "text": "If two paragraphs share a name, pick the right one using dates, profession, or country, then use that paragraph's facts directly. Do not discard a location or name just because the label (birth / death / burial) is not explicit\u2014use the closest location stated in the correct paragraph."
+     }
+    ]
+   },
+   {
+    "pattern": "The relations skill produces verbose multi-step output that exhausts the token budget before the agent reaches a final answer",
+    "rationale": "35% accuracy when given vs 66% otherwise. Traces (A11, A17, A31, A39) show the decomposer writing long step-by-step analyses, hitting the 6000-char cut, and never emitting a clean final span. The skill should cap reasoning length and force a one-word/one-name final answer.",
+    "evidence": [
+     "A11",
+     "A17",
+     "A31",
+     "A39",
+     "A29"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "relations",
+      "when": "family or other relations (grandfather, mother-in-law, spouse, child of the director ...)",
+      "text": "Compose relations one step at a time: paternal grandfather = father's father; maternal grandmother = mother's mother; father-in-law = spouse's father; mother-in-law = spouse's mother; sibling-in-law = spouse's sibling. Name each intermediate entity in one short sentence with its paragraph number. Keep total reasoning under 4 sentences. End with the final answer as a single name or place."
+     }
+    ]
+   },
+   {
+    "pattern": "Meta-agent gives irrelevant skills (relations to non-relation questions, distractors to unambiguous questions), wasting prompt context and confusing the 9B model",
+    "rationale": "Rule 3 ('Give skills that match the question') is too vague. Traces show relations given to simple bridge questions (A34: relations+dates_numbers+bridge for a date-of-death question) and distractors given when no name collision exists. A concrete mapping lets the meta-agent staff minimally, freeing tokens for actual reasoning.",
+    "evidence": [
+     "A34",
+     "A100",
+     "A16"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 3,
+      "text": "Skills: give answer_span to every node. Add relations only when the question names a family or social relation (father, mother, spouse, grandfather, grandmother, sibling-in-law, father-in-law, mother-in-law). Add distractors only when the paragraph list contains two entities with the same or near-identical name. Add comparison for 'which / who is older, earlier, larger' or 'same' questions. Add dates_numbers for dates, ages, or counts. Add yes_no for yes/no questions. Add bridge for 'the X of Y' entity descriptions. Give at most 3 skills per node."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146623,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.76,
+   "cost": 3976.1,
+   "meta_cost": 3179.8,
+   "acc_hard": 0.7073,
+   "nodes": 1.82,
+   "shapes": {
+    "decomposer[T][S]>checker[T][S]": 27,
+    "checker[T][S],decomposer[T][S]": 13,
+    "reader[T][S]": 8,
+    "decomposer[T][S]>checker[S]": 1
+   },
+   "n_shapes": 5,
+   "fallback": 1
+  },
+  "flip_b": [
+   4,
+   2
+  ]
+ },
+ {
+  "layers": [
+   "task-agent",
+   "meta-agent",
+   "library"
+  ],
+  "changes": [
+   {
+    "pattern": "Decomposer enters long deliberation loops on single-chain compositional and inference questions, hits the token limit, and gives incomplete or 'not mentioned' answers",
+    "rationale": "Traces for A2, A5, A14, A17, A29, A39, A45, A104, A128, A130, A140 show the decomposer re-reading paragraphs 5+ times, second-guessing itself, and running out of tokens. The reader role ('find each fact you need and give a short answer') is a simpler instruction that avoids this loop. The reader already achieves 92% on comparison questions. Switching single-chain compositional/inference to a reader with search tool should let it follow the entity chain directly without the overhead of 'splitting into sub-questions'.",
+    "evidence": [
+     "A2",
+     "A5",
+     "A14",
+     "A17",
+     "A29",
+     "A39",
+     "A45",
+     "A104",
+     "A128",
+     "A130",
+     "A140",
+     "A11",
+     "A51",
+     "A56"
+    ],
+    "ops": [
+     {
+      "op": "edit_rule",
+      "rule": 2,
+      "text": "A question comparing two entities each reached through a bridge (e.g. 'which film has the older director, X or Y'): a decomposer with search and dates tools, then a checker with search. A question that follows a single chain of relations to one entity (e.g. 'the death place of the director of film X', 'the grandfather of Y'): a reader with search tool."
+     }
+    ]
+   },
+   {
+    "pattern": "Answers include extra qualifiers the grader does not expect: ', [state/country]' appended to place names, or honorifics (King, Queen, Count) prefixed to person names",
+    "rationale": "12+ location answers (A46 Hollis,Queens\u2192Queens; A53 Rabat,Morocco\u2192Rabat; A63 Timmins,Ohio\u2192Ohio; A77 New York,New York\u2192New York; A88 Pacific Palisades,California\u2192Pacific Palisades; etc.) and 5+ person answers (A76 King Mongkut (Rama IV)\u2192Mongkut; A146 Queen Yi Jiang\u2192Yi Jiang; A40 Count Gaston IV of Foix\u2192Gaston IV of Foix; A79 Joscelin II of Courtenay\u2192Joscelin II) show the model copying the full text span instead of the canonical short form. The answer_span skill already says 'no extra qualifiers' but is too vague. Making the rule explicit with examples should fix the most common format errors.",
+    "evidence": [
+     "A46",
+     "A50",
+     "A53",
+     "A60",
+     "A63",
+     "A77",
+     "A88",
+     "A92",
+     "A96",
+     "A114",
+     "A139",
+     "A142",
+     "A40",
+     "A76",
+     "A79",
+     "A91",
+     "A146"
+    ],
+    "ops": [
+     {
+      "op": "edit_skill",
+      "name": "answer_span",
+      "when": "any question",
+      "text": "Give the shortest span that answers the question, as it appears in the paragraphs: a name, a title, a date, a number or yes/no. For a place, give only the place name and drop any ', [state]' or ', [country]' that follows it. For a person, drop a leading honourific (King, Queen, Count, Duke) unless it is part of the name in the text; drop a trailing 'of [family]' or parenthetical alias. No explanation, no 'The answer is'. Keep the original spelling."
+     }
+    ]
+   },
+   {
+    "pattern": "Checker re-derives the answer from scratch and changes a correct answer into a wrong one (strips a needed title, or answers the wrong entity in the chain)",
+    "rationale": "In A3 the decomposer correctly answers 'John II, Prince of Anhalt-Zerbst' but the checker 'simplifies' it to 'John II'. In A129 the checker strips 'Duke of Orl\u00e9ans'. In A100 both nodes answer the director's name instead of the film name the question asks for. The checker role says 'fix any error and give the short answer you believe is correct', which encourages re-derivation. Changing it to 'verify and pass through unless a fact is wrong' prevents the checker from degrading correct answers while still catching genuine errors.",
+    "evidence": [
+     "A3",
+     "A129",
+     "A100",
+     "A40",
+     "A79"
+    ],
+    "ops": [
+     {
+      "op": "edit_agent",
+      "name": "checker",
+      "role": "Verify each fact in the given answer against the paragraphs. If every fact checks out, give the same answer unchanged. If a fact is wrong, correct only that fact. Make sure the final answer names the entity the question actually asks for, not an intermediate one."
+     }
+    ]
+   }
+  ],
+  "repairs": 0,
+  "prompt_chars": 146582,
+  "fail": null,
+  "dev_b": {
+   "n": 50,
+   "acc": 0.72,
+   "cost": 4154.1,
+   "meta_cost": 3160.6,
+   "acc_hard": 0.7073,
+   "nodes": 1.56,
+   "shapes": {
+    "reader[T][S]": 21,
+    "decomposer[T][S]>checker[T][S]": 11,
+    "reader[T][S]>checker[T][S]": 9,
+    "checker[T][S],decomposer[T][S]": 4
+   },
+   "n_shapes": 7,
+   "fallback": 0
+  },
+  "flip_b": [
+   2,
+   2
+  ]
+ }
+]

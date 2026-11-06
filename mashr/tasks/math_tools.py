@@ -199,9 +199,10 @@ def partial_sums(xs):
 }
 
 
-def tool_code(ids):
-    """Source preloaded for a node given these tools."""
-    return "\n".join(TOOLS[t]["code"] for t in ids if TOOLS[t]["code"].strip())
+def tool_code(ids, tools=None):
+    """Source preloaded for a node given these tools (tools: the organization's library)."""
+    tools = tools or TOOLS
+    return "\n".join(tools[t].get("code", "") for t in ids if tools[t].get("code", "").strip())
 
 
 def test_tools(run_python, tools=None):
